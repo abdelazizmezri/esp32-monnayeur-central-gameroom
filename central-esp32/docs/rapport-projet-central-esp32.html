@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Rapport projet central ESP32</title>
+  <style>
+    @page { margin: 18mm; }
+    body {
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 0;
+    }
+    h1 { color: #0f172a; font-size: 28px; margin: 0 0 8px; }
+    h2 { border-bottom: 1px solid #d1d5db; color: #1f2937; font-size: 18px; margin-top: 24px; padding-bottom: 4px; }
+    h3 { color: #374151; font-size: 14px; margin-bottom: 4px; }
+    code { background: #f3f4f6; border-radius: 4px; padding: 1px 4px; }
+    pre { background: #111827; border-radius: 8px; color: #f9fafb; overflow-wrap: break-word; padding: 10px; white-space: pre-wrap; }
+    table { border-collapse: collapse; margin: 8px 0 14px; width: 100%; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; }
+    .cover {
+      background: #0f172a;
+      border-radius: 14px;
+      color: white;
+      margin-bottom: 20px;
+      padding: 22px;
+    }
+    .cover p { color: #cbd5e1; margin: 4px 0; }
+    .badge {
+      background: #dbeafe;
+      border-radius: 999px;
+      color: #1d4ed8;
+      display: inline-block;
+      font-weight: 700;
+      margin: 3px 4px 3px 0;
+      padding: 3px 8px;
+    }
+    .note {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      margin: 10px 0;
+      padding: 8px 10px;
+    }
+    .ok {
+      background: #ecfdf5;
+      border-left: 4px solid #10b981;
+      margin: 10px 0;
+      padding: 8px 10px;
+    }
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>Rapport technique - Central ESP32 GameRoom</h1>
+    <p><strong>Date :</strong> 20 avril 2026</p>
+    <p><strong>Projet :</strong> central-esp32</p>
+    <p><strong>Objectif :</strong> centrale ESP32 pour gérer les coins, les postes de jeu, le Wi-Fi, la sécurité admin et l'interface web locale.</p>
+    <p><strong>Accès web prévu :</strong> <code>http://gameroom.local</code> ou adresse IP locale de l'ESP32.</p>
+  </section>
+
+  <h2>1. Résumé exécutif</h2>
+  <p>
+    Le projet est une application Arduino/ESP32 organisée en services C++ autour d'un serveur web embarqué.
+    Le rôle de la carte centrale est de recevoir les impulsions d'un monnayeur, convertir ces impulsions en crédits,
+    assigner des crédits aux postes, suivre leur statut, offrir une interface d'administration et permettre
+    une configuration Wi-Fi autonome.
+  </p>
+  <p>
+    Le code est globalement bien séparé : chaque domaine principal dispose d'un fichier <code>.h</code> et d'un fichier
+    <code>.cpp</code>. Les fichiers les plus volumineux sont <code>WebPage.cpp</code>, qui contient l'interface HTML/CSS/JS,
+    <code>WebRoutes.cpp</code>, qui expose les routes HTTP/API, et <code>WifiProvisioning.cpp</code>, qui gère le portail Wi-Fi.
+  </p>
+  <div class="ok">
+    Pendant ce scan, le code a été légèrement organisé : valeurs par défaut centralisées dans <code>AppConfig.h</code>,
+    suppression d'une allocation dynamique inutile dans <code>WebRoutes.cpp</code>, et conservation de la correction
+    anti-blocage sur la découverte réseau.
+  </div>
+
+  <h2>2. Fonctionnalités principales</h2>
+  <table>
+    <tr><th>Fonctionnalité</th><th>Description</th><th>Modules concernés</th></tr>
+    <tr>
+      <td>Interface web admin</td>
+      <td>Dashboard, login, gestion des postes, crédits, logs, configuration, export/import.</td>
+      <td><code>WebPage.cpp</code>, <code>WebRoutes.cpp</code>, <code>AuthService.cpp</code></td>
+    </tr>
+    <tr>
+      <td>Accès local nommé</td>
+      <td>Annonce mDNS sous <code>gameroom.local</code> avec service HTTP sur le port 80.</td>
+      <td><code>WifiService.cpp</code>, <code>AppConfig.h</code></td>
+    </tr>
+    <tr>
+      <td>Configuration Wi-Fi</td>
+      <td>Si aucun Wi-Fi n'est configuré, création d'un point d'accès <code>GameRoom-Setup</code> et portail captif.</td>
+      <td><code>WifiProvisioning.cpp</code>, <code>WifiService.cpp</code></td>
+    </tr>
+    <tr>
+      <td>Gestion du monnayeur</td>
+      <td>Lecture des impulsions sur le GPIO 27, anti-rebond, conversion en crédits.</td>
+      <td><code>CoinService.cpp</code>, <code>AppState.h</code></td>
+    </tr>
+    <tr>
+      <td>Gestion des postes</td>
+      <td>Ajout, modification, suppression, assignation de crédits, arrêt manuel, rafraîchissement du statut.</td>
+      <td><code>PostService.cpp</code>, <code>PosteClient.cpp</code></td>
+    </tr>
+    <tr>
+      <td>Découverte réseau</td>
+      <td>Scan progressif du réseau local pour trouver des postes qui répondent à <code>/status</code>.</td>
+      <td><code>DiscoveryService.cpp</code></td>
+    </tr>
+    <tr>
+      <td>Persistance</td>
+      <td>Sauvegarde des postes, crédits, configuration, mot de passe admin et token API dans <code>Preferences</code>.</td>
+      <td><code>StorageService.cpp</code></td>
+    </tr>
+    <tr>
+      <td>Logs système</td>
+      <td>Journal en mémoire limité aux derniers événements pour diagnostic depuis le dashboard.</td>
+      <td><code>LogService.cpp</code></td>
+    </tr>
+  </table>
+
+  <h2>3. Architecture du code</h2>
+  <pre>
+central-esp32.ino
+  -> initialise stockage, authentification, Wi-Fi, services et serveur web
+  -> boucle principale : serveur HTTP, monnayeur, statuts postes, découverte réseau
+
+AppConfig.h
+  -> constantes globales : Wi-Fi, mDNS, port, GPIO, timeouts, valeurs par défaut
+
+AppState.h / Post.h
+  -> modèles de données en mémoire
+
+Services métier
+  -> AuthService : sessions et token API
+  -> CoinService : impulsions monnayeur et crédits
+  -> PostService : règles métier des postes
+  -> PosteClient : client HTTP vers les postes
+  -> DiscoveryService : scan réseau progressif
+  -> StorageService : sauvegarde Preferences et JSON
+  -> LogService : événements internes
+  -> WifiService / WifiProvisioning : connexion Wi-Fi, mDNS, portail captif
+
+Web
+  -> WebRoutes : endpoints HTTP/API
+  -> WebPage : pages HTML embarquées
+  </pre>
+
+  <h2>4. Description des fichiers</h2>
+  <table>
+    <tr><th>Fichier</th><th>Rôle</th><th>Commentaires</th></tr>
+    <tr><td><code>central-esp32.ino</code></td><td>Point d'entrée Arduino.</td><td>Orchestre les services. Reste volontairement court.</td></tr>
+    <tr><td><code>AppConfig.h</code></td><td>Configuration centrale.</td><td>Bon endroit pour changer <code>gameroom</code>, le port, GPIO et timeouts.</td></tr>
+    <tr><td><code>AppState.h</code></td><td>État global en RAM.</td><td>Contient postes, crédits, logs, auth, compteurs interrupt.</td></tr>
+    <tr><td><code>Post.h</code></td><td>Modèle d'un poste.</td><td>ID, nom, IP, statut, relais, temps restant.</td></tr>
+    <tr><td><code>AuthService.*</code></td><td>Authentification.</td><td>Session cookie <code>ESPSESSION</code> et bearer token API.</td></tr>
+    <tr><td><code>CoinService.*</code></td><td>Monnayeur.</td><td>Utilise interruption GPIO et sauvegarde les crédits.</td></tr>
+    <tr><td><code>PostService.*</code></td><td>Gestion métier postes.</td><td>Validation, assignation de coins, stop, refresh progressif.</td></tr>
+    <tr><td><code>PosteClient.*</code></td><td>Client HTTP poste.</td><td>Appelle <code>/command</code> et <code>/status</code>.</td></tr>
+    <tr><td><code>DiscoveryService.*</code></td><td>Découverte automatique.</td><td>Scan une IP par cycle pour préserver la réactivité web.</td></tr>
+    <tr><td><code>StorageService.*</code></td><td>Persistance.</td><td>Preferences + sérialisation JSON des postes/config.</td></tr>
+    <tr><td><code>LogService.*</code></td><td>Journal système.</td><td>Garde les 100 derniers logs en mémoire.</td></tr>
+    <tr><td><code>WifiService.*</code></td><td>Wi-Fi normal et mDNS.</td><td>Démarre <code>gameroom.local</code>.</td></tr>
+    <tr><td><code>WifiProvisioning.*</code></td><td>Mode configuration Wi-Fi.</td><td>AP, DNS captif, scan réseaux, sauvegarde credentials.</td></tr>
+    <tr><td><code>WebRoutes.*</code></td><td>Routes HTTP.</td><td>API JSON et pages web.</td></tr>
+    <tr><td><code>WebPage.*</code></td><td>HTML/CSS/JS embarqué.</td><td>Dashboard admin et page login.</td></tr>
+  </table>
+
+  <h2>5. Flux de démarrage</h2>
+  <ol>
+    <li><code>setup()</code> initialise le port série, le stockage et charge <code>AppState</code>.</li>
+    <li><code>AuthService::begin()</code> initialise la couche auth.</li>
+    <li><code>WifiService::begin()</code> tente une connexion avec les identifiants Wi-Fi sauvegardés.</li>
+    <li>Si la connexion échoue ou si aucun identifiant n'existe, le mode AP/provisioning démarre.</li>
+    <li>Si le Wi-Fi fonctionne, mDNS démarre : <code>http://gameroom.local</code>.</li>
+    <li>Les services monnayeur, postes et routes web démarrent.</li>
+    <li><code>loop()</code> sert les requêtes web et exécute les tâches périodiques.</li>
+  </ol>
+
+  <h2>6. API HTTP exposée</h2>
+  <table>
+    <tr><th>Route</th><th>Méthode</th><th>But</th><th>Auth</th></tr>
+    <tr><td><code>/</code></td><td>GET</td><td>Dashboard admin.</td><td>Cookie session</td></tr>
+    <tr><td><code>/login</code></td><td>GET/POST</td><td>Page de login et connexion.</td><td>POST public</td></tr>
+    <tr><td><code>/logout</code></td><td>POST</td><td>Déconnexion.</td><td>Session</td></tr>
+    <tr><td><code>/posts</code></td><td>GET</td><td>État des postes, crédits, configuration rapide.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/add-post</code></td><td>POST</td><td>Ajouter un poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/post/update</code></td><td>POST</td><td>Modifier nom/IP d'un poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/post/delete</code></td><td>POST</td><td>Supprimer un poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/post/ping</code></td><td>POST</td><td>Tester un poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/assign</code></td><td>POST</td><td>Affecter des coins à un poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/stop</code></td><td>POST</td><td>Arrêter une session poste.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/config</code></td><td>POST</td><td>Modifier durée/impulsions/crédits.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/config/export</code></td><td>GET</td><td>Exporter la configuration JSON.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/config/import</code></td><td>POST</td><td>Importer une configuration JSON.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/auth/password</code></td><td>POST</td><td>Changer le mot de passe admin.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/auth/token/regenerate</code></td><td>POST</td><td>Régénérer le token API.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/logs</code></td><td>GET</td><td>Lire les logs.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/logs/clear</code></td><td>POST</td><td>Vider les logs.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/discovery/run</code></td><td>POST</td><td>Lancer la découverte réseau progressive.</td><td>Session ou token API</td></tr>
+    <tr><td><code>/wifi/reset</code></td><td>POST</td><td>Supprimer les credentials Wi-Fi et redémarrer.</td><td>Session ou token API</td></tr>
+  </table>
+
+  <h2>7. Données et persistance</h2>
+  <p>Le projet utilise <code>Preferences</code> ESP32 avec plusieurs namespaces :</p>
+  <table>
+    <tr><th>Namespace</th><th>Clés</th><th>Contenu</th></tr>
+    <tr><td><code>appcfg</code></td><td><code>coinDur</code>, <code>pulseCoin</code>, <code>availCoins</code></td><td>Configuration et crédits.</td></tr>
+    <tr><td><code>auth</code></td><td><code>adminPwd</code>, <code>apiToken</code></td><td>Sécurité admin/API.</td></tr>
+    <tr><td><code>posts</code></td><td><code>items</code></td><td>Liste JSON des postes.</td></tr>
+    <tr><td><code>wifi</code></td><td><code>ssid</code>, <code>password</code></td><td>Identifiants Wi-Fi.</td></tr>
+  </table>
+
+  <h2>8. Documentation des services</h2>
+  <h3>AuthService</h3>
+  <p>
+    Fournit <code>login</code>, <code>logout</code>, vérification cookie et bearer token.
+    Le token API est généré avec <code>esp_random()</code>. La session web est stockée en mémoire :
+    elle disparaît au redémarrage, ce qui est acceptable pour une console admin embarquée.
+  </p>
+
+  <h3>CoinService</h3>
+  <p>
+    Configure le GPIO <code>AppConfig::COIN_PIN</code> en <code>INPUT_PULLUP</code> et attache une interruption sur front descendant.
+    L'interruption incrémente <code>pulseCount</code> après anti-rebond. <code>update()</code> convertit les impulsions en crédits
+    selon <code>pulsesPerCoin</code>.
+  </p>
+
+  <h3>PostService</h3>
+  <p>
+    Valide l'unicité des ID/IP, envoie les commandes aux postes, sauvegarde les changements et rafraîchit les statuts.
+    Le rafraîchissement est progressif pour éviter qu'un poste hors ligne bloque toute l'interface.
+  </p>
+
+  <h3>PosteClient</h3>
+  <p>
+    Utilise <code>HTTPClient</code> pour communiquer avec les postes :
+    <code>POST http://IP/command</code> et <code>GET http://IP/status</code>.
+    Le timeout standard est <code>AppConfig::POSTE_STATUS_TIMEOUT_MS</code>, et la découverte utilise un timeout plus court.
+  </p>
+
+  <h3>DiscoveryService</h3>
+  <p>
+    Le scan réseau est lancé explicitement par <code>requestScan()</code>. Ensuite <code>run()</code> teste une adresse IP par passage
+    dans la boucle principale. Cette organisation empêche le serveur web de rester bloqué pendant un scan complet du subnet.
+  </p>
+
+  <h3>WifiService et WifiProvisioning</h3>
+  <p>
+    <code>WifiService</code> gère la connexion normale et mDNS. <code>WifiProvisioning</code> gère le mode AP avec portail captif :
+    page de configuration Wi-Fi, scan des réseaux et sauvegarde des credentials.
+  </p>
+
+  <h2>9. Organisation appliquée pendant le scan</h2>
+  <ul>
+    <li>Ajout de constantes par défaut dans <code>AppConfig.h</code> : mot de passe admin, durée par coin, impulsions par coin, crédits initiaux.</li>
+    <li><code>AppState.h</code> utilise maintenant ces constantes au lieu de valeurs codées en dur.</li>
+    <li><code>StorageService.cpp</code> utilise les mêmes constantes lors du chargement Preferences.</li>
+    <li><code>PosteClient.h</code> utilise <code>AppConfig::POSTE_STATUS_TIMEOUT_MS</code> comme timeout par défaut.</li>
+    <li><code>WebRoutes.cpp</code> remplace <code>new const char*[2]</code> par un tableau statique <code>AUTH_HEADERS</code>.</li>
+    <li>La correction précédente de découverte réseau progressive a été conservée et documentée.</li>
+  </ul>
+
+  <h2>10. Points d'attention</h2>
+  <div class="note">
+    <strong>Compilation non vérifiée localement :</strong> <code>arduino-cli</code> n'est pas installé dans le shell courant.
+    Il faut compiler depuis l'IDE Arduino ou installer <code>arduino-cli</code> pour une vérification automatisée.
+  </div>
+  <ul>
+    <li><strong>Sécurité :</strong> le mot de passe par défaut est <code>admin1234</code>. Il doit être changé dès la première installation.</li>
+    <li><strong>mDNS :</strong> <code>gameroom.local</code> dépend du support mDNS du client. Sur certains Windows, Bonjour/mDNS peut être nécessaire.</li>
+    <li><strong>Mémoire :</strong> les documents JSON de 8192 octets dans <code>WebRoutes.cpp</code> sont corrects pour un petit parc de postes, mais doivent être surveillés si la liste grandit.</li>
+    <li><strong>Interface embarquée :</strong> <code>WebPage.cpp</code> contient beaucoup de HTML/JS dans un raw string. C'est simple pour Arduino, mais plus difficile à maintenir qu'un fichier généré.</li>
+  </ul>
+
+  <h2>11. Recommandations</h2>
+  <ol>
+    <li>Compiler et uploader après les changements, puis tester <code>http://gameroom.local</code>.</li>
+    <li>Depuis le dashboard, vérifier que <code>/posts</code> et <code>/logs</code> répondent sans blocage.</li>
+    <li>Lancer une découverte réseau et confirmer que la page reste responsive pendant le scan.</li>
+    <li>Changer le mot de passe admin et sauvegarder le token API généré.</li>
+    <li>Si le projet grandit, extraire progressivement le JavaScript/CSS de <code>WebPage.cpp</code> vers un outil de génération ou des fichiers servis depuis LittleFS/SPIFFS.</li>
+  </ol>
+
+  <h2>12. Checklist de test manuel</h2>
+  <table>
+    <tr><th>Test</th><th>Résultat attendu</th></tr>
+    <tr><td>Démarrage sans Wi-Fi sauvegardé</td><td>AP <code>GameRoom-Setup</code> visible, portail accessible.</td></tr>
+    <tr><td>Démarrage avec Wi-Fi sauvegardé</td><td>Connexion au réseau local, logs avec IP et URL <code>gameroom.local</code>.</td></tr>
+    <tr><td>Login admin</td><td>Cookie <code>ESPSESSION</code> créé, redirection vers dashboard.</td></tr>
+    <tr><td>Chargement dashboard</td><td>Stats, postes et logs visibles, sans attente infinie.</td></tr>
+    <tr><td>Ajouter poste</td><td>Poste sauvegardé et visible après rechargement.</td></tr>
+    <tr><td>Assigner coin</td><td>Crédits diminuent et commande envoyée au poste.</td></tr>
+    <tr><td>Poste hors ligne</td><td>Statut passe à <code>offline</code> sans bloquer la page.</td></tr>
+    <tr><td>Découverte réseau</td><td>Scan progressif, logs de début/fin, interface responsive.</td></tr>
+    <tr><td>Export/import config</td><td>JSON exporté puis réimporté sans erreur.</td></tr>
+    <tr><td>Reset Wi-Fi</td><td>Credentials supprimés, redémarrage en mode configuration.</td></tr>
+  </table>
+</body>
+</html>

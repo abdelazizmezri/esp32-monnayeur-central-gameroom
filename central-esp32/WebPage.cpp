@@ -1,0 +1,474 @@
+#include "WebPage.h"
+
+namespace WebPage {
+
+  const char* loginPage() {
+    return R"rawliteral(
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion admin</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#0f172a;margin:0;padding:20px;color:#fff}
+    .card{max-width:420px;margin:60px auto;background:#fff;color:#0f172a;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;margin-top:10px}
+    button{margin-top:16px;width:100%;padding:12px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+    .error{color:#991b1b;margin-top:10px;font-size:14px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Connexion admin</h1>
+    <input id="password" type="password" placeholder="Mot de passe admin">
+    <button onclick="login()">Se connecter</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    async function login() {
+      const password = document.getElementById('password').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        document.getElementById('error').textContent = data.error || 'Erreur de connexion';
+        return;
+      }
+
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
+)rawliteral";
+  }
+
+  const char* dashboardPage() {
+    return R"rawliteral(
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>Système monnayeur</title>
+  <style>
+    :root {
+      --bg:#0f172a; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+      --accent:#2563eb; --success-bg:#dcfce7; --success-text:#166534;
+      --warning-bg:#fef3c7; --warning-text:#92400e; --danger-bg:#fee2e2; --danger-text:#991b1b;
+      --idle-bg:#e2e8f0; --idle-text:#334155; --shadow:0 10px 30px rgba(15,23,42,.12); --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#1e293b);color:white}
+    .container{max-width:1280px;margin:0 auto;padding:20px}
+    .hero{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .small-btn{border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+    .logout-btn{background:#e2e8f0;color:#0f172a}
+    .danger-btn{background:#dc2626;color:#fff}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+    .stat-card,.panel{background:var(--card);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .layout{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start}
+    .posts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .post-card{background:var(--card);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;border:1px solid var(--border)}
+    .post-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .post-title{font-size:18px;font-weight:700;margin:0}
+    .meta{color:var(--muted);font-size:13px;margin:4px 0;word-break:break-word}
+    .badge{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+    .badge.active{background:var(--success-bg);color:var(--success-text)}
+    .badge.idle{background:var(--idle-bg);color:var(--idle-text)}
+    .badge.offline{background:var(--danger-bg);color:var(--danger-text)}
+    .badge.error{background:var(--warning-bg);color:var(--warning-text)}
+    .badge.unknown{background:var(--idle-bg);color:var(--idle-text)}
+    .timer{margin:14px 0;padding:12px;border-radius:14px;background:#f8fafc;border:1px solid var(--border)}
+    .timer-value{font-size:24px;font-weight:700}
+    .relay{font-size:13px;font-weight:700;margin-bottom:12px}
+    .relay.on{color:var(--success-text)}
+    .relay.off{color:var(--danger-text)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    button.action{border:none;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+    .primary{background:var(--accent);color:white}
+    .secondary{background:#e2e8f0;color:#0f172a}
+    .warn{background:#f59e0b;color:#fff}
+    .danger{background:#dc2626;color:#fff}
+    .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    input,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border);font-size:14px}
+    textarea{min-height:180px;resize:vertical}
+    .panel-stack{display:grid;gap:18px}
+    .message{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
+    .editor{margin-top:12px;display:none;border-top:1px solid #e5e7eb;padding-top:12px}
+    .logs{max-height:320px;overflow:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:monospace;font-size:12px}
+    .log-item{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="topbar">
+        <div>
+          <h1 style="margin:0 0 8px;">Dashboard salle de jeux</h1>
+          <div style="color:#cbd5e1;">Gestion des coins, postes, logs et sécurité.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="small-btn logout-btn" onclick="logout()">Déconnexion</button>
+          <button class="small-btn danger-btn" onclick="resetWifi()">Reset Wi-Fi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="layout">
+      <div>
+        <div id="posts" class="posts-grid"></div>
+
+        <div class="panel" style="margin-top:18px;">
+          <h2>Journal d’événements</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="action primary" onclick="loadLogs()">Actualiser logs</button>
+            <button class="action danger" onclick="clearLogs()">Vider logs</button>
+          </div>
+          <div id="logs" class="logs"></div>
+        </div>
+      </div>
+
+      <div class="panel-stack">
+        <div class="panel">
+          <h2>Ajouter un poste</h2>
+          <div class="form-group"><input id="postId" placeholder="Identifiant ex: post1" /></div>
+          <div class="form-group"><input id="postName" placeholder="Nom affiché ex: Poste 1" /></div>
+          <div class="form-group"><input id="postIp" placeholder="IP ex: 192.168.1.101" /></div>
+          <button class="action primary" onclick="addPost()">Ajouter le poste</button>
+          <div class="message" id="addPostMessage"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Configuration</h2>
+          <div class="form-group"><input id="coinDurationSeconds" type="number" min="1" placeholder="Durée par coin (s)" /></div>
+          <div class="form-group"><input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" /></div>
+          <div class="form-group"><input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" /></div>
+          <button class="action primary" onclick="saveConfig()">Enregistrer</button>
+          <div class="message" id="configMessage"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Sécurité API</h2>
+          <div id="authInfo" style="font-size:14px;color:#475569;"></div>
+          <div class="form-group" style="margin-top:12px;">
+            <input id="newPassword" type="password" placeholder="Nouveau mot de passe admin" />
+          </div>
+          <button class="action primary" onclick="changePassword()">Changer mot de passe</button>
+          <button class="action warn" style="margin-top:10px;" onclick="regenerateToken()">Régénérer token API</button>
+          <div class="message" id="authMessage"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Export / Import</h2>
+          <button class="action primary" onclick="exportConfig()">Exporter config JSON</button>
+          <button class="action secondary" style="margin-top:10px;" onclick="importConfig()">Importer config JSON</button>
+          <div class="form-group" style="margin-top:12px;">
+            <textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea>
+          </div>
+          <div class="message" id="importExportMessage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatTime(totalSeconds) {
+      totalSeconds = Math.max(0, Number(totalSeconds || 0));
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function badgeClass(status) {
+      const value = (status || 'unknown').toLowerCase();
+      if (['active','idle','offline','error'].includes(value)) return value;
+      return 'unknown';
+    }
+
+    function setMessage(id, text, isError = false) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.style.color = isError ? '#b91c1c' : '#64748b';
+    }
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, options);
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        window.location.href = '/login';
+        throw new Error('unauthorized');
+      }
+      if (!res.ok) throw new Error(data.error || 'Erreur réseau');
+      return data;
+    }
+
+    function toggleEdit(id) {
+      const el = document.getElementById(`editor-${id}`);
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function load() {
+      const data = await api('/posts');
+
+      const activeCount = data.posts.filter(p => p.status === 'active').length;
+      const offlineCount = data.posts.filter(p => p.status === 'offline').length;
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card">
+          <div>Coins disponibles</div>
+          <div style="font-size:28px;font-weight:700;">${data.availableCoins}</div>
+          <button class="action primary" style="margin-top:10px;" onclick="simulateCoin()">Add 1 coin</button>
+        </div>
+        <div class="stat-card"><div>Durée par coin</div><div style="font-size:28px;font-weight:700;">${formatTime(data.coinDurationSeconds)}</div></div>
+        <div class="stat-card"><div>Postes actifs</div><div style="font-size:28px;font-weight:700;">${activeCount}</div></div>
+        <div class="stat-card"><div>Postes hors ligne</div><div style="font-size:28px;font-weight:700;">${offlineCount}</div></div>
+      `;
+
+      document.getElementById('coinDurationSeconds').value = data.coinDurationSeconds || 1800;
+      document.getElementById('pulsesPerCoin').value = data.pulsesPerCoin || 1;
+      document.getElementById('availableCoins').value = data.availableCoins || 0;
+      document.getElementById('authInfo').innerHTML = `
+        <b>Token API :</b> <code>${data.apiTokenMasked || ''}</code><br>
+        <span style="font-size:12px;color:#64748b;">Header: Authorization: Bearer TON_TOKEN</span>
+      `;
+
+      document.getElementById('posts').innerHTML = data.posts.map(p => `
+        <div class="post-card">
+          <div class="post-header">
+            <h3 class="post-title">${p.name}</h3>
+            <span class="badge ${badgeClass(p.status)}">${p.status}</span>
+          </div>
+          <div class="meta"><b>ID :</b> ${p.id}</div>
+          <div class="meta"><b>IP :</b> ${p.ip}</div>
+          <div class="timer">
+            <div>Temps restant</div>
+            <div class="timer-value">${formatTime(p.remaining)}</div>
+          </div>
+          <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
+          <div class="actions">
+            <button class="action primary" onclick="assign('${p.id}',1)">+1 coin</button>
+            <button class="action primary" onclick="assign('${p.id}',2)">+2 coins</button>
+            <button class="action secondary" onclick="stopPost('${p.id}')">Arrêter</button>
+            <button class="action warn" onclick="pingPost('${p.id}')">Ping</button>
+            <button class="action warn" onclick="toggleEdit('${p.id}')">Modifier</button>
+            <button class="action danger" onclick="deletePost('${p.id}')">Supprimer</button>
+          </div>
+
+          <div class="editor" id="editor-${p.id}">
+            <div class="form-group"><input id="edit-name-${p.id}" value="${p.name}" /></div>
+            <div class="form-group"><input id="edit-ip-${p.id}" value="${p.ip}" /></div>
+            <button class="action primary" onclick="updatePost('${p.id}')">Enregistrer modification</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function assign(postId, coins) {
+      try {
+        await api('/assign', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ post_id: postId, coins })
+        });
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function simulateCoin() {
+      try {
+        await api('/coins/simulate', { method:'POST' });
+        load();
+        loadLogs();
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function addPost() {
+      const id = document.getElementById('postId').value.trim();
+      const name = document.getElementById('postName').value.trim();
+      const ip = document.getElementById('postIp').value.trim();
+
+      try {
+        await api('/add-post', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ id, name, ip })
+        });
+        document.getElementById('postId').value = '';
+        document.getElementById('postName').value = '';
+        document.getElementById('postIp').value = '';
+        setMessage('addPostMessage', 'Poste ajouté avec succès.');
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('addPostMessage', e.message, true); }
+    }
+
+    async function updatePost(id) {
+      const name = document.getElementById(`edit-name-${id}`).value.trim();
+      const ip = document.getElementById(`edit-ip-${id}`).value.trim();
+
+      try {
+        await api('/post/update', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ id, name, ip })
+        });
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function deletePost(id) {
+      const yes = confirm(`Supprimer le poste ${id} ?`);
+      if (!yes) return;
+
+      try {
+        await api('/post/delete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ id })
+        });
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function pingPost(id) {
+      try {
+        const data = await api('/post/ping', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ id })
+        });
+        alert(data.ok ? 'Ping réussi' : 'Ping échoué');
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function saveConfig() {
+      const coinDurationSeconds = Number(document.getElementById('coinDurationSeconds').value || 0);
+      const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
+      const availableCoins = Number(document.getElementById('availableCoins').value || 0);
+
+      try {
+        await api('/config', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ coinDurationSeconds, pulsesPerCoin, availableCoins })
+        });
+        setMessage('configMessage', 'Configuration enregistrée.');
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('configMessage', e.message, true); }
+    }
+
+    async function stopPost(postId) {
+      try {
+        await api('/stop', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ post_id: postId })
+        });
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+    }
+
+    async function changePassword() {
+      const password = document.getElementById('newPassword').value.trim();
+      try {
+        await api('/auth/password', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ password })
+        });
+        document.getElementById('newPassword').value = '';
+        setMessage('authMessage', 'Mot de passe mis à jour.');
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', e.message, true); }
+    }
+
+    async function regenerateToken() {
+      const yes = confirm("Régénérer le token API ? Les anciens clients devront être mis à jour.");
+      if (!yes) return;
+
+      try {
+        const data = await api('/auth/token/regenerate', { method:'POST' });
+        setMessage('authMessage', `Nouveau token: ${data.apiToken}`);
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', e.message, true); }
+    }
+
+    async function exportConfig() {
+      try {
+        const data = await api('/config/export');
+        document.getElementById('configJson').value = data.configJson || '';
+        setMessage('importExportMessage', 'Configuration exportée.');
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
+    }
+
+    async function importConfig() {
+      const configJson = document.getElementById('configJson').value.trim();
+      if (!configJson) {
+        setMessage('importExportMessage', 'Le JSON est vide.', true);
+        return;
+      }
+
+      const yes = confirm("Importer cette configuration et écraser la configuration actuelle ?");
+      if (!yes) return;
+
+      try {
+        await api('/config/import', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ configJson })
+        });
+        setMessage('importExportMessage', 'Configuration importée avec succès.');
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
+    }
+
+    async function loadLogs() {
+      try {
+        const data = await api('/logs');
+        const html = (data.logs || []).map(log =>
+          `<div class="log-item">[${log.level}] t=${log.ts} - ${log.message}</div>`
+        ).join('');
+        document.getElementById('logs').innerHTML = html || 'Aucun log.';
+      } catch(e) {
+        if (e.message !== 'unauthorized') document.getElementById('logs').textContent = e.message;
+      }
+    }
+
+    async function clearLogs() {
+      await api('/logs/clear', { method:'POST' });
+      loadLogs();
+    }
+
+    async function logout() {
+      await fetch('/logout', { method:'POST' });
+      window.location.href = '/login';
+    }
+
+    async function resetWifi() {
+      const yes = confirm("Supprimer la configuration Wi-Fi et redémarrer ?");
+      if (!yes) return;
+      await fetch('/wifi/reset', { method:'POST' });
+      alert("Redémarrage en mode configuration Wi-Fi...");
+    }
+
+    load();
+    loadLogs();
+    setInterval(load, 3000);
+    setInterval(loadLogs, 5000);
+  </script>
+</body>
+</html>
+)rawliteral";
+  }
+}
