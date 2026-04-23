@@ -46,7 +46,7 @@ static bool hasPosteAuth() {
   return gServer->header("Authorization") == expected;
 }
 
-static void handleRoot() {
+static void handleAppPage() {
   if (!AuthService::isAuthenticated(*gServer, *gState)) {
     gServer->sendHeader("Location", "/login", true);
     gServer->send(302, "text/plain", "");
@@ -436,7 +436,11 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
 
   server.collectHeaders(AUTH_HEADERS, 2);
 
-  server.on("/", HTTP_GET, handleRoot);
+  server.on("/", HTTP_GET, handleAppPage);
+  server.on("/config", HTTP_GET, handleAppPage);
+  server.on("/logs", HTTP_GET, handleAppPage);
+  server.on("/discover", HTTP_GET, handleAppPage);
+  server.on("/security", HTTP_GET, handleAppPage);
   server.on("/login", HTTP_GET, handleLoginPage);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
@@ -456,6 +460,6 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/wifi/reset", HTTP_POST, handleWifiReset);
   server.on("/auth/password", HTTP_POST, handleChangePassword);
   server.on("/auth/token/regenerate", HTTP_POST, handleRegenerateToken);
-  server.on("/logs", HTTP_GET, handleLogs);
+  server.on("/logs/data", HTTP_GET, handleLogs);
   server.on("/logs/clear", HTTP_POST, handleLogsClear);
 }
