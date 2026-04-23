@@ -223,12 +223,12 @@ namespace WebPage {
       '/discover':'view-discover',
       '/security':'view-security'
     };
+    const currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
 
     function activateView() {
-      const path = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
       document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-      document.getElementById(viewsByPath[path]).classList.add('active');
-      document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === path));
+      document.getElementById(viewsByPath[currentPath]).classList.add('active');
+      document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === currentPath));
     }
 
     function formatTime(totalSeconds) {
@@ -527,10 +527,15 @@ namespace WebPage {
     }
 
     activateView();
-    load();
-    loadLogs();
-    setInterval(load, 3000);
-    setInterval(loadLogs, 5000);
+    if (currentPath === '/') {
+      load();
+      setInterval(load, 3000);
+    } else if (currentPath === '/logs') {
+      loadLogs();
+      setInterval(loadLogs, 5000);
+    } else {
+      load();
+    }
   </script>
 </body>
 </html>
