@@ -92,19 +92,16 @@ static String buildWifiPage(const String& message = "", bool success = false, co
 
   String infoBlock = "";
   if (message.length() > 0) {
-    String bg = success ? "#dcfce7" : "#fee2e2";
-    String color = success ? "#166534" : "#991b1b";
-
-    infoBlock += "<div style='margin-bottom:16px;padding:12px;border-radius:12px;background:" + bg +
-                 ";color:" + color + ";font-weight:700;'>" + htmlEscape(message) + "</div>";
+    infoBlock += "<div class='msg";
+    if (success) infoBlock += " ok";
+    infoBlock += "'>" + htmlEscape(message) + "</div>";
   }
 
   if (success && ip.length() > 0) {
-    infoBlock += "<div style='margin-bottom:16px;padding:12px;border-radius:12px;background:#dbeafe;"
-                 "color:#1d4ed8;font-weight:700;'>Nouvelle adresse IP : " + htmlEscape(ip) + "</div>";
-    infoBlock += "<div style='margin-bottom:16px;padding:12px;border-radius:12px;background:#f8fafc;"
-                 "color:#334155;'>L'ESP32 va redémarrer automatiquement dans quelques secondes. "
-                 "Reconnecte ton PC au réseau local puis ouvre l'adresse affichée.</div>";
+    infoBlock += "<p>Nouvelle adresse IP :</p><p class='ip'>" + htmlEscape(ip) + "</p>";
+    infoBlock += "<p>Nom de domaine :</p><p class='ip'>http://" + String(AppConfig::MDNS_HOSTNAME) + ".local</p>";
+    infoBlock += "<p class='small'>L'ESP32 va redémarrer automatiquement dans quelques secondes. "
+                 "Reconnecte ton PC au réseau local puis ouvre l'adresse affichée.</p>";
   }
 
   String html = R"rawliteral(
@@ -115,24 +112,27 @@ static String buildWifiPage(const String& message = "", bool success = false, co
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configuration Wi-Fi</title>
   <style>
-    body{font-family:Arial,sans-serif;background:#0f172a;margin:0;padding:20px;color:#fff}
-    .card{max-width:560px;margin:30px auto;background:#fff;color:#0f172a;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    h1{margin-top:0}
-    label{display:block;margin:10px 0 6px;font-weight:bold}
-    input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box}
-    button{margin-top:16px;width:100%;padding:12px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
-    .muted{color:#64748b;font-size:13px;margin-top:8px}
-    .row{display:flex;gap:10px}
-    .row > div{flex:1}
+    body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+    main{max-width:520px;margin:0 auto;padding:28px 18px}
+    section{background:#fff;border:1px solid #d8deea;border-radius:8px;padding:20px;box-shadow:0 8px 24px rgba(23,32,51,.08)}
+    h1{font-size:24px;margin:0 0 8px}p{line-height:1.45}label{display:block;font-weight:700;margin:16px 0 6px}
+    select,input,button{box-sizing:border-box;width:100%;font-size:16px;border-radius:6px}
+    select,input{border:1px solid #bac4d6;padding:12px;background:#fff}
+    button{border:0;background:#1769e0;color:#fff;padding:13px 14px;margin-top:18px;font-weight:700;cursor:pointer}
+    .msg{padding:12px;border-radius:6px;margin:14px 0;background:#fff4cc;color:#594400}
+    .ok{background:#dff5e7;color:#145c2d}.ip{font-size:20px;font-weight:700;margin:4px 0 12px;word-break:break-word}
+    a{color:#1769e0;text-decoration:none}.small,.muted{color:#5d687b;font-size:14px}
   </style>
 </head>
 <body>
-  <div class="card">
+  <main><section>
     <h1>Configuration Wi-Fi</h1>
+    <p class="small">Connecte la centrale ESP32 au réseau local utilisé par les postes.</p>
 )rawliteral";
 
   html += infoBlock;
 
+  if (!success) {
   html += R"rawliteral(
     <form method="POST" action="/wifi/save">
       <label for="ssidList">Réseaux disponibles</label>
@@ -154,10 +154,14 @@ static String buildWifiPage(const String& message = "", bool success = false, co
       <button type="submit">Enregistrer et connecter</button>
     </form>
 
-    <div class="muted">
-      Connecte l'ESP32 à ton Wi-Fi local. Après succès, utilise la nouvelle IP affichée.
-    </div>
-  </div>
+    <p class="muted">
+      Après succès, utilise l'adresse IP ou le nom de domaine affiché.
+    </p>
+)rawliteral";
+  }
+
+  html += R"rawliteral(
+  </section></main>
 </body>
 </html>
 )rawliteral";

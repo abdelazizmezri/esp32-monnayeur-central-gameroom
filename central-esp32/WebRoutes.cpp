@@ -1,4 +1,5 @@
 #include "WebRoutes.h"
+#include "AppConfig.h"
 #include "WebPage.h"
 #include "PostService.h"
 #include "StorageService.h"
@@ -34,6 +35,15 @@ static bool parseJsonBody(DynamicJsonDocument& doc) {
   }
 
   return true;
+}
+
+static bool hasPosteAuth() {
+  if (!gServer->hasHeader("Authorization")) {
+    return false;
+  }
+
+  String expected = String("Bearer ") + AppConfig::POSTE_COMMAND_TOKEN;
+  return gServer->header("Authorization") == expected;
 }
 
 static void handleRoot() {
@@ -87,6 +97,14 @@ static void handleGetPosts() {
     p["remaining"] = post.remaining;
   }
 
+  JsonArray pendingArr = doc.createNestedArray("pendingPosts");
+  for (auto& pending : gState->pendingPosts) {
+    JsonObject p = pendingArr.createNestedObject();
+    p["chipId"] = pending.chipId;
+    p["ip"] = pending.ip;
+    p["lastSeen"] = pending.lastSeen;
+  }
+
   doc["availableCoins"] = gState->availableCoins;
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
   doc["pulsesPerCoin"] = gState->pulsesPerCoin;
@@ -97,23 +115,6 @@ static void handleGetPosts() {
   gServer->send(200, "application/json", json);
 }
 
-static void handleAddPost() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
-
-  DynamicJsonDocument doc(256);
-  if (!parseJsonBody(doc)) return;
-
-  String error;
-  bool ok = PostService::addPost(*gState, doc["id"] | "", doc["name"] | "", doc["ip"] | "", error);
-
-  if (!ok) {
-    sendJsonError(400, error);
-    return;
-  }
-
-  gServer->send(200, "application/json", "{\"ok\":true}");
-}
-
 static void handleUpdatePost() {
   if (!AuthService::requireApiAuth(*gServer, *gState)) return;
 
@@ -121,7 +122,7 @@ static void handleUpdatePost() {
   if (!parseJsonBody(doc)) return;
 
   String error;
-  bool ok = PostService::updatePost(*gState, doc["id"] | "", doc["name"] | "", doc["ip"] | "", error);
+  bool ok = PostService::updatePost(*gState, doc["id"] | "", doc["name"] | "", error);
 
   if (!ok) {
     int code = error == "post not found" ? 404 : 400;
@@ -379,6 +380,56 @@ static void handlePingPost() {
   gServer->send(200, "application/json", json);
 }
 
+static void handlePosteAnnounce() {
+  if (!hasPosteAuth()) {
+    sendJsonError(401, "unauthorized");
+    return;
+  }
+
+  DynamicJsonDocument doc(512);
+  if (!parseJsonBody(doc)) return;
+
+  String error;
+  bool ok = PostService::handleAnnouncement(*gState,
+                                            doc["chipId"] | "",
+                                            doc["ip"] | "",
+                                            doc["configured"] | false,
+                                            doc["id"] | "",
+                                            doc["name"] | "",
+                                            doc["status"] | "",
+                                            doc["relay"] | false,
+                                            doc["remaining"] | 0,
+                                            error);
+  if (!ok) {
+    sendJsonError(400, error);
+    return;
+  }
+
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
+static void handleConfigurePendingPost() {
+  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(256);
+  if (!parseJsonBody(doc)) return;
+
+  String error;
+  bool ok = PostService::configurePendingPost(*gState,
+                                              doc["chipId"] | "",
+                                              doc["id"] | "",
+                                              doc["name"] | "",
+                                              error);
+  if (!ok) {
+    int code = error == "pending post not found" ? 404 : 400;
+    if (error == "poste unreachable") code = 502;
+    sendJsonError(code, error);
+    return;
+  }
+
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
 void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   gServer = &server;
   gState = &state;
@@ -391,10 +442,11 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/logout", HTTP_POST, handleLogout);
 
   server.on("/posts", HTTP_GET, handleGetPosts);
-  server.on("/add-post", HTTP_POST, handleAddPost);
   server.on("/post/update", HTTP_POST, handleUpdatePost);
   server.on("/post/delete", HTTP_POST, handleDeletePost);
   server.on("/post/ping", HTTP_POST, handlePingPost);
+  server.on("/poste/announce", HTTP_POST, handlePosteAnnounce);
+  server.on("/poste/configure", HTTP_POST, handleConfigurePendingPost);
   server.on("/assign", HTTP_POST, handleAssign);
   server.on("/coins/simulate", HTTP_POST, handleSimulateCoin);
   server.on("/config", HTTP_POST, handleConfig);

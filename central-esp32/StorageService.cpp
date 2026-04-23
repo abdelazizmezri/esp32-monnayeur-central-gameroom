@@ -142,9 +142,6 @@ namespace StorageService {
     doc["adminPassword"] = state.adminPassword;
     doc["apiToken"] = state.apiToken;
 
-    JsonArray posts = doc.createNestedArray("posts");
-    buildPostsArray(posts, state);
-
     outputJson = "";
     serializeJsonPretty(doc, outputJson);
     return true;
@@ -203,50 +200,8 @@ namespace StorageService {
       state.apiToken = value;
     }
 
-    if (doc["posts"].is<JsonArray>()) {
-      std::vector<Post> newPosts;
-
-      for (JsonObject obj : doc["posts"].as<JsonArray>()) {
-        String id = obj["id"] | "";
-        String name = obj["name"] | "";
-        String ip = obj["ip"] | "";
-        id.trim();
-        name.trim();
-        ip.trim();
-
-        if (id.isEmpty() || name.isEmpty() || ip.isEmpty()) {
-          error = "invalid post entry";
-          return false;
-        }
-
-        for (const auto& existing : newPosts) {
-          if (existing.id == id) {
-            error = "duplicate post id in import";
-            return false;
-          }
-          if (existing.ip == ip) {
-            error = "duplicate post ip in import";
-            return false;
-          }
-        }
-
-        Post p;
-        p.id = id;
-        p.name = name;
-        p.ip = ip;
-        p.status = "idle";
-        p.relay = false;
-        p.remaining = 0;
-        p.lastSeen = 0;
-        newPosts.push_back(p);
-      }
-
-      state.posts = newPosts;
-    }
-
     saveConfig(state);
     saveCredits(state);
-    savePosts(state);
     saveAuth(state);
     return true;
   }

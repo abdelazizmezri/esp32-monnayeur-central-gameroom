@@ -3,6 +3,9 @@
 #include <Arduino.h>
 
 struct PosteState {
+  String chipId;
+  bool configured = false;
+
   String id;
   String name;
   String status;

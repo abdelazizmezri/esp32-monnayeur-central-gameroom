@@ -188,8 +188,8 @@ namespace WiFiConfigService {
       page += "<p class=\"small\">Le point d'acces de configuration va disparaitre dans quelques secondes.</p>";
     } else {
       page += "<form method=\"post\" action=\"/wifi/save\">";
-      page += "<label for=\"ssid\">Reseau WiFi detecte</label>";
-      page += "<select id=\"ssid\" name=\"ssid\">" + buildNetworkOptions() + "</select>";
+      page += "<label for=\"ssidList\">Reseau WiFi detecte</label>";
+      page += "<select id=\"ssidList\" name=\"ssid\" onchange=\"document.getElementById('ssidManual').value=this.value\">" + buildNetworkOptions() + "</select>";
       page += "<label for=\"ssidManual\">Ou SSID manuel</label>";
       page += "<input id=\"ssidManual\" name=\"ssidManual\" placeholder=\"Nom du reseau\">";
       page += "<label for=\"password\">Mot de passe</label>";

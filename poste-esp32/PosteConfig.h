@@ -9,8 +9,13 @@ namespace PosteConfig {
   static const char* WIFI_SETUP_AP_PASSWORD = "";
   static const unsigned long WIFI_SETUP_AP_SHUTDOWN_DELAY_MS = 5000;
 
-  static const char* POST_ID = "post1";
-  static const char* POST_NAME = "Poste 1";
+  static const char* CENTRAL_MDNS_HOSTNAME = "gameroom";
+  static const unsigned long ANNOUNCE_INTERVAL_MS = 5000;
+
+  static const char* DEFAULT_POST_ID = "";
+  static const char* DEFAULT_POST_NAME = "";
+  // Must match AppConfig::POSTE_COMMAND_TOKEN on the central ESP32.
+  static const char* COMMAND_TOKEN = "gameroom-poste-token-change-me";
 
   static const int RELAY_PIN = 26;
 

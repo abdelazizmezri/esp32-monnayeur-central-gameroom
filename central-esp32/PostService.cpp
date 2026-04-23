@@ -8,11 +8,7 @@
 
 namespace PostService {
   void begin(AppState& state) {
-    if (state.posts.empty()) {
-      state.posts.push_back({"post1", "Poste 1", "192.168.1.101", "idle", false, 0, 0});
-      StorageService::savePosts(state);
-      LogService::info(state, "Poste par défaut créé.");
-    }
+    LogService::info(state, "Gestion des postes prête. Les nouveaux postes s'annoncent automatiquement.");
   }
 
   Post* findById(AppState& state, const String& id) {
@@ -24,27 +20,138 @@ namespace PostService {
     return nullptr;
   }
 
+  PendingPost* findPendingByChipId(AppState& state, const String& chipId) {
+    for (auto& pending : state.pendingPosts) {
+      if (pending.chipId == chipId) {
+        return &pending;
+      }
+    }
+    return nullptr;
+  }
+
   static String trimmedCopy(const String& value) {
     String trimmed = value;
     trimmed.trim();
     return trimmed;
   }
 
-  static bool ipExistsExcluding(AppState& state, const String& ip, const String& excludedId) {
+  bool upsertDiscoveredPost(AppState& state, const Post& discovered, bool& added, String& error) {
+    added = false;
+    String cleanId = trimmedCopy(discovered.id);
+    String cleanName = trimmedCopy(discovered.name);
+    String cleanIp = trimmedCopy(discovered.ip);
+
+    if (cleanId.isEmpty() || cleanName.isEmpty() || cleanIp.isEmpty()) {
+      error = "missing fields";
+      return false;
+    }
+
+    Post* existingById = findById(state, cleanId);
+    if (existingById) {
+      existingById->ip = cleanIp;
+      existingById->status = discovered.status;
+      existingById->relay = discovered.relay;
+      existingById->remaining = discovered.remaining;
+      existingById->lastSeen = millis();
+      StorageService::savePosts(state);
+      LogService::info(state, "Poste découvert mis à jour: " + cleanId + " (" + cleanIp + ")");
+      return true;
+    }
+
     for (auto& post : state.posts) {
-      if (post.id != excludedId && post.ip == ip) {
+      if (post.ip == cleanIp) {
+        post.id = cleanId;
+        post.name = cleanName;
+        post.status = discovered.status;
+        post.relay = discovered.relay;
+        post.remaining = discovered.remaining;
+        post.lastSeen = millis();
+        StorageService::savePosts(state);
+        LogService::warn(state, "Poste découvert remplace l'ancien ID sur IP " + cleanIp + ": " + cleanId);
         return true;
       }
     }
-    return false;
+
+    Post post;
+    post.id = cleanId;
+    post.name = cleanName;
+    post.ip = cleanIp;
+    post.status = discovered.status;
+    post.relay = discovered.relay;
+    post.remaining = discovered.remaining;
+    post.lastSeen = millis();
+
+    state.posts.push_back(post);
+    StorageService::savePosts(state);
+    added = true;
+    LogService::info(state, "Poste découvert ajouté: " + cleanId + " (" + cleanIp + ")");
+    return true;
   }
 
-  bool addPost(AppState& state, const String& id, const String& name, const String& ip, String& error) {
+  bool handleAnnouncement(AppState& state, const String& chipId, const String& ip,
+                          bool configured, const String& id, const String& name,
+                          const String& status, bool relay, long remaining,
+                          String& error) {
+    String cleanChipId = trimmedCopy(chipId);
+    String cleanIp = trimmedCopy(ip);
     String cleanId = trimmedCopy(id);
     String cleanName = trimmedCopy(name);
-    String cleanIp = trimmedCopy(ip);
+    String cleanStatus = trimmedCopy(status);
+    if (cleanStatus.isEmpty()) {
+      cleanStatus = "idle";
+    }
 
-    if (cleanId.isEmpty() || cleanName.isEmpty() || cleanIp.isEmpty()) {
+    if (cleanChipId.isEmpty() || cleanIp.isEmpty()) {
+      error = "missing fields";
+      return false;
+    }
+
+    if (configured && !cleanId.isEmpty() && !cleanName.isEmpty()) {
+      Post discovered;
+      discovered.id = cleanId;
+      discovered.name = cleanName;
+      discovered.ip = cleanIp;
+      discovered.status = cleanStatus;
+      discovered.relay = relay;
+      discovered.remaining = remaining < 0 ? 0 : remaining;
+
+      bool added = false;
+      if (!upsertDiscoveredPost(state, discovered, added, error)) {
+        return false;
+      }
+
+      for (size_t i = 0; i < state.pendingPosts.size(); i++) {
+        if (state.pendingPosts[i].chipId == cleanChipId) {
+          state.pendingPosts.erase(state.pendingPosts.begin() + i);
+          break;
+        }
+      }
+      return true;
+    }
+
+    PendingPost* pending = findPendingByChipId(state, cleanChipId);
+    if (pending) {
+      pending->ip = cleanIp;
+      pending->lastSeen = millis();
+      return true;
+    }
+
+    PendingPost item;
+    item.chipId = cleanChipId;
+    item.ip = cleanIp;
+    item.lastSeen = millis();
+    state.pendingPosts.push_back(item);
+    LogService::info(state, "Nouveau poste non configuré annoncé: " + cleanChipId + " (" + cleanIp + ")");
+    return true;
+  }
+
+  bool configurePendingPost(AppState& state, const String& chipId, const String& id,
+                            const String& name, String& error) {
+    String cleanChipId = trimmedCopy(chipId);
+    String cleanId = trimmedCopy(id);
+    String cleanName = trimmedCopy(name);
+
+    if (cleanChipId.isEmpty() || cleanId.isEmpty() || cleanName.isEmpty()) {
       error = "missing fields";
       return false;
     }
@@ -54,30 +161,45 @@ namespace PostService {
       return false;
     }
 
-    if (ipExistsExcluding(state, cleanIp, "")) {
-      error = "post ip already exists";
+    PendingPost* pending = findPendingByChipId(state, cleanChipId);
+    if (!pending) {
+      error = "pending post not found";
+      return false;
+    }
+
+    String ip = pending->ip;
+    if (!PosteClient::configurePost(ip, cleanId, cleanName)) {
+      error = "poste unreachable";
+      LogService::error(state, "Impossible de configurer le poste " + cleanChipId + " (" + ip + ")");
       return false;
     }
 
     Post post;
     post.id = cleanId;
     post.name = cleanName;
-    post.ip = cleanIp;
+    post.ip = ip;
     post.status = "idle";
     post.relay = false;
     post.remaining = 0;
-    post.lastSeen = 0;
+    post.lastSeen = millis();
 
     state.posts.push_back(post);
     StorageService::savePosts(state);
-    LogService::info(state, "Poste ajouté: " + cleanId + " (" + cleanIp + ")");
+
+    for (size_t i = 0; i < state.pendingPosts.size(); i++) {
+      if (state.pendingPosts[i].chipId == cleanChipId) {
+        state.pendingPosts.erase(state.pendingPosts.begin() + i);
+        break;
+      }
+    }
+
+    LogService::info(state, "Poste configuré et ajouté: " + cleanId + " (" + ip + ")");
     return true;
   }
 
-  bool updatePost(AppState& state, const String& id, const String& name, const String& ip, String& error) {
+  bool updatePost(AppState& state, const String& id, const String& name, String& error) {
     String cleanId = trimmedCopy(id);
     String cleanName = trimmedCopy(name);
-    String cleanIp = trimmedCopy(ip);
 
     Post* post = findById(state, cleanId);
     if (!post) {
@@ -85,21 +207,15 @@ namespace PostService {
       return false;
     }
 
-    if (cleanName.isEmpty() || cleanIp.isEmpty()) {
+    if (cleanName.isEmpty()) {
       error = "missing fields";
       return false;
     }
 
-    if (ipExistsExcluding(state, cleanIp, cleanId)) {
-      error = "post ip already exists";
-      return false;
-    }
-
     post->name = cleanName;
-    post->ip = cleanIp;
 
     StorageService::savePosts(state);
-    LogService::info(state, "Poste modifié: " + cleanId);
+    LogService::info(state, "Nom du poste modifié: " + cleanId);
     return true;
   }
 
@@ -170,6 +286,14 @@ namespace PostService {
   }
 
   void refreshStatuses(AppState& state) {
+    for (size_t i = 0; i < state.pendingPosts.size();) {
+      if (millis() - state.pendingPosts[i].lastSeen > AppConfig::PENDING_POST_TIMEOUT_MS) {
+        state.pendingPosts.erase(state.pendingPosts.begin() + i);
+      } else {
+        i++;
+      }
+    }
+
     if (state.posts.empty()) {
       return;
     }

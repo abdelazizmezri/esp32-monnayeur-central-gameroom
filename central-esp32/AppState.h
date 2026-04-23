@@ -11,8 +11,15 @@ struct EventLogEntry {
   String message;
 };
 
+struct PendingPost {
+  String chipId;
+  String ip;
+  unsigned long lastSeen = 0;
+};
+
 struct AppState {
   std::vector<Post> posts;
+  std::vector<PendingPost> pendingPosts;
   std::vector<EventLogEntry> logs;
 
   int pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;

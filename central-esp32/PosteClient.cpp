@@ -5,6 +5,10 @@
 #include <ArduinoJson.h>
 
 namespace PosteClient {
+  static void addAuthHeader(HTTPClient& http) {
+    http.addHeader("Authorization", String("Bearer ") + AppConfig::POSTE_COMMAND_TOKEN);
+  }
+
   bool sendCommand(const String& ip, const String& action, long durationSeconds) {
     HTTPClient http;
     String url = "http://" + ip + "/command";
@@ -12,12 +16,35 @@ namespace PosteClient {
     http.begin(url);
     http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
     http.addHeader("Content-Type", "application/json");
+    addAuthHeader(http);
 
     StaticJsonDocument<256> doc;
     doc["action"] = action;
     if (durationSeconds > 0) {
       doc["duration"] = durationSeconds;
     }
+
+    String body;
+    serializeJson(doc, body);
+
+    int code = http.POST(body);
+    http.end();
+
+    return code >= 200 && code < 300;
+  }
+
+  bool configurePost(const String& ip, const String& id, const String& name) {
+    HTTPClient http;
+    String url = "http://" + ip + "/configure";
+
+    http.begin(url);
+    http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
+    http.addHeader("Content-Type", "application/json");
+    addAuthHeader(http);
+
+    StaticJsonDocument<256> doc;
+    doc["id"] = id;
+    doc["name"] = name;
 
     String body;
     serializeJson(doc, body);
@@ -51,6 +78,7 @@ namespace PosteClient {
     }
 
     post.id = doc["id"] | post.id;
+    post.name = doc["name"] | post.name;
     post.status = doc["status"] | "unknown";
     post.relay = doc["relay"] | false;
     post.remaining = doc["remaining"] | 0;

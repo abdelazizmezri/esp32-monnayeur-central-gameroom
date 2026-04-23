@@ -102,6 +102,8 @@ namespace WebPage {
     textarea{min-height:180px;resize:vertical}
     .panel-stack{display:grid;gap:18px}
     .message{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
+    .pending-list{display:grid;gap:10px}
+    .pending-item{border:1px solid var(--border);border-radius:12px;padding:12px;background:#f8fafc}
     .editor{margin-top:12px;display:none;border-top:1px solid #e5e7eb;padding-top:12px}
     .logs{max-height:320px;overflow:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:monospace;font-size:12px}
     .log-item{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -141,12 +143,9 @@ namespace WebPage {
 
       <div class="panel-stack">
         <div class="panel">
-          <h2>Ajouter un poste</h2>
-          <div class="form-group"><input id="postId" placeholder="Identifiant ex: post1" /></div>
-          <div class="form-group"><input id="postName" placeholder="Nom affiché ex: Poste 1" /></div>
-          <div class="form-group"><input id="postIp" placeholder="IP ex: 192.168.1.101" /></div>
-          <button class="action primary" onclick="addPost()">Ajouter le poste</button>
-          <div class="message" id="addPostMessage"></div>
+          <h2>Postes non configurés</h2>
+          <div id="pendingPosts" class="pending-list"></div>
+          <div class="message" id="pendingMessage"></div>
         </div>
 
         <div class="panel">
@@ -204,6 +203,12 @@ namespace WebPage {
       el.style.color = isError ? '#b91c1c' : '#64748b';
     }
 
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+      })[ch]);
+    }
+
     async function api(url, options = {}) {
       const res = await fetch(url, options);
       const data = await res.json().catch(() => ({}));
@@ -245,32 +250,43 @@ namespace WebPage {
         <span style="font-size:12px;color:#64748b;">Header: Authorization: Bearer TON_TOKEN</span>
       `;
 
+      const pendingPosts = data.pendingPosts || [];
+      document.getElementById('pendingMessage').textContent = pendingPosts.length
+        ? `${pendingPosts.length} poste(s) en attente de configuration.`
+        : 'Aucun nouveau poste détecté.';
+      document.getElementById('pendingPosts').innerHTML = pendingPosts.map(p => `
+        <div class="pending-item">
+          <div class="meta"><b>Chip :</b> ${esc(p.chipId)}</div>
+          <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+          <button class="action primary" style="margin-top:8px;" onclick="configurePending('${esc(p.chipId)}')">Ajouter</button>
+        </div>
+      `).join('');
+
       document.getElementById('posts').innerHTML = data.posts.map(p => `
         <div class="post-card">
           <div class="post-header">
-            <h3 class="post-title">${p.name}</h3>
-            <span class="badge ${badgeClass(p.status)}">${p.status}</span>
+            <h3 class="post-title">${esc(p.name)}</h3>
+            <span class="badge ${badgeClass(p.status)}">${esc(p.status)}</span>
           </div>
-          <div class="meta"><b>ID :</b> ${p.id}</div>
-          <div class="meta"><b>IP :</b> ${p.ip}</div>
+          <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
+          <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <div class="timer">
             <div>Temps restant</div>
             <div class="timer-value">${formatTime(p.remaining)}</div>
           </div>
           <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
           <div class="actions">
-            <button class="action primary" onclick="assign('${p.id}',1)">+1 coin</button>
-            <button class="action primary" onclick="assign('${p.id}',2)">+2 coins</button>
-            <button class="action secondary" onclick="stopPost('${p.id}')">Arrêter</button>
-            <button class="action warn" onclick="pingPost('${p.id}')">Ping</button>
-            <button class="action warn" onclick="toggleEdit('${p.id}')">Modifier</button>
-            <button class="action danger" onclick="deletePost('${p.id}')">Supprimer</button>
+            <button class="action primary" onclick="assign('${esc(p.id)}',1)">+1 coin</button>
+            <button class="action primary" onclick="assign('${esc(p.id)}',2)">+2 coins</button>
+            <button class="action secondary" onclick="stopPost('${esc(p.id)}')">Arrêter</button>
+            <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
+            <button class="action warn" onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
+            <button class="action danger" onclick="deletePost('${esc(p.id)}')">Supprimer</button>
           </div>
 
-          <div class="editor" id="editor-${p.id}">
-            <div class="form-group"><input id="edit-name-${p.id}" value="${p.name}" /></div>
-            <div class="form-group"><input id="edit-ip-${p.id}" value="${p.ip}" /></div>
-            <button class="action primary" onclick="updatePost('${p.id}')">Enregistrer modification</button>
+          <div class="editor" id="editor-${esc(p.id)}">
+            <div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
+            <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
           </div>
         </div>
       `).join('');
@@ -295,34 +311,32 @@ namespace WebPage {
       } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
     }
 
-    async function addPost() {
-      const id = document.getElementById('postId').value.trim();
-      const name = document.getElementById('postName').value.trim();
-      const ip = document.getElementById('postIp').value.trim();
+    async function configurePending(chipId) {
+      const id = prompt('Identifiant du poste, ex: post1');
+      if (!id) return;
+
+      const name = prompt('Nom affiché du poste, ex: Poste 1');
+      if (!name) return;
 
       try {
-        await api('/add-post', {
+        await api('/poste/configure', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ id, name, ip })
+          body:JSON.stringify({ chipId, id: id.trim(), name: name.trim() })
         });
-        document.getElementById('postId').value = '';
-        document.getElementById('postName').value = '';
-        document.getElementById('postIp').value = '';
-        setMessage('addPostMessage', 'Poste ajouté avec succès.');
+        setMessage('pendingMessage', 'Poste configuré avec succès.');
         load();
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('addPostMessage', e.message, true); }
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('pendingMessage', e.message, true); }
     }
 
     async function updatePost(id) {
       const name = document.getElementById(`edit-name-${id}`).value.trim();
-      const ip = document.getElementById(`edit-ip-${id}`).value.trim();
 
       try {
         await api('/post/update', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ id, name, ip })
+          body:JSON.stringify({ id, name })
         });
         load();
       } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }

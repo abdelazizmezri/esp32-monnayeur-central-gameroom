@@ -1,4 +1,6 @@
 #include "PosteWebServer.h"
+#include "PosteConfig.h"
+#include "PosteIdentityService.h"
 #include "RelayService.h"
 
 #include <ArduinoJson.h>
@@ -6,6 +8,7 @@
 
 static WebServer* gServer = nullptr;
 static PosteState* gState = nullptr;
+static const char* AUTH_HEADERS[] = {"Authorization"};
 
 namespace PosteWebServer {
 
@@ -18,8 +21,24 @@ namespace PosteWebServer {
     gServer->send(code, "application/json", json);
   }
 
+  static bool isAuthorized() {
+    if (String(PosteConfig::COMMAND_TOKEN).length() < 16) {
+      return false;
+    }
+
+    if (!gServer->hasHeader("Authorization")) {
+      return false;
+    }
+
+    String auth = gServer->header("Authorization");
+    String expected = String("Bearer ") + PosteConfig::COMMAND_TOKEN;
+    return auth == expected;
+  }
+
   static void handleStatus() {
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<384> doc;
+    doc["chipId"] = gState->chipId;
+    doc["configured"] = gState->configured;
     doc["id"] = gState->id;
     doc["name"] = gState->name;
     doc["ip"] = WiFi.localIP().toString();
@@ -32,7 +51,40 @@ namespace PosteWebServer {
     gServer->send(200, "application/json", json);
   }
 
+  static void handleConfigure() {
+    if (!isAuthorized()) {
+      sendJsonError(401, "unauthorized");
+      return;
+    }
+
+    if (!gServer->hasArg("plain")) {
+      sendJsonError(400, "missing body");
+      return;
+    }
+
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, gServer->arg("plain"));
+    if (err) {
+      sendJsonError(400, "invalid json");
+      return;
+    }
+
+    String id = doc["id"] | "";
+    String name = doc["name"] | "";
+    if (!PosteIdentityService::saveIdentity(*gState, id, name)) {
+      sendJsonError(400, "invalid identity");
+      return;
+    }
+
+    gServer->send(200, "application/json", "{\"ok\":true}");
+  }
+
   static void handleCommand() {
+    if (!isAuthorized()) {
+      sendJsonError(401, "unauthorized");
+      return;
+    }
+
     if (!gServer->hasArg("plain")) {
       sendJsonError(400, "missing body");
       return;
@@ -86,8 +138,10 @@ namespace PosteWebServer {
     gServer = &server;
     gState = &state;
 
+    server.collectHeaders(AUTH_HEADERS, 1);
     server.on("/", HTTP_GET, handleRoot);
     server.on("/status", HTTP_GET, handleStatus);
+    server.on("/configure", HTTP_POST, handleConfigure);
     server.on("/command", HTTP_POST, handleCommand);
   }
 }
