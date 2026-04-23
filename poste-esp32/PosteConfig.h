@@ -17,7 +17,7 @@ namespace PosteConfig {
   // Must match AppConfig::POSTE_COMMAND_TOKEN on the central ESP32.
   static const char* COMMAND_TOKEN = "gameroom-poste-token-change-me";
 
-  static const int RELAY_PIN = 26;
+  static const int RELAY_PIN = LED_BUILTIN;//26;
 
   static const bool RELAY_ACTIVE_HIGH = true;
 

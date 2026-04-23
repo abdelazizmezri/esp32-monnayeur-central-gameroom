@@ -89,6 +89,7 @@ static void handleGetPosts() {
 
   for (auto& post : gState->posts) {
     JsonObject p = arr.createNestedObject();
+    p["chipId"] = post.chipId;
     p["id"] = post.id;
     p["name"] = post.name;
     p["ip"] = post.ip;
@@ -125,7 +126,9 @@ static void handleUpdatePost() {
   bool ok = PostService::updatePost(*gState, doc["id"] | "", doc["name"] | "", error);
 
   if (!ok) {
-    int code = error == "post not found" ? 404 : 400;
+    int code = 400;
+    if (error == "post not found") code = 404;
+    else if (error == "poste unreachable") code = 502;
     sendJsonError(code, error);
     return;
   }
@@ -143,7 +146,10 @@ static void handleDeletePost() {
   bool ok = PostService::deletePost(*gState, doc["id"] | "", error);
 
   if (!ok) {
-    sendJsonError(404, error);
+    int code = 400;
+    if (error == "post not found") code = 404;
+    else if (error == "poste unreachable") code = 502;
+    sendJsonError(code, error);
     return;
   }
 
@@ -440,6 +446,7 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/config", HTTP_GET, handleAppPage);
   server.on("/logs", HTTP_GET, handleAppPage);
   server.on("/discover", HTTP_GET, handleAppPage);
+  server.on("/postes", HTTP_GET, handleAppPage);
   server.on("/security", HTTP_GET, handleAppPage);
   server.on("/login", HTTP_GET, handleLoginPage);
   server.on("/login", HTTP_POST, handleLogin);

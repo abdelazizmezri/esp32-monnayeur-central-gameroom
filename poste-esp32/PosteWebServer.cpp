@@ -79,6 +79,17 @@ namespace PosteWebServer {
     gServer->send(200, "application/json", "{\"ok\":true}");
   }
 
+  static void handleClearIdentity() {
+    if (!isAuthorized()) {
+      sendJsonError(401, "unauthorized");
+      return;
+    }
+
+    RelayService::stopSession(*gState);
+    PosteIdentityService::clearIdentity(*gState);
+    gServer->send(200, "application/json", "{\"ok\":true}");
+  }
+
   static void handleCommand() {
     if (!isAuthorized()) {
       sendJsonError(401, "unauthorized");
@@ -142,6 +153,7 @@ namespace PosteWebServer {
     server.on("/", HTTP_GET, handleRoot);
     server.on("/status", HTTP_GET, handleStatus);
     server.on("/configure", HTTP_POST, handleConfigure);
+    server.on("/identity/clear", HTTP_POST, handleClearIdentity);
     server.on("/command", HTTP_POST, handleCommand);
   }
 }

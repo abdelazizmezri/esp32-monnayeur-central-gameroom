@@ -5,4 +5,5 @@
 namespace PosteIdentityService {
   void begin(PosteState& state);
   bool saveIdentity(PosteState& state, const String& id, const String& name);
+  void clearIdentity(PosteState& state);
 }

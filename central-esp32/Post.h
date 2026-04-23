@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 struct Post {
+  String chipId;
   String id;
   String name;
   String ip;

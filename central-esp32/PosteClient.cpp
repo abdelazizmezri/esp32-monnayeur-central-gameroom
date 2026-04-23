@@ -55,6 +55,21 @@ namespace PosteClient {
     return code >= 200 && code < 300;
   }
 
+  bool clearIdentity(const String& ip) {
+    HTTPClient http;
+    String url = "http://" + ip + "/identity/clear";
+
+    http.begin(url);
+    http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
+    http.addHeader("Content-Type", "application/json");
+    addAuthHeader(http);
+
+    int code = http.POST("{}");
+    http.end();
+
+    return code >= 200 && code < 300;
+  }
+
   bool fetchStatus(Post& post, uint16_t timeoutMs) {
     HTTPClient http;
     String url = "http://" + post.ip + "/status";
@@ -78,6 +93,7 @@ namespace PosteClient {
     }
 
     post.id = doc["id"] | post.id;
+    post.chipId = doc["chipId"] | post.chipId;
     post.name = doc["name"] | post.name;
     post.status = doc["status"] | "unknown";
     post.relay = doc["relay"] | false;

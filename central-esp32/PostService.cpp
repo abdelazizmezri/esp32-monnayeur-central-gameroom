@@ -48,6 +48,7 @@ namespace PostService {
 
     Post* existingById = findById(state, cleanId);
     if (existingById) {
+      existingById->chipId = discovered.chipId;
       existingById->ip = cleanIp;
       existingById->status = discovered.status;
       existingById->relay = discovered.relay;
@@ -60,6 +61,7 @@ namespace PostService {
 
     for (auto& post : state.posts) {
       if (post.ip == cleanIp) {
+        post.chipId = discovered.chipId;
         post.id = cleanId;
         post.name = cleanName;
         post.status = discovered.status;
@@ -73,6 +75,7 @@ namespace PostService {
     }
 
     Post post;
+    post.chipId = discovered.chipId;
     post.id = cleanId;
     post.name = cleanName;
     post.ip = cleanIp;
@@ -108,6 +111,7 @@ namespace PostService {
 
     if (configured && !cleanId.isEmpty() && !cleanName.isEmpty()) {
       Post discovered;
+      discovered.chipId = cleanChipId;
       discovered.id = cleanId;
       discovered.name = cleanName;
       discovered.ip = cleanIp;
@@ -175,6 +179,7 @@ namespace PostService {
     }
 
     Post post;
+    post.chipId = cleanChipId;
     post.id = cleanId;
     post.name = cleanName;
     post.ip = ip;
@@ -212,6 +217,17 @@ namespace PostService {
       return false;
     }
 
+    if (post->status == "active" || post->remaining > 0) {
+      error = "post active";
+      return false;
+    }
+
+    if (!PosteClient::configurePost(post->ip, cleanId, cleanName)) {
+      error = "poste unreachable";
+      LogService::error(state, "Impossible de modifier l'identité du poste: " + cleanId);
+      return false;
+    }
+
     post->name = cleanName;
 
     StorageService::savePosts(state);
@@ -220,11 +236,39 @@ namespace PostService {
   }
 
   bool deletePost(AppState& state, const String& id, String& error) {
+    String cleanId = trimmedCopy(id);
+
     for (size_t i = 0; i < state.posts.size(); i++) {
-      if (state.posts[i].id == id) {
+      if (state.posts[i].id == cleanId) {
+        if (state.posts[i].status == "active" || state.posts[i].remaining > 0) {
+          error = "post active";
+          return false;
+        }
+
+        String chipId = state.posts[i].chipId;
+        String ip = state.posts[i].ip;
+        if (!PosteClient::clearIdentity(ip)) {
+          error = "poste unreachable";
+          LogService::error(state, "Impossible de déconfigurer le poste avant suppression: " + cleanId);
+          return false;
+        }
+
         state.posts.erase(state.posts.begin() + i);
+        if (!chipId.isEmpty()) {
+          PendingPost* pending = findPendingByChipId(state, chipId);
+          if (pending) {
+            pending->ip = ip;
+            pending->lastSeen = millis();
+          } else {
+            PendingPost item;
+            item.chipId = chipId;
+            item.ip = ip;
+            item.lastSeen = millis();
+            state.pendingPosts.push_back(item);
+          }
+        }
         StorageService::savePosts(state);
-        LogService::warn(state, "Poste supprimé: " + id);
+        LogService::warn(state, "Poste supprimé et remis en découverte: " + cleanId);
         return true;
       }
     }

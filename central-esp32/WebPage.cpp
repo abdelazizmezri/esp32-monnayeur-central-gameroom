@@ -99,6 +99,7 @@ namespace WebPage {
     .relay.off{color:var(--danger-text)}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button.action{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+    button.action:disabled{opacity:.45;cursor:not-allowed}
     .primary{background:var(--accent);color:white}
     .secondary{background:#e2e8f0;color:#0f172a}
     .warn{background:#f59e0b;color:#fff}
@@ -133,7 +134,7 @@ namespace WebPage {
         <a href="/" data-path="/">Home</a>
         <a href="/config" data-path="/config">Configuration</a>
         <a href="/logs" data-path="/logs">Logs</a>
-        <a href="/discover" data-path="/discover">Découverte postes</a>
+        <a href="/postes" data-path="/postes">Gestion des postes</a>
         <a href="/security" data-path="/security">Mot de passe / Token</a>
       </nav>
     </div>
@@ -184,12 +185,23 @@ namespace WebPage {
       </div>
     </section>
 
-    <section class="view" id="view-discover">
-      <h2 class="page-title">Découvrir et ajouter des postes</h2>
-      <div class="panel">
-        <h2>Postes non configurés</h2>
-        <div id="pendingPosts" class="pending-list"></div>
-        <div class="message" id="pendingMessage"></div>
+    <section class="view" id="view-postes">
+      <h2 class="page-title">Gestion des postes</h2>
+      <div class="page-grid">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <h2 style="margin:0;">Postes configurés</h2>
+            <button class="action primary" onclick="load()">Actualiser</button>
+          </div>
+          <div id="managedPosts" class="pending-list"></div>
+          <div class="message" id="managedMessage"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Postes découverts</h2>
+          <div id="pendingPosts" class="pending-list"></div>
+          <div class="message" id="pendingMessage"></div>
+        </div>
       </div>
     </section>
 
@@ -220,7 +232,8 @@ namespace WebPage {
       '/':'view-home',
       '/config':'view-config',
       '/logs':'view-logs',
-      '/discover':'view-discover',
+      '/discover':'view-postes',
+      '/postes':'view-postes',
       '/security':'view-security'
     };
     let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
@@ -228,9 +241,10 @@ namespace WebPage {
     let logsTimer = null;
 
     function activateView() {
+      const navPath = currentPath === '/discover' ? '/postes' : currentPath;
       document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
       document.getElementById(viewsByPath[currentPath]).classList.add('active');
-      document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === currentPath));
+      document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === navPath));
     }
 
     function stopRefreshTimers() {
@@ -259,9 +273,8 @@ namespace WebPage {
       } else if (currentPath === '/logs') {
         loadLogs();
         logsTimer = setInterval(loadLogs, 5000);
-      } else if (currentPath === '/discover') {
+      } else if (currentPath === '/postes' || currentPath === '/discover') {
         load();
-        refreshTimer = setInterval(load, 3000);
       } else {
         load();
       }
@@ -378,17 +391,39 @@ namespace WebPage {
             <button class="action primary" onclick="assign('${esc(p.id)}',1)">+1 coin</button>
             <button class="action primary" onclick="assign('${esc(p.id)}',2)">+2 coins</button>
             <button class="action secondary" onclick="stopPost('${esc(p.id)}')">Arrêter</button>
-            <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
-            <button class="action warn" onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
-            <button class="action danger" onclick="deletePost('${esc(p.id)}')">Supprimer</button>
-          </div>
-
-          <div class="editor" id="editor-${esc(p.id)}">
-            <div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
-            <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
           </div>
         </div>
       `).join('') : '<div class="empty">Aucun poste configuré.</div>';
+
+      const managedPostsEl = document.getElementById('managedPosts');
+      if (managedPostsEl) {
+        managedPostsEl.innerHTML = posts.length ? posts.map(p => {
+          const locked = p.status === 'active' || Number(p.remaining || 0) > 0;
+          return `
+            <div class="pending-item">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:16px;font-weight:700;">${esc(p.name)}</div>
+                  <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
+                  <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+                  <div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
+                </div>
+                <span class="badge ${badgeClass(p.status)}">${esc(p.status)}</span>
+              </div>
+              <div class="actions" style="margin-top:10px;">
+                <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
+                <button class="action warn" ${locked ? 'disabled' : ''} onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
+                <button class="action danger" ${locked ? 'disabled' : ''} onclick="deletePost('${esc(p.id)}')">Supprimer</button>
+              </div>
+              ${locked ? '<div class="message">Modification et suppression disponibles uniquement si le poste est inactif et le timer est à 0.</div>' : ''}
+              <div class="editor" id="editor-${esc(p.id)}">
+                <div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
+                <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">Aucun poste configuré.</div>';
+      }
     }
 
     async function assign(postId, coins) {
@@ -437,8 +472,14 @@ namespace WebPage {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ id, name })
         });
+        setMessage('managedMessage', 'Poste modifié avec succès.');
         load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+      } catch(e) {
+        if (e.message !== 'unauthorized') {
+          setMessage('managedMessage', e.message, true);
+          alert(e.message);
+        }
+      }
     }
 
     async function deletePost(id) {
@@ -451,8 +492,14 @@ namespace WebPage {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ id })
         });
+        setMessage('managedMessage', 'Poste supprimé. Il réapparaîtra dans les postes découverts à sa prochaine annonce.');
         load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+      } catch(e) {
+        if (e.message !== 'unauthorized') {
+          setMessage('managedMessage', e.message, true);
+          alert(e.message);
+        }
+      }
     }
 
     async function pingPost(id) {

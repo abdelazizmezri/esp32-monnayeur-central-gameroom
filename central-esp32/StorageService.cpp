@@ -44,9 +44,30 @@ namespace StorageService {
   static void buildPostsArray(JsonArray arr, const AppState& state) {
     for (const auto& post : state.posts) {
       JsonObject obj = arr.createNestedObject();
+      obj["chipId"] = post.chipId;
       obj["id"] = post.id;
       obj["name"] = post.name;
       obj["ip"] = post.ip;
+    }
+  }
+
+  static void loadPostsFromArray(AppState& state, JsonArray arr) {
+    state.posts.clear();
+
+    for (JsonObject obj : arr) {
+      Post p;
+      p.chipId = obj["chipId"] | "";
+      p.id = obj["id"] | "";
+      p.name = obj["name"] | "";
+      p.ip = obj["ip"] | "";
+      p.status = "idle";
+      p.relay = false;
+      p.remaining = 0;
+      p.lastSeen = 0;
+
+      if (!p.id.isEmpty() && !p.ip.isEmpty()) {
+        state.posts.push_back(p);
+      }
     }
   }
 
@@ -75,21 +96,13 @@ namespace StorageService {
 
     DynamicJsonDocument doc(4096);
     DeserializationError err = deserializeJson(doc, postsJson);
-    if (!err && doc.is<JsonArray>()) {
-      state.posts.clear();
-
-      for (JsonObject obj : doc.as<JsonArray>()) {
-        Post p;
-        p.id = obj["id"] | "";
-        p.name = obj["name"] | "";
-        p.ip = obj["ip"] | "";
-        p.status = "idle";
-        p.relay = false;
-        p.remaining = 0;
-        p.lastSeen = 0;
-
-        if (!p.id.isEmpty() && !p.ip.isEmpty()) {
-          state.posts.push_back(p);
+    if (!err) {
+      if (doc.is<JsonArray>()) {
+        loadPostsFromArray(state, doc.as<JsonArray>());
+      } else if (doc.is<JsonObject>()) {
+        JsonObject root = doc.as<JsonObject>();
+        if (root["posts"].is<JsonArray>()) {
+          loadPostsFromArray(state, root["posts"].as<JsonArray>());
         }
       }
     }
@@ -115,8 +128,8 @@ namespace StorageService {
 
   void savePosts(const AppState& state) {
     DynamicJsonDocument doc(4096);
-    JsonArray arr = doc.to<JsonArray>();
-    buildPostsArray(arr, state);
+    JsonArray posts = doc.createNestedArray("posts");
+    buildPostsArray(posts, state);
 
     String json;
     serializeJson(doc, json);

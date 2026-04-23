@@ -53,4 +53,15 @@ namespace PosteIdentityService {
     state.configured = true;
     return true;
   }
+
+  void clearIdentity(PosteState& state) {
+    prefs.begin("identity", false);
+    prefs.remove("id");
+    prefs.remove("name");
+    prefs.end();
+
+    state.id = "";
+    state.name = "";
+    state.configured = false;
+  }
 }
