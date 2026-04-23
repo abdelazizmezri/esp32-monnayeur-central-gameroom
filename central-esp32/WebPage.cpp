@@ -223,12 +223,61 @@ namespace WebPage {
       '/discover':'view-discover',
       '/security':'view-security'
     };
-    const currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
+    let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
+    let refreshTimer = null;
+    let logsTimer = null;
 
     function activateView() {
       document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
       document.getElementById(viewsByPath[currentPath]).classList.add('active');
       document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === currentPath));
+    }
+
+    function stopRefreshTimers() {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+      if (logsTimer) {
+        clearInterval(logsTimer);
+        logsTimer = null;
+      }
+    }
+
+    function startPage(path, pushState = true) {
+      currentPath = viewsByPath[path] ? path : '/';
+      if (pushState && window.location.pathname !== currentPath) {
+        history.pushState({ path: currentPath }, '', currentPath);
+      }
+
+      activateView();
+      stopRefreshTimers();
+
+      if (currentPath === '/') {
+        load();
+        refreshTimer = setInterval(load, 3000);
+      } else if (currentPath === '/logs') {
+        loadLogs();
+        logsTimer = setInterval(loadLogs, 5000);
+      } else if (currentPath === '/discover') {
+        load();
+        refreshTimer = setInterval(load, 3000);
+      } else {
+        load();
+      }
+    }
+
+    function setupNavigation() {
+      document.querySelectorAll('.nav a').forEach(link => {
+        link.addEventListener('click', event => {
+          event.preventDefault();
+          startPage(link.dataset.path || '/');
+        });
+      });
+
+      window.addEventListener('popstate', () => {
+        startPage(window.location.pathname, false);
+      });
     }
 
     function formatTime(totalSeconds) {
@@ -526,16 +575,8 @@ namespace WebPage {
       alert("Redémarrage en mode configuration Wi-Fi...");
     }
 
-    activateView();
-    if (currentPath === '/') {
-      load();
-      setInterval(load, 3000);
-    } else if (currentPath === '/logs') {
-      loadLogs();
-      setInterval(loadLogs, 5000);
-    } else {
-      load();
-    }
+    setupNavigation();
+    startPage(currentPath, false);
   </script>
 </body>
 </html>
