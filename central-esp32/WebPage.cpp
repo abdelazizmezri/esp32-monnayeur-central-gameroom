@@ -20,19 +20,21 @@ namespace WebPage {
 </head>
 <body>
   <div class="card">
-    <h1>Connexion admin</h1>
-    <input id="password" type="password" placeholder="Mot de passe admin">
+    <h1>Connexion</h1>
+    <input id="username" type="text" value="admin" placeholder="Nom d'utilisateur" autocomplete="username">
+    <input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password">
     <button onclick="login()">Se connecter</button>
     <div class="error" id="error"></div>
   </div>
 
   <script>
     async function login() {
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
       const res = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ username, password })
       });
 
       const data = await res.json().catch(() => ({}));
@@ -105,7 +107,7 @@ namespace WebPage {
     .warn{background:#f59e0b;color:#fff}
     .danger{background:#dc2626;color:#fff}
     .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-    input,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px}
+    input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
     textarea{min-height:220px;resize:vertical;font-family:monospace}
     .message{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
     .pending-list{display:grid;gap:10px}
@@ -124,18 +126,20 @@ namespace WebPage {
         <div>
           <h1 style="margin:0 0 8px;">Central monnayeur</h1>
           <div style="color:#cbd5e1;">Gestion des postes, crédits, configuration, logs et sécurité.</div>
+          <div id="currentUserLabel" style="color:#93c5fd;font-size:13px;margin-top:6px;"></div>
         </div>
         <div class="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="small-btn logout-btn" onclick="logout()">Déconnexion</button>
-          <button class="small-btn danger-btn" onclick="resetWifi()">Reset Wi-Fi</button>
+          <button class="small-btn danger-btn" data-admin-only hidden onclick="resetWifi()">Reset Wi-Fi</button>
         </div>
       </div>
       <nav class="nav">
         <a href="/" data-path="/">Home</a>
-        <a href="/config" data-path="/config">Configuration</a>
-        <a href="/logs" data-path="/logs">Logs</a>
-        <a href="/postes" data-path="/postes">Gestion des postes</a>
-        <a href="/security" data-path="/security">Mot de passe / Token</a>
+        <a href="/config" data-path="/config" data-admin-only hidden>Configuration</a>
+        <a href="/logs" data-path="/logs" data-admin-only hidden>Logs</a>
+        <a href="/postes" data-path="/postes" data-admin-only hidden>Gestion des postes</a>
+        <a href="/users" data-path="/users" data-admin-only hidden>Utilisateurs</a>
+        <a href="/security" data-path="/security" data-admin-only hidden>Mot de passe / Token</a>
       </nav>
     </div>
 
@@ -205,13 +209,43 @@ namespace WebPage {
       </div>
     </section>
 
+    <section class="view" id="view-users">
+      <h2 class="page-title">Gestion des utilisateurs</h2>
+      <div class="page-grid">
+        <div class="panel">
+          <h2>Ajouter un utilisateur</h2>
+          <div class="form-group"><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div>
+          <div class="form-group"><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div>
+          <div class="form-group"><input id="createLastName" maxlength="64" placeholder="Nom" /></div>
+          <div class="form-group"><input id="createPassword" type="password" minlength="6" placeholder="Mot de passe (6 caractères minimum)" /></div>
+          <div class="form-group">
+            <select id="createRole">
+              <option value="user">Utilisateur simple</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+          <button class="action primary" onclick="createUser()">Ajouter</button>
+          <div class="message" id="createUserMessage"></div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <h2 style="margin:0;">Comptes existants</h2>
+            <button class="action primary" onclick="loadUsers()">Actualiser</button>
+          </div>
+          <div id="usersList" class="pending-list"></div>
+          <div class="message" id="usersMessage"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="view" id="view-security">
       <h2 class="page-title">Mot de passe et API token</h2>
       <div class="page-grid">
         <div class="panel">
-          <h2>Mot de passe admin</h2>
+          <h2>Votre mot de passe administrateur</h2>
           <div class="form-group">
-            <input id="newPassword" type="password" placeholder="Nouveau mot de passe admin" />
+            <input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" />
           </div>
           <button class="action primary" onclick="changePassword()">Changer mot de passe</button>
           <div class="message" id="authMessage"></div>
@@ -234,11 +268,30 @@ namespace WebPage {
       '/logs':'view-logs',
       '/discover':'view-postes',
       '/postes':'view-postes',
+      '/users':'view-users',
       '/security':'view-security'
     };
     let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
     let refreshTimer = null;
     let logsTimer = null;
+    let currentRole = 'user';
+    let currentUsername = '';
+
+    function applyPermissions(data) {
+      currentRole = data.accessRole || 'user';
+      currentUsername = data.currentUser?.username || '';
+      const isAdmin = currentRole === 'admin';
+      document.querySelectorAll('[data-admin-only]').forEach(el => { el.hidden = !isAdmin; });
+
+      const identity = data.currentUser;
+      document.getElementById('currentUserLabel').textContent = identity
+        ? `${identity.firstName} ${identity.lastName} — ${identity.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}`
+        : 'Accès API';
+
+      if (!isAdmin && currentPath !== '/') {
+        startPage('/');
+      }
+    }
 
     function activateView() {
       const navPath = currentPath === '/discover' ? '/postes' : currentPath;
@@ -275,6 +328,9 @@ namespace WebPage {
         logsTimer = setInterval(loadLogs, 5000);
       } else if (currentPath === '/postes' || currentPath === '/discover') {
         load();
+      } else if (currentPath === '/users') {
+        load();
+        loadUsers();
       } else {
         load();
       }
@@ -315,6 +371,23 @@ namespace WebPage {
       el.style.color = isError ? '#b91c1c' : '#64748b';
     }
 
+    function friendlyError(message) {
+      return ({
+        'invalid username': "Nom d'utilisateur invalide (3 à 32 caractères : lettres, chiffres, point, tiret ou underscore).",
+        'invalid name': 'Nom et prénom obligatoires.',
+        'password too short': 'Le mot de passe doit contenir au moins 6 caractères.',
+        'invalid role': 'Rôle invalide.',
+        'username already exists': "Ce nom d'utilisateur existe déjà.",
+        'user limit reached': "La limite d'utilisateurs est atteinte.",
+        'user not found': 'Utilisateur introuvable.',
+        'cannot delete own account': 'Vous ne pouvez pas supprimer votre propre compte.',
+        'cannot change own role': 'Vous ne pouvez pas modifier votre propre rôle.',
+        'last admin required': 'Au moins un administrateur doit être conservé.',
+        'use password settings': 'Utilisez la page Sécurité pour modifier votre propre mot de passe.',
+        'admin required': 'Cette action est réservée aux administrateurs.'
+      })[message] || message;
+    }
+
     function esc(value) {
       return String(value ?? '').replace(/[&<>"']/g, ch => ({
         '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -339,6 +412,7 @@ namespace WebPage {
 
     async function load() {
       const data = await api('/posts');
+      applyPermissions(data);
       const posts = data.posts || [];
       const activeCount = posts.filter(p => p.status === 'active').length;
       const offlineCount = posts.filter(p => p.status === 'offline').length;
@@ -347,7 +421,7 @@ namespace WebPage {
         <div class="stat-card">
           <div>Coins disponibles</div>
           <div style="font-size:28px;font-weight:700;">${data.availableCoins}</div>
-          <button class="action primary" style="margin-top:10px;" onclick="simulateCoin()">+1 coin</button>
+          ${currentRole === 'admin' ? '<button class="action primary" style="margin-top:10px;" onclick="simulateCoin()">+1 coin</button>' : ''}
         </div>
         <div class="stat-card"><div>Durée par coin</div><div style="font-size:28px;font-weight:700;">${formatTime(data.coinDurationSeconds)}</div></div>
         <div class="stat-card"><div>Postes actifs</div><div style="font-size:28px;font-weight:700;">${activeCount}</div></div>
@@ -540,17 +614,115 @@ namespace WebPage {
       } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
     }
 
+    async function loadUsers() {
+      try {
+        const data = await api('/users/data');
+        currentUsername = data.currentUsername || currentUsername;
+        const users = data.users || [];
+        document.getElementById('usersList').innerHTML = users.length ? users.map(user => {
+          const isCurrent = user.username === currentUsername;
+          return `
+            <div class="pending-item">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+                <div><b>${esc(user.username)}</b>${isCurrent ? ' (vous)' : ''}</div>
+                <span class="badge ${user.role === 'admin' ? 'active' : 'idle'}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
+              </div>
+              <div class="form-group"><input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" /></div>
+              <div class="form-group"><input id="user-last-${user.username}" maxlength="64" value="${esc(user.lastName)}" placeholder="Nom" /></div>
+              <div class="form-group">
+                <select id="user-role-${user.username}" ${isCurrent ? 'disabled' : ''}>
+                  <option value="user" ${user.role === 'user' ? 'selected' : ''}>Utilisateur simple</option>
+                  <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrateur</option>
+                </select>
+              </div>
+              ${isCurrent ? '' : `<div class="form-group"><input id="user-password-${user.username}" type="password" minlength="6" placeholder="Nouveau mot de passe (facultatif)" /></div>`}
+              <div class="actions">
+                <button class="action primary" onclick="updateUser('${user.username}', ${isCurrent})">Enregistrer</button>
+                <button class="action danger" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">Supprimer</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">Aucun utilisateur.</div>';
+      } catch(e) {
+        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+      }
+    }
+
+    async function createUser() {
+      const username = document.getElementById('createUsername').value.trim();
+      const firstName = document.getElementById('createFirstName').value.trim();
+      const lastName = document.getElementById('createLastName').value.trim();
+      const password = document.getElementById('createPassword').value;
+      const role = document.getElementById('createRole').value;
+
+      try {
+        await api('/users/create', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ username, firstName, lastName, password, role })
+        });
+        ['createUsername','createFirstName','createLastName','createPassword'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('createRole').value = 'user';
+        setMessage('createUserMessage', 'Utilisateur ajouté avec succès.');
+        loadUsers();
+      } catch(e) {
+        if (e.message !== 'unauthorized') setMessage('createUserMessage', friendlyError(e.message), true);
+      }
+    }
+
+    async function updateUser(username, isCurrent) {
+      const firstName = document.getElementById(`user-first-${username}`).value.trim();
+      const lastName = document.getElementById(`user-last-${username}`).value.trim();
+      const role = document.getElementById(`user-role-${username}`).value;
+      const passwordInput = isCurrent ? null : document.getElementById(`user-password-${username}`);
+      const password = passwordInput ? passwordInput.value : '';
+
+      try {
+        await api('/users/update', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ username, firstName, lastName, password, role })
+        });
+        setMessage('usersMessage', 'Utilisateur mis à jour.');
+        loadUsers();
+        load();
+      } catch(e) {
+        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Supprimer l'utilisateur ${username} ?`)) return;
+
+      try {
+        await api('/users/delete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ username })
+        });
+        setMessage('usersMessage', 'Utilisateur supprimé.');
+        loadUsers();
+      } catch(e) {
+        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+      }
+    }
+
     async function changePassword() {
       const password = document.getElementById('newPassword').value.trim();
       try {
-        await api('/auth/password', {
+        const data = await api('/auth/password', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ password })
         });
-        document.getElementById('newPassword').value = '';
-        setMessage('authMessage', 'Mot de passe mis à jour.');
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', e.message, true); }
+        if (data.reauthenticate) {
+          alert('Mot de passe mis à jour. Veuillez vous reconnecter.');
+          window.location.href = '/login';
+          return;
+        }
+      } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', friendlyError(e.message), true); }
     }
 
     async function regenerateToken() {

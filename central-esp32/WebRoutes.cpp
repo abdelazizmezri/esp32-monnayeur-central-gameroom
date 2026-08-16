@@ -56,6 +56,22 @@ static void handleAppPage() {
   gServer->send(200, "text/html", WebPage::dashboardPage());
 }
 
+static void handleAdminPage() {
+  if (!AuthService::isAuthenticated(*gServer, *gState)) {
+    gServer->sendHeader("Location", "/login", true);
+    gServer->send(302, "text/plain", "");
+    return;
+  }
+
+  if (!AuthService::isAdmin(*gServer, *gState)) {
+    gServer->sendHeader("Location", "/", true);
+    gServer->send(302, "text/plain", "");
+    return;
+  }
+
+  gServer->send(200, "text/html", WebPage::dashboardPage());
+}
+
 static void handleLoginPage() {
   gServer->send(200, "text/html", WebPage::loginPage());
 }
@@ -64,20 +80,23 @@ static void handleLogin() {
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
 
+  String username = doc["username"] | "";
   String password = doc["password"] | "";
-  if (!AuthService::login(*gState, password)) {
-    sendJsonError(401, "Mot de passe incorrect");
+  if (!AuthService::login(*gState, username, password)) {
+    sendJsonError(401, "Nom d'utilisateur ou mot de passe incorrect");
     return;
   }
 
-  LogService::info(*gState, "Connexion admin réussie.");
-  gServer->sendHeader("Set-Cookie", "ESPSESSION=" + gState->sessionToken + "; Path=/; HttpOnly");
+  String sessionToken = gState->sessions.back().token;
+  UserAccount* user = AuthService::findUser(*gState, username);
+  LogService::info(*gState, "Connexion réussie: " + (user ? user->username : username));
+  gServer->sendHeader("Set-Cookie", "ESPSESSION=" + sessionToken + "; Path=/; HttpOnly; SameSite=Strict");
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
 static void handleLogout() {
-  AuthService::logout(*gState);
-  gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0");
+  AuthService::logout(*gServer, *gState);
+  gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
@@ -99,17 +118,32 @@ static void handleGetPosts() {
   }
 
   JsonArray pendingArr = doc.createNestedArray("pendingPosts");
-  for (auto& pending : gState->pendingPosts) {
-    JsonObject p = pendingArr.createNestedObject();
-    p["chipId"] = pending.chipId;
-    p["ip"] = pending.ip;
-    p["lastSeen"] = pending.lastSeen;
+  bool adminAccess = AuthService::hasAdminAccess(*gServer, *gState);
+  if (adminAccess) {
+    for (auto& pending : gState->pendingPosts) {
+      JsonObject p = pendingArr.createNestedObject();
+      p["chipId"] = pending.chipId;
+      p["ip"] = pending.ip;
+      p["lastSeen"] = pending.lastSeen;
+    }
   }
 
   doc["availableCoins"] = gState->availableCoins;
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
   doc["pulsesPerCoin"] = gState->pulsesPerCoin;
-  doc["apiTokenMasked"] = AuthService::getMaskedToken(*gState);
+  doc["accessRole"] = adminAccess ? "admin" : "user";
+
+  UserAccount* currentUser = AuthService::currentUser(*gServer, *gState);
+  if (currentUser) {
+    JsonObject identity = doc.createNestedObject("currentUser");
+    identity["username"] = currentUser->username;
+    identity["firstName"] = currentUser->firstName;
+    identity["lastName"] = currentUser->lastName;
+    identity["role"] = currentUser->role;
+  }
+  if (adminAccess) {
+    doc["apiTokenMasked"] = AuthService::getMaskedToken(*gState);
+  }
 
   String json;
   serializeJson(doc, json);
@@ -117,7 +151,7 @@ static void handleGetPosts() {
 }
 
 static void handleUpdatePost() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
@@ -137,7 +171,7 @@ static void handleUpdatePost() {
 }
 
 static void handleDeletePost() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(128);
   if (!parseJsonBody(doc)) return;
@@ -177,7 +211,7 @@ static void handleAssign() {
 }
 
 static void handleSimulateCoin() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   gState->availableCoins += 1;
   StorageService::saveCredits(*gState);
@@ -193,7 +227,7 @@ static void handleSimulateCoin() {
 }
 
 static void handleConfig() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
@@ -250,7 +284,7 @@ static void handleStop() {
 }
 
 static void handleWifiReset() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   WifiProvisioning::clearCredentials();
   LogService::warn(*gState, "Reset Wi-Fi demandé.");
@@ -260,25 +294,39 @@ static void handleWifiReset() {
 }
 
 static void handleChangePassword() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::isAuthenticated(*gServer, *gState)) {
+    sendJsonError(401, "unauthorized");
+    return;
+  }
+  if (!AuthService::isAdmin(*gServer, *gState)) {
+    sendJsonError(403, "admin required");
+    return;
+  }
+
+  UserAccount* currentUser = AuthService::currentUser(*gServer, *gState);
+  if (!currentUser) {
+    sendJsonError(401, "unauthorized");
+    return;
+  }
+  String username = currentUser->username;
 
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
 
   String password = doc["password"] | "";
-  if (password.length() < 4) {
-    sendJsonError(400, "Mot de passe trop court");
+  String error;
+  if (!AuthService::changePassword(*gState, username, password, error)) {
+    sendJsonError(400, error);
     return;
   }
 
-  gState->adminPassword = password;
-  StorageService::saveAuth(*gState);
-  LogService::info(*gState, "Mot de passe admin modifié.");
-  gServer->send(200, "application/json", "{\"ok\":true}");
+  LogService::info(*gState, "Mot de passe modifié: " + username);
+  gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
+  gServer->send(200, "application/json", "{\"ok\":true,\"reauthenticate\":true}");
 }
 
 static void handleRegenerateToken() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   String newToken = AuthService::regenerateApiToken(*gState);
   StorageService::saveAuth(*gState);
@@ -294,7 +342,7 @@ static void handleRegenerateToken() {
 }
 
 static void handleExportConfig() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   String configJson;
   StorageService::exportConfigJson(*gState, configJson);
@@ -309,7 +357,7 @@ static void handleExportConfig() {
 }
 
 static void handleImportConfig() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(8192);
   if (!parseJsonBody(doc)) return;
@@ -332,7 +380,7 @@ static void handleImportConfig() {
 }
 
 static void handleLogs() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(8192);
   JsonArray arr = doc.createNestedArray("logs");
@@ -350,14 +398,117 @@ static void handleLogs() {
 }
 
 static void handleLogsClear() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   LogService::clear(*gState);
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
+static String currentActorUsername() {
+  UserAccount* user = AuthService::currentUser(*gServer, *gState);
+  return user ? user->username : String("");
+}
+
+static int userErrorStatus(const String& error) {
+  if (error == "user not found") return 404;
+  if (error == "username already exists") return 409;
+  if (error == "cannot delete own account" ||
+      error == "cannot change own role" ||
+      error == "last admin required") return 409;
+  return 400;
+}
+
+static void handleGetUsers() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(8192);
+  doc["currentUsername"] = currentActorUsername();
+  JsonArray users = doc.createNestedArray("users");
+
+  for (const auto& user : gState->users) {
+    JsonObject item = users.createNestedObject();
+    item["username"] = user.username;
+    item["firstName"] = user.firstName;
+    item["lastName"] = user.lastName;
+    item["role"] = user.role;
+  }
+
+  String json;
+  serializeJson(doc, json);
+  gServer->send(200, "application/json", json);
+}
+
+static void handleCreateUser() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(512);
+  if (!parseJsonBody(doc)) return;
+
+  String error;
+  bool ok = AuthService::createUser(*gState,
+                                    doc["username"] | "",
+                                    doc["firstName"] | "",
+                                    doc["lastName"] | "",
+                                    doc["password"] | "",
+                                    doc["role"] | "user",
+                                    error);
+  if (!ok) {
+    sendJsonError(userErrorStatus(error), error);
+    return;
+  }
+
+  String username = doc["username"] | "";
+  username.trim();
+  username.toLowerCase();
+  LogService::info(*gState, "Utilisateur créé: " + username);
+  gServer->send(201, "application/json", "{\"ok\":true}");
+}
+
+static void handleUpdateUser() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(512);
+  if (!parseJsonBody(doc)) return;
+
+  String username = doc["username"] | "";
+  String error;
+  bool ok = AuthService::updateUser(*gState,
+                                    currentActorUsername(),
+                                    username,
+                                    doc["firstName"] | "",
+                                    doc["lastName"] | "",
+                                    doc["password"] | "",
+                                    doc["role"] | "user",
+                                    error);
+  if (!ok) {
+    sendJsonError(userErrorStatus(error), error);
+    return;
+  }
+
+  LogService::info(*gState, "Utilisateur modifié: " + username);
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
+static void handleDeleteUser() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(256);
+  if (!parseJsonBody(doc)) return;
+
+  String username = doc["username"] | "";
+  String error;
+  bool ok = AuthService::deleteUser(*gState, currentActorUsername(), username, error);
+  if (!ok) {
+    sendJsonError(userErrorStatus(error), error);
+    return;
+  }
+
+  LogService::warn(*gState, "Utilisateur supprimé: " + username);
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
 static void handlePingPost() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
@@ -415,7 +566,7 @@ static void handlePosteAnnounce() {
 }
 
 static void handleConfigurePendingPost() {
-  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
@@ -443,11 +594,12 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.collectHeaders(AUTH_HEADERS, 2);
 
   server.on("/", HTTP_GET, handleAppPage);
-  server.on("/config", HTTP_GET, handleAppPage);
-  server.on("/logs", HTTP_GET, handleAppPage);
-  server.on("/discover", HTTP_GET, handleAppPage);
-  server.on("/postes", HTTP_GET, handleAppPage);
-  server.on("/security", HTTP_GET, handleAppPage);
+  server.on("/config", HTTP_GET, handleAdminPage);
+  server.on("/logs", HTTP_GET, handleAdminPage);
+  server.on("/discover", HTTP_GET, handleAdminPage);
+  server.on("/postes", HTTP_GET, handleAdminPage);
+  server.on("/security", HTTP_GET, handleAdminPage);
+  server.on("/users", HTTP_GET, handleAdminPage);
   server.on("/login", HTTP_GET, handleLoginPage);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
@@ -469,4 +621,8 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/auth/token/regenerate", HTTP_POST, handleRegenerateToken);
   server.on("/logs/data", HTTP_GET, handleLogs);
   server.on("/logs/clear", HTTP_POST, handleLogsClear);
+  server.on("/users/data", HTTP_GET, handleGetUsers);
+  server.on("/users/create", HTTP_POST, handleCreateUser);
+  server.on("/users/update", HTTP_POST, handleUpdateUser);
+  server.on("/users/delete", HTTP_POST, handleDeleteUser);
 }

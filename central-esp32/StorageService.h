@@ -10,6 +10,7 @@ namespace StorageService {
   void saveConfig(const AppState& state);
   void savePosts(const AppState& state);
   void saveAuth(const AppState& state);
+  void saveUsers(const AppState& state);
   void saveCredits(const AppState& state);
 
   bool exportConfigJson(const AppState& state, String& outputJson);

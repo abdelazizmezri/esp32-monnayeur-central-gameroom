@@ -71,6 +71,46 @@ namespace StorageService {
     }
   }
 
+  static void loadUsersFromJson(AppState& state, const String& usersJson) {
+    state.users.clear();
+    if (usersJson.isEmpty()) {
+      return;
+    }
+
+    DynamicJsonDocument doc(8192);
+    DeserializationError err = deserializeJson(doc, usersJson);
+    if (err || !doc["users"].is<JsonArray>()) {
+      return;
+    }
+
+    for (JsonObject obj : doc["users"].as<JsonArray>()) {
+      UserAccount user;
+      user.username = obj["username"] | "";
+      user.username.trim();
+      user.username.toLowerCase();
+      user.firstName = obj["firstName"] | "";
+      user.lastName = obj["lastName"] | "";
+      user.role = obj["role"] | "user";
+      user.passwordSalt = obj["passwordSalt"] | "";
+      user.passwordHash = obj["passwordHash"] | "";
+
+      bool duplicate = false;
+      for (const auto& existing : state.users) {
+        if (existing.username == user.username) {
+          duplicate = true;
+          break;
+        }
+      }
+
+      if (!duplicate && !user.username.isEmpty() && !user.firstName.isEmpty() &&
+          !user.lastName.isEmpty() &&
+          (user.role == "admin" || user.role == "user") &&
+          !user.passwordSalt.isEmpty() && user.passwordHash.length() == 64) {
+        state.users.push_back(user);
+      }
+    }
+  }
+
   void load(AppState& state) {
     prefs.begin("appcfg", true);
     state.coinDurationSeconds = prefs.getInt("coinDur", AppConfig::DEFAULT_COIN_DURATION_SECONDS);
@@ -79,9 +119,12 @@ namespace StorageService {
     prefs.end();
 
     prefs.begin("auth", true);
-    state.adminPassword = prefs.getString("adminPwd", AppConfig::DEFAULT_ADMIN_PASSWORD);
+    state.legacyAdminPassword = prefs.getString("adminPwd", "");
     state.apiToken = prefs.getString("apiToken", "");
+    String usersJson = prefs.getString("users", "");
     prefs.end();
+
+    loadUsersFromJson(state, usersJson);
 
     if (state.apiToken.isEmpty()) {
       state.apiToken = generateDefaultToken();
@@ -141,8 +184,32 @@ namespace StorageService {
 
   void saveAuth(const AppState& state) {
     prefs.begin("auth", false);
-    prefs.putString("adminPwd", state.adminPassword);
     prefs.putString("apiToken", state.apiToken);
+    prefs.end();
+  }
+
+  void saveUsers(const AppState& state) {
+    DynamicJsonDocument doc(8192);
+    JsonArray users = doc.createNestedArray("users");
+
+    for (const auto& user : state.users) {
+      JsonObject obj = users.createNestedObject();
+      obj["username"] = user.username;
+      obj["firstName"] = user.firstName;
+      obj["lastName"] = user.lastName;
+      obj["role"] = user.role;
+      obj["passwordSalt"] = user.passwordSalt;
+      obj["passwordHash"] = user.passwordHash;
+    }
+
+    String json;
+    serializeJson(doc, json);
+
+    prefs.begin("auth", false);
+    size_t written = prefs.putString("users", json);
+    if (written > 0) {
+      prefs.remove("adminPwd");
+    }
     prefs.end();
   }
 
@@ -152,7 +219,6 @@ namespace StorageService {
     doc["coinDurationSeconds"] = state.coinDurationSeconds;
     doc["pulsesPerCoin"] = state.pulsesPerCoin;
     doc["availableCoins"] = state.availableCoins;
-    doc["adminPassword"] = state.adminPassword;
     doc["apiToken"] = state.apiToken;
 
     outputJson = "";
@@ -193,15 +259,6 @@ namespace StorageService {
         return false;
       }
       state.availableCoins = value;
-    }
-
-    if (!doc["adminPassword"].isNull()) {
-      String value = doc["adminPassword"].as<String>();
-      if (value.length() < 4) {
-        error = "invalid adminPassword";
-        return false;
-      }
-      state.adminPassword = value;
     }
 
     if (!doc["apiToken"].isNull()) {

@@ -17,10 +17,26 @@ struct PendingPost {
   unsigned long lastSeen = 0;
 };
 
+struct UserAccount {
+  String username;
+  String firstName;
+  String lastName;
+  String role = "user";
+  String passwordSalt;
+  String passwordHash;
+};
+
+struct UserSession {
+  String token;
+  String username;
+};
+
 struct AppState {
   std::vector<Post> posts;
   std::vector<PendingPost> pendingPosts;
   std::vector<EventLogEntry> logs;
+  std::vector<UserAccount> users;
+  std::vector<UserSession> sessions;
 
   int pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
   int availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
@@ -31,7 +47,7 @@ struct AppState {
 
   unsigned long lastPostsRefresh = 0;
 
-  String adminPassword = AppConfig::DEFAULT_ADMIN_PASSWORD;
+  // Utilisé uniquement pour migrer l'ancien mot de passe global vers le compte "admin".
+  String legacyAdminPassword = AppConfig::DEFAULT_ADMIN_PASSWORD;
   String apiToken = "";
-  String sessionToken = "";
 };
