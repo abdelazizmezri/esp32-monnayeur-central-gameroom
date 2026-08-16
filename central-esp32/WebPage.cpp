@@ -279,6 +279,7 @@ namespace WebPage {
     let logsTimer = null;
     let currentRole = 'user';
     let currentUsername = '';
+    let postNames = {};
     const recoveryDrafts = {};
 
     function applyPermissions(data) {
@@ -428,6 +429,10 @@ namespace WebPage {
       el.style.display = el.style.display === 'block' ? 'none' : 'block';
     }
 
+    function postLabel(postId) {
+      return postNames[postId] || 'ce poste';
+    }
+
     async function load() {
       document.querySelectorAll('.recovery-minutes').forEach(input => {
         recoveryDrafts[input.dataset.postId] = input.value;
@@ -436,6 +441,7 @@ namespace WebPage {
       const data = await api('/posts');
       applyPermissions(data);
       const posts = data.posts || [];
+      postNames = Object.fromEntries(posts.map(post => [post.id, post.name]));
       const activeCount = posts.filter(p => p.status === 'active').length;
       const offlineCount = posts.filter(p => p.status === 'offline').length;
       const recoveryCount = posts.filter(p => p.recoveryPending).length;
@@ -466,7 +472,6 @@ namespace WebPage {
         : 'Aucun nouveau poste détecté.';
       document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendingPosts.map(p => `
         <div class="pending-item">
-          <div class="meta"><b>Chip :</b> ${esc(p.chipId)}</div>
           <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <button class="action primary" style="margin-top:8px;" onclick="configurePending('${esc(p.chipId)}')">Ajouter</button>
         </div>
@@ -478,7 +483,6 @@ namespace WebPage {
             <h3 class="post-title">${esc(p.name)}</h3>
             <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
           </div>
-          <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
           <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <div class="timer">
             <div>${p.recoveryPending ? 'Temps sauvegardé avant coupure' : 'Temps restant'}</div>
@@ -517,7 +521,6 @@ namespace WebPage {
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                 <div>
                   <div style="font-size:16px;font-weight:700;">${esc(p.name)}</div>
-                  <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
                   <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
                   <div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
                   ${p.recoveryPending ? `<div class="meta"><b>Temps récupérable :</b> ${formatTime(p.recoveryRemaining)}</div>` : ''}
@@ -559,7 +562,7 @@ namespace WebPage {
         return;
       }
 
-      if (!confirm(`Relancer ${postId} avec le temps sauvegardé + ${extraMinutes} minute(s) ?`)) return;
+      if (!confirm(`Relancer ${postLabel(postId)} avec le temps sauvegardé + ${extraMinutes} minute(s) ?`)) return;
 
       try {
         await api('/recovery/resume', {
@@ -573,7 +576,7 @@ namespace WebPage {
     }
 
     async function cancelRecovery(postId) {
-      if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postId} ?`)) return;
+      if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
 
       try {
         await api('/recovery/cancel', {
@@ -595,9 +598,6 @@ namespace WebPage {
     }
 
     async function configurePending(chipId) {
-      const id = prompt('Identifiant du poste, ex: post1');
-      if (!id) return;
-
       const name = prompt('Nom affiché du poste, ex: Poste 1');
       if (!name) return;
 
@@ -605,7 +605,7 @@ namespace WebPage {
         await api('/poste/configure', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ chipId, id: id.trim(), name: name.trim() })
+          body:JSON.stringify({ chipId, name: name.trim() })
         });
         setMessage('pendingMessage', 'Poste configuré avec succès.');
         load();
@@ -632,7 +632,7 @@ namespace WebPage {
     }
 
     async function deletePost(id) {
-      const yes = confirm(`Supprimer le poste ${id} ?`);
+      const yes = confirm(`Supprimer ${postLabel(id)} ?`);
       if (!yes) return;
 
       try {

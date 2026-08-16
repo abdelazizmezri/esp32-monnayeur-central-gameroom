@@ -159,10 +159,12 @@ namespace PostService {
     return true;
   }
 
-  bool configurePendingPost(AppState& state, const String& chipId, const String& id,
+  bool configurePendingPost(AppState& state, const String& chipId,
                             const String& name, String& error) {
     String cleanChipId = trimmedCopy(chipId);
-    String cleanId = trimmedCopy(id);
+    // Le chipId matériel est déjà unique : il sert d'identifiant technique sans
+    // demander à l'administrateur d'en inventer ou d'en saisir un.
+    String cleanId = cleanChipId;
     String cleanName = trimmedCopy(name);
 
     if (cleanChipId.isEmpty() || cleanId.isEmpty() || cleanName.isEmpty()) {

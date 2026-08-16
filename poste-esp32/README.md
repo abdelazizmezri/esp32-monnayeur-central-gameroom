@@ -162,8 +162,8 @@ captif redirigent vers `/wifi`.
 L'identité du poste contient :
 
 - `chipId` : identifiant matériel calculé automatiquement et non modifiable ;
-- `id` : identifiant logique unique attribué depuis la centrale, par exemple
-  `post1` ;
+- `id` : identifiant technique unique, dérivé automatiquement du `chipId` par la
+  centrale et jamais demandé dans l'interface ;
 - `name` : nom lisible, par exemple `Poste 1` ;
 - `configured` : vrai uniquement si `id` et `name` ne sont pas vides.
 
@@ -174,7 +174,8 @@ Une fois connecté au Wi-Fi et hors du portail captif, le poste :
 3. envoie son annonce à `POST /poste/announce` toutes les cinq secondes.
 
 Un poste sans identité apparaît dans les postes découverts de la centrale. La
-centrale lui attribue ensuite son `id` et son `name` avec `POST /configure`.
+centrale lui attribue ensuite automatiquement son `id` et transmet le `name`
+saisi avec `POST /configure`.
 
 ## Configuration
 

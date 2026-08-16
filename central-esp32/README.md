@@ -146,13 +146,12 @@ Chaque ESP32 de poste annonce périodiquement son identité à la centrale avec
 
 ### Configuration d'un nouveau poste
 
-L'administrateur choisit **Ajouter**, puis fournit :
+L'administrateur choisit **Ajouter**, puis fournit uniquement un nom visible,
+par exemple `Poste 1`. La centrale reprend automatiquement le `chipId` matériel
+comme identifiant technique unique ; cet identifiant n'est ni affiché ni saisi.
 
-- un identifiant unique, par exemple `post1` ;
-- un nom visible, par exemple `Poste 1`.
-
-La centrale envoie ces valeurs à `POST http://IP/configure`. Le poste est ensuite
-sauvegardé dans la NVS de la centrale.
+La centrale envoie l'identité technique et le nom à `POST http://IP/configure`.
+Le poste est ensuite sauvegardé dans la NVS de la centrale.
 
 ### Sessions de jeu
 

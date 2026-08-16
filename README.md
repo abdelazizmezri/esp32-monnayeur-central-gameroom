@@ -69,12 +69,11 @@ annonce son état à la centrale toutes les cinq secondes.
 
 ### 3. Découverte et configuration
 
-Un poste neuf n'a ni identifiant logique ni nom. Son annonce le place dans la
-liste des postes découverts de la centrale. Depuis l'interface d'administration,
-on lui attribue par exemple :
-
-- `id` : `post1` ;
-- `name` : `Poste 1`.
+Un poste neuf n'a pas encore de nom. Son annonce le place dans la liste des
+postes découverts de la centrale. Depuis l'interface d'administration, on lui
+attribue uniquement un nom visible, par exemple `Poste 1`. La centrale utilise
+automatiquement le `chipId` matériel comme identifiant technique unique et ne le
+demande pas à l'utilisateur.
 
 La centrale transmet cette identité à `POST /configure`. Les deux appareils la
 sauvegardent ensuite dans leur NVS. Une annonce absente pendant 30 secondes fait

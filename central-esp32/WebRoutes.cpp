@@ -623,7 +623,6 @@ static void handleConfigurePendingPost() {
   String error;
   bool ok = PostService::configurePendingPost(*gState,
                                               doc["chipId"] | "",
-                                              doc["id"] | "",
                                               doc["name"] | "",
                                               error);
   if (!ok) {
