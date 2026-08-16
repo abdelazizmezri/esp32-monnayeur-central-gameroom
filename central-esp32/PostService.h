@@ -12,6 +12,7 @@ namespace PostService {
   bool handleAnnouncement(AppState& state, const String& chipId, const String& ip,
                           bool configured, const String& id, const String& name,
                           const String& status, bool relay, long remaining,
+                          bool recoveryPending, long recoveryRemaining,
                           String& error);
   bool configurePendingPost(AppState& state, const String& chipId, const String& id,
                             const String& name, String& error);
@@ -20,6 +21,9 @@ namespace PostService {
 
   bool assignCoins(AppState& state, const String& postId, int coins, String& error);
   bool stopPost(AppState& state, const String& postId, String& error);
+  bool resumeInterruptedSession(AppState& state, const String& postId,
+                                int extraMinutes, String& error);
+  bool cancelInterruptedSession(AppState& state, const String& postId, String& error);
 
   void refreshStatuses(AppState& state);
 }

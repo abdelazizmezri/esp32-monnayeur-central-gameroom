@@ -12,6 +12,8 @@ struct PosteState {
 
   bool relayState = false;
   unsigned long endTimeMs = 0;
+  bool recoveryPending = false;
+  unsigned long recoveryRemainingSeconds = 0;
 
   bool wifiConnected = false;
   bool wifiConfigPortalActive = false;

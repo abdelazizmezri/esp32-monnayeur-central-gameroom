@@ -86,7 +86,7 @@ namespace PosteClient {
     String payload = http.getString();
     http.end();
 
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<512> doc;
     DeserializationError err = deserializeJson(doc, payload);
     if (err) {
       return false;
@@ -98,6 +98,11 @@ namespace PosteClient {
     post.status = doc["status"] | "unknown";
     post.relay = doc["relay"] | false;
     post.remaining = doc["remaining"] | 0;
+    post.recoveryPending = doc["recoveryPending"] | false;
+    post.recoveryRemaining = doc["recoveryRemaining"] | 0;
+    if (post.recoveryRemaining < 0) {
+      post.recoveryRemaining = 0;
+    }
     post.lastSeen = millis();
 
     return true;

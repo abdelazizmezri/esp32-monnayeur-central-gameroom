@@ -22,4 +22,5 @@ namespace AppConfig {
   static const unsigned long POST_OFFLINE_TIMEOUT_MS = 10000;
   static const unsigned long POSTE_STATUS_TIMEOUT_MS = 1200;
   static const unsigned long PENDING_POST_TIMEOUT_MS = 30000;
+  static const int MAX_RECOVERY_EXTRA_MINUTES = 10080; // 7 jours
 }

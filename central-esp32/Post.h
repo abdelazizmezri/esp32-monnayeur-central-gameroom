@@ -10,5 +10,7 @@ struct Post {
   String status = "idle";
   bool relay = false;
   long remaining = 0;
+  bool recoveryPending = false;
+  long recoveryRemaining = 0;
   unsigned long lastSeen = 0;
 };

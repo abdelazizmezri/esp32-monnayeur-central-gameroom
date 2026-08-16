@@ -56,7 +56,7 @@ namespace PosteAnnounceService {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", String("Bearer ") + PosteConfig::COMMAND_TOKEN);
 
-    StaticJsonDocument<384> doc;
+    StaticJsonDocument<512> doc;
     doc["chipId"] = state.chipId;
     doc["configured"] = state.configured;
     doc["id"] = state.id;
@@ -64,6 +64,8 @@ namespace PosteAnnounceService {
     doc["status"] = state.status;
     doc["relay"] = state.relayState;
     doc["remaining"] = RelayService::getRemainingSeconds(state);
+    doc["recoveryPending"] = state.recoveryPending;
+    doc["recoveryRemaining"] = state.recoveryRemainingSeconds;
     doc["ip"] = WiFi.localIP().toString();
 
     String body;

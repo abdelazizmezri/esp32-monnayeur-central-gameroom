@@ -36,7 +36,7 @@ namespace PosteWebServer {
   }
 
   static void handleStatus() {
-    StaticJsonDocument<384> doc;
+    StaticJsonDocument<512> doc;
     doc["chipId"] = gState->chipId;
     doc["configured"] = gState->configured;
     doc["id"] = gState->id;
@@ -45,6 +45,8 @@ namespace PosteWebServer {
     doc["status"] = gState->status;
     doc["relay"] = gState->relayState;
     doc["remaining"] = RelayService::getRemainingSeconds(*gState);
+    doc["recoveryPending"] = gState->recoveryPending;
+    doc["recoveryRemaining"] = gState->recoveryRemainingSeconds;
 
     String json;
     serializeJson(doc, json);

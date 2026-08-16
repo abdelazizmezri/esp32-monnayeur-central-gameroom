@@ -2,9 +2,12 @@
 #include "PosteConfig.h"
 
 #include <Arduino.h>
+#include <Preferences.h>
 #include <limits.h>
 
 namespace RelayService {
+  static Preferences sessionPrefs;
+  static unsigned long lastCheckpointAtMs = 0;
 
   static unsigned long secondsToMillis(unsigned long durationSeconds) {
     if (durationSeconds > ULONG_MAX / 1000UL) {
@@ -28,9 +31,43 @@ namespace RelayService {
     digitalWrite(PosteConfig::RELAY_PIN, level ? HIGH : LOW);
   }
 
+  static void clearPersistedSession() {
+    sessionPrefs.begin("session", false);
+    sessionPrefs.clear();
+    sessionPrefs.end();
+  }
+
+  static void persistActiveSession(const PosteState& state) {
+    unsigned long remainingSeconds = getRemainingSeconds(state);
+    if (!state.relayState || remainingSeconds == 0) {
+      clearPersistedSession();
+      return;
+    }
+
+    sessionPrefs.begin("session", false);
+    sessionPrefs.putULong("remaining", remainingSeconds);
+    sessionPrefs.end();
+    lastCheckpointAtMs = millis();
+  }
+
   void begin(PosteState& state) {
     pinMode(PosteConfig::RELAY_PIN, OUTPUT);
     setRelay(state, false);
+
+    sessionPrefs.begin("session", true);
+    unsigned long savedRemaining = sessionPrefs.getULong("remaining", 0);
+    sessionPrefs.end();
+
+    state.endTimeMs = 0;
+    state.recoveryPending = savedRemaining > 0;
+    state.recoveryRemainingSeconds = state.recoveryPending ? savedRemaining : 0;
+    state.status = state.recoveryPending ? "recovery_pending" : "idle";
+
+    if (state.recoveryPending) {
+      Serial.print("Interrupted session detected. Recoverable time: ");
+      Serial.print(state.recoveryRemainingSeconds);
+      Serial.println(" sec");
+    }
   }
 
   void setRelay(PosteState& state, bool on) {
@@ -48,9 +85,12 @@ namespace RelayService {
   }
 
   void startSession(PosteState& state, unsigned long durationSeconds) {
+    state.recoveryPending = false;
+    state.recoveryRemainingSeconds = 0;
     state.endTimeMs = millis() + secondsToMillis(durationSeconds);
     state.status = "active";
     setRelay(state, true);
+    persistActiveSession(state);
 
     Serial.print("START_SESSION: ");
     Serial.print(durationSeconds);
@@ -66,6 +106,9 @@ namespace RelayService {
     unsigned long baseTime = hasReached(state.endTimeMs) ? millis() : state.endTimeMs;
     state.endTimeMs = baseTime + secondsToMillis(durationSeconds);
     state.status = "active";
+    state.recoveryPending = false;
+    state.recoveryRemainingSeconds = 0;
+    persistActiveSession(state);
 
     Serial.print("ADD_TIME: ");
     Serial.print(durationSeconds);
@@ -75,7 +118,10 @@ namespace RelayService {
   void stopSession(PosteState& state) {
     state.endTimeMs = 0;
     state.status = "idle";
+    state.recoveryPending = false;
+    state.recoveryRemainingSeconds = 0;
     setRelay(state, false);
+    clearPersistedSession();
 
     Serial.println("STOP_SESSION");
   }
@@ -84,6 +130,12 @@ namespace RelayService {
     if (state.relayState && hasReached(state.endTimeMs)) {
       stopSession(state);
       Serial.println("Session finished automatically");
+      return;
+    }
+
+    if (state.relayState &&
+        millis() - lastCheckpointAtMs >= PosteConfig::SESSION_CHECKPOINT_INTERVAL_MS) {
+      persistActiveSession(state);
     }
   }
 }

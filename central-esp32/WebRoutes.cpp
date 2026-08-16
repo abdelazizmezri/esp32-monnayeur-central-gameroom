@@ -115,6 +115,8 @@ static void handleGetPosts() {
     p["status"] = post.status;
     p["relay"] = post.relay;
     p["remaining"] = post.remaining;
+    p["recoveryPending"] = post.recoveryPending;
+    p["recoveryRemaining"] = post.recoveryRemaining;
   }
 
   JsonArray pendingArr = doc.createNestedArray("pendingPosts");
@@ -276,6 +278,51 @@ static void handleStop() {
 
   if (!ok) {
     int code = error == "post not found" ? 404 : 502;
+    sendJsonError(code, error);
+    return;
+  }
+
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
+static void handleRecoveryResume() {
+  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(256);
+  if (!parseJsonBody(doc)) return;
+
+  String error;
+  bool ok = PostService::resumeInterruptedSession(*gState,
+                                                   doc["post_id"] | "",
+                                                   doc["extraMinutes"] | 0,
+                                                   error);
+  if (!ok) {
+    int code = 400;
+    if (error == "post not found") code = 404;
+    else if (error == "no recovery pending") code = 409;
+    else if (error == "poste unreachable") code = 502;
+    sendJsonError(code, error);
+    return;
+  }
+
+  gServer->send(200, "application/json", "{\"ok\":true}");
+}
+
+static void handleRecoveryCancel() {
+  if (!AuthService::requireApiAuth(*gServer, *gState)) return;
+
+  DynamicJsonDocument doc(128);
+  if (!parseJsonBody(doc)) return;
+
+  String error;
+  bool ok = PostService::cancelInterruptedSession(*gState,
+                                                   doc["post_id"] | "",
+                                                   error);
+  if (!ok) {
+    int code = 400;
+    if (error == "post not found") code = 404;
+    else if (error == "no recovery pending") code = 409;
+    else if (error == "poste unreachable") code = 502;
     sendJsonError(code, error);
     return;
   }
@@ -556,6 +603,8 @@ static void handlePosteAnnounce() {
                                             doc["status"] | "",
                                             doc["relay"] | false,
                                             doc["remaining"] | 0,
+                                            doc["recoveryPending"] | false,
+                                            doc["recoveryRemaining"] | 0,
                                             error);
   if (!ok) {
     sendJsonError(400, error);
@@ -616,6 +665,8 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/config/export", HTTP_GET, handleExportConfig);
   server.on("/config/import", HTTP_POST, handleImportConfig);
   server.on("/stop", HTTP_POST, handleStop);
+  server.on("/recovery/resume", HTTP_POST, handleRecoveryResume);
+  server.on("/recovery/cancel", HTTP_POST, handleRecoveryCancel);
   server.on("/wifi/reset", HTTP_POST, handleWifiReset);
   server.on("/auth/password", HTTP_POST, handleChangePassword);
   server.on("/auth/token/regenerate", HTTP_POST, handleRegenerateToken);

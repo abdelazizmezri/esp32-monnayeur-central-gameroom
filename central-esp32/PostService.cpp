@@ -5,6 +5,7 @@
 #include "AppConfig.h"
 
 #include <Arduino.h>
+#include <limits.h>
 
 namespace PostService {
   void begin(AppState& state) {
@@ -53,6 +54,8 @@ namespace PostService {
       existingById->status = discovered.status;
       existingById->relay = discovered.relay;
       existingById->remaining = discovered.remaining;
+      existingById->recoveryPending = discovered.recoveryPending;
+      existingById->recoveryRemaining = discovered.recoveryRemaining;
       existingById->lastSeen = millis();
       StorageService::savePosts(state);
       LogService::info(state, "Poste découvert mis à jour: " + cleanId + " (" + cleanIp + ")");
@@ -67,6 +70,8 @@ namespace PostService {
         post.status = discovered.status;
         post.relay = discovered.relay;
         post.remaining = discovered.remaining;
+        post.recoveryPending = discovered.recoveryPending;
+        post.recoveryRemaining = discovered.recoveryRemaining;
         post.lastSeen = millis();
         StorageService::savePosts(state);
         LogService::warn(state, "Poste découvert remplace l'ancien ID sur IP " + cleanIp + ": " + cleanId);
@@ -82,6 +87,8 @@ namespace PostService {
     post.status = discovered.status;
     post.relay = discovered.relay;
     post.remaining = discovered.remaining;
+    post.recoveryPending = discovered.recoveryPending;
+    post.recoveryRemaining = discovered.recoveryRemaining;
     post.lastSeen = millis();
 
     state.posts.push_back(post);
@@ -94,6 +101,7 @@ namespace PostService {
   bool handleAnnouncement(AppState& state, const String& chipId, const String& ip,
                           bool configured, const String& id, const String& name,
                           const String& status, bool relay, long remaining,
+                          bool recoveryPending, long recoveryRemaining,
                           String& error) {
     String cleanChipId = trimmedCopy(chipId);
     String cleanIp = trimmedCopy(ip);
@@ -118,6 +126,8 @@ namespace PostService {
       discovered.status = cleanStatus;
       discovered.relay = relay;
       discovered.remaining = remaining < 0 ? 0 : remaining;
+      discovered.recoveryPending = recoveryPending && recoveryRemaining > 0;
+      discovered.recoveryRemaining = discovered.recoveryPending ? recoveryRemaining : 0;
 
       bool added = false;
       if (!upsertDiscoveredPost(state, discovered, added, error)) {
@@ -217,7 +227,7 @@ namespace PostService {
       return false;
     }
 
-    if (post->status == "active" || post->remaining > 0) {
+    if (post->status == "active" || post->remaining > 0 || post->recoveryPending) {
       error = "post active";
       return false;
     }
@@ -240,7 +250,8 @@ namespace PostService {
 
     for (size_t i = 0; i < state.posts.size(); i++) {
       if (state.posts[i].id == cleanId) {
-        if (state.posts[i].status == "active" || state.posts[i].remaining > 0) {
+        if (state.posts[i].status == "active" || state.posts[i].remaining > 0 ||
+            state.posts[i].recoveryPending) {
           error = "post active";
           return false;
         }
@@ -294,6 +305,11 @@ namespace PostService {
       return false;
     }
 
+    if (post->recoveryPending) {
+      error = "recovery pending";
+      return false;
+    }
+
     long duration = (long)coins * state.coinDurationSeconds;
     String action = post->status == "active" ? "ADD_TIME" : "START_SESSION";
 
@@ -325,7 +341,77 @@ namespace PostService {
     post->status = "idle";
     post->relay = false;
     post->remaining = 0;
+    post->recoveryPending = false;
+    post->recoveryRemaining = 0;
     LogService::warn(state, "Poste arrêté manuellement: " + postId);
+    return true;
+  }
+
+  bool resumeInterruptedSession(AppState& state, const String& postId,
+                                int extraMinutes, String& error) {
+    if (extraMinutes < 0 || extraMinutes > AppConfig::MAX_RECOVERY_EXTRA_MINUTES) {
+      error = "invalid extra minutes";
+      return false;
+    }
+
+    Post* post = findById(state, postId);
+    if (!post) {
+      error = "post not found";
+      return false;
+    }
+
+    if (!post->recoveryPending || post->recoveryRemaining <= 0) {
+      error = "no recovery pending";
+      return false;
+    }
+
+    long extraSeconds = (long)extraMinutes * 60L;
+    if (post->recoveryRemaining > LONG_MAX - extraSeconds) {
+      error = "duration too large";
+      return false;
+    }
+
+    long duration = post->recoveryRemaining + extraSeconds;
+    if (!PosteClient::sendCommand(post->ip, "START_SESSION", duration)) {
+      error = "poste unreachable";
+      LogService::error(state, "Impossible de reprendre la session de " + postId);
+      return false;
+    }
+
+    post->status = "active";
+    post->relay = true;
+    post->remaining = duration;
+    post->recoveryPending = false;
+    post->recoveryRemaining = 0;
+    LogService::info(state, "Session reprise sur " + postId + ": " +
+                     String(duration) + " s, supplément=" + String(extraMinutes) + " min");
+    return true;
+  }
+
+  bool cancelInterruptedSession(AppState& state, const String& postId, String& error) {
+    Post* post = findById(state, postId);
+    if (!post) {
+      error = "post not found";
+      return false;
+    }
+
+    if (!post->recoveryPending) {
+      error = "no recovery pending";
+      return false;
+    }
+
+    if (!PosteClient::sendCommand(post->ip, "STOP_SESSION")) {
+      error = "poste unreachable";
+      LogService::error(state, "Impossible d'annuler la reprise de " + postId);
+      return false;
+    }
+
+    post->status = "idle";
+    post->relay = false;
+    post->remaining = 0;
+    post->recoveryPending = false;
+    post->recoveryRemaining = 0;
+    LogService::warn(state, "Reprise annulée pour " + postId);
     return true;
   }
 

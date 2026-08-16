@@ -93,12 +93,15 @@ namespace WebPage {
     .badge.idle{background:var(--idle-bg);color:var(--idle-text)}
     .badge.offline{background:var(--danger-bg);color:var(--danger-text)}
     .badge.error{background:var(--warning-bg);color:var(--warning-text)}
+    .badge.recovery_pending{background:var(--warning-bg);color:var(--warning-text)}
     .badge.unknown{background:var(--idle-bg);color:var(--idle-text)}
     .timer{margin:14px 0;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid var(--border)}
     .timer-value{font-size:24px;font-weight:700}
     .relay{font-size:13px;font-weight:700;margin-bottom:12px}
     .relay.on{color:var(--success-text)}
     .relay.off{color:var(--danger-text)}
+    .recovery-box{margin:12px 0;padding:14px;border-radius:12px;background:var(--warning-bg);color:var(--warning-text);border:1px solid #fbbf24}
+    .recovery-box .form-group{margin:10px 0}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button.action{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
     button.action:disabled{opacity:.45;cursor:not-allowed}
@@ -276,6 +279,7 @@ namespace WebPage {
     let logsTimer = null;
     let currentRole = 'user';
     let currentUsername = '';
+    const recoveryDrafts = {};
 
     function applyPermissions(data) {
       currentRole = data.accessRole || 'user';
@@ -360,8 +364,18 @@ namespace WebPage {
 
     function badgeClass(status) {
       const value = (status || 'unknown').toLowerCase();
-      if (['active','idle','offline','error'].includes(value)) return value;
+      if (['active','idle','offline','error','recovery_pending'].includes(value)) return value;
       return 'unknown';
+    }
+
+    function statusLabel(status) {
+      return ({
+        active: 'Actif',
+        idle: 'Inactif',
+        offline: 'Hors ligne',
+        error: 'Erreur',
+        recovery_pending: 'Reprise en attente'
+      })[(status || '').toLowerCase()] || status || 'Inconnu';
     }
 
     function setMessage(id, text, isError = false) {
@@ -384,7 +398,11 @@ namespace WebPage {
         'cannot change own role': 'Vous ne pouvez pas modifier votre propre rôle.',
         'last admin required': 'Au moins un administrateur doit être conservé.',
         'use password settings': 'Utilisez la page Sécurité pour modifier votre propre mot de passe.',
-        'admin required': 'Cette action est réservée aux administrateurs.'
+        'admin required': 'Cette action est réservée aux administrateurs.',
+        'recovery pending': "Décidez d'abord de relancer ou d'annuler la session interrompue.",
+        'no recovery pending': "Il n'y a plus de session interrompue à traiter.",
+        'invalid extra minutes': 'Le supplément doit être un nombre entier entre 0 et 10080 minutes.',
+        'duration too large': 'La durée totale demandée est trop grande.'
       })[message] || message;
     }
 
@@ -411,11 +429,16 @@ namespace WebPage {
     }
 
     async function load() {
+      document.querySelectorAll('.recovery-minutes').forEach(input => {
+        recoveryDrafts[input.dataset.postId] = input.value;
+      });
+
       const data = await api('/posts');
       applyPermissions(data);
       const posts = data.posts || [];
       const activeCount = posts.filter(p => p.status === 'active').length;
       const offlineCount = posts.filter(p => p.status === 'offline').length;
+      const recoveryCount = posts.filter(p => p.recoveryPending).length;
 
       document.getElementById('stats').innerHTML = `
         <div class="stat-card">
@@ -426,6 +449,7 @@ namespace WebPage {
         <div class="stat-card"><div>Durée par coin</div><div style="font-size:28px;font-weight:700;">${formatTime(data.coinDurationSeconds)}</div></div>
         <div class="stat-card"><div>Postes actifs</div><div style="font-size:28px;font-weight:700;">${activeCount}</div></div>
         <div class="stat-card"><div>Postes hors ligne</div><div style="font-size:28px;font-weight:700;">${offlineCount}</div></div>
+        <div class="stat-card"><div>Reprises en attente</div><div style="font-size:28px;font-weight:700;">${recoveryCount}</div></div>
       `;
 
       document.getElementById('coinDurationSeconds').value = data.coinDurationSeconds || 1800;
@@ -452,19 +476,34 @@ namespace WebPage {
         <div class="post-card">
           <div class="post-header">
             <h3 class="post-title">${esc(p.name)}</h3>
-            <span class="badge ${badgeClass(p.status)}">${esc(p.status)}</span>
+            <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
           </div>
           <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
           <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <div class="timer">
-            <div>Temps restant</div>
-            <div class="timer-value">${formatTime(p.remaining)}</div>
+            <div>${p.recoveryPending ? 'Temps sauvegardé avant coupure' : 'Temps restant'}</div>
+            <div class="timer-value">${formatTime(p.recoveryPending ? p.recoveryRemaining : p.remaining)}</div>
           </div>
           <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
+          ${p.recoveryPending ? `
+            <div class="recovery-box">
+              <div><b>Coupure détectée.</b> Le relais reste arrêté jusqu'à votre décision.</div>
+              <div class="form-group">
+                <label for="recovery-extra-${esc(p.id)}">Minutes à ajouter au temps sauvegardé</label>
+                <input class="recovery-minutes" data-post-id="${esc(p.id)}" id="recovery-extra-${esc(p.id)}"
+                       type="number" min="0" max="10080" step="1"
+                       value="${esc(recoveryDrafts[p.id] ?? 0)}" />
+              </div>
+              <div class="actions">
+                <button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Relancer le poste</button>
+                <button class="action danger" onclick="cancelRecovery('${esc(p.id)}')">Annuler le temps</button>
+              </div>
+            </div>
+          ` : ''}
           <div class="actions">
-            <button class="action primary" onclick="assign('${esc(p.id)}',1)">+1 coin</button>
-            <button class="action primary" onclick="assign('${esc(p.id)}',2)">+2 coins</button>
-            <button class="action secondary" onclick="stopPost('${esc(p.id)}')">Arrêter</button>
+            <button class="action primary" ${p.recoveryPending ? 'disabled' : ''} onclick="assign('${esc(p.id)}',1)">+1 coin</button>
+            <button class="action primary" ${p.recoveryPending ? 'disabled' : ''} onclick="assign('${esc(p.id)}',2)">+2 coins</button>
+            <button class="action secondary" ${p.recoveryPending ? 'disabled' : ''} onclick="stopPost('${esc(p.id)}')">Arrêter</button>
           </div>
         </div>
       `).join('') : '<div class="empty">Aucun poste configuré.</div>';
@@ -472,7 +511,7 @@ namespace WebPage {
       const managedPostsEl = document.getElementById('managedPosts');
       if (managedPostsEl) {
         managedPostsEl.innerHTML = posts.length ? posts.map(p => {
-          const locked = p.status === 'active' || Number(p.remaining || 0) > 0;
+          const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
           return `
             <div class="pending-item">
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -481,8 +520,9 @@ namespace WebPage {
                   <div class="meta"><b>ID :</b> ${esc(p.id)}</div>
                   <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
                   <div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
+                  ${p.recoveryPending ? `<div class="meta"><b>Temps récupérable :</b> ${formatTime(p.recoveryRemaining)}</div>` : ''}
                 </div>
-                <span class="badge ${badgeClass(p.status)}">${esc(p.status)}</span>
+                <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
               </div>
               <div class="actions" style="margin-top:10px;">
                 <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
@@ -508,7 +548,42 @@ namespace WebPage {
           body:JSON.stringify({ post_id: postId, coins })
         });
         load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+    }
+
+    async function resumeRecovery(postId) {
+      const input = document.getElementById(`recovery-extra-${postId}`);
+      const extraMinutes = Number(input?.value || 0);
+      if (!Number.isInteger(extraMinutes) || extraMinutes < 0 || extraMinutes > 10080) {
+        alert('Saisissez un nombre entier entre 0 et 10080 minutes.');
+        return;
+      }
+
+      if (!confirm(`Relancer ${postId} avec le temps sauvegardé + ${extraMinutes} minute(s) ?`)) return;
+
+      try {
+        await api('/recovery/resume', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ post_id: postId, extraMinutes })
+        });
+        delete recoveryDrafts[postId];
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+    }
+
+    async function cancelRecovery(postId) {
+      if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postId} ?`)) return;
+
+      try {
+        await api('/recovery/cancel', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ post_id: postId })
+        });
+        delete recoveryDrafts[postId];
+        load();
+      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
     }
 
     async function simulateCoin() {
