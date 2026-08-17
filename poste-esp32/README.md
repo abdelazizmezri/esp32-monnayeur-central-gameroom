@@ -202,7 +202,7 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `DEFAULT_POST_ID` | chaîne vide | Identifiant initial si la NVS est vide. |
 | `DEFAULT_POST_NAME` | chaîne vide | Nom initial si la NVS est vide. |
 | `COMMAND_TOKEN` | valeur de développement | Secret partagé avec la centrale. |
-| `RELAY_PIN` | `LED_BUILTIN`, sinon GPIO 2 | GPIO commandant le relais. |
+| `RELAY_PIN` | GPIO 27 | GPIO commandant le relais. |
 | `RELAY_ACTIVE_HIGH` | `true` | Niveau logique qui active le relais. |
 | `HTTP_PORT` | `80` | Port du serveur HTTP local. |
 
@@ -212,13 +212,11 @@ nécessaire, `RELAY_ACTIVE_HIGH`. Le token doit être strictement identique à
 
 ## Câblage du relais
 
-La valeur `LED_BUILTIN` permet de tester le fonctionnement avec la LED intégrée
-sur les cartes compatibles. La cible générique utilise le GPIO 2 si cette
-constante n'est pas définie. Pour commander une machine réelle, remplacer cette
-valeur par le GPIO relié à l'entrée du module relais, par exemple :
+Par défaut, le relais est piloté par le GPIO 27. Pour utiliser une autre broche,
+remplacer cette valeur par le GPIO relié à l'entrée du module relais :
 
 ```cpp
-static const int RELAY_PIN = 26;
+static const int RELAY_PIN = 27;
 static const bool RELAY_ACTIVE_HIGH = true;
 ```
 
@@ -526,7 +524,7 @@ niveau haut et `false` si elle s'active au niveau bas.
 
 ### Le relais ne commute pas
 
-- remplacer `LED_BUILTIN` par le GPIO réellement câblé ;
+- vérifier que `RELAY_PIN` correspond au GPIO réellement câblé ;
 - vérifier la masse commune et l'alimentation du module ;
 - confirmer que le module accepte un signal logique de 3,3 V ;
 - envoyer manuellement `START_SESSION`, puis consulter `/status` ;
