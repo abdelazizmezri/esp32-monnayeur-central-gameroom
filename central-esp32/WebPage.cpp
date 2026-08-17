@@ -157,9 +157,18 @@ namespace WebPage {
       <div class="page-grid">
         <div class="panel">
           <h2>Configuration générale</h2>
-          <div class="form-group"><input id="coinDurationSeconds" type="number" min="1" placeholder="Durée par coin (s)" /></div>
-          <div class="form-group"><input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" /></div>
-          <div class="form-group"><input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" /></div>
+          <div class="form-group">
+            <label for="coinDurationMinutes">Durée par coin (minutes)</label>
+            <input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par coin (min)" />
+          </div>
+          <div class="form-group">
+            <label for="pulsesPerCoin">Impulsions par coin</label>
+            <input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" />
+          </div>
+          <div class="form-group">
+            <label for="availableCoins">Coins disponibles</label>
+            <input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" />
+          </div>
           <button class="action primary" onclick="saveConfig()">Enregistrer</button>
           <div class="message" id="configMessage"></div>
         </div>
@@ -458,7 +467,7 @@ namespace WebPage {
         <div class="stat-card"><div>Reprises en attente</div><div style="font-size:28px;font-weight:700;">${recoveryCount}</div></div>
       `;
 
-      document.getElementById('coinDurationSeconds').value = data.coinDurationSeconds || 1800;
+      document.getElementById('coinDurationMinutes').value = Number(data.coinDurationSeconds || 1800) / 60;
       document.getElementById('pulsesPerCoin').value = data.pulsesPerCoin || 1;
       document.getElementById('availableCoins').value = data.availableCoins || 0;
       document.getElementById('authInfo').innerHTML = `
@@ -663,7 +672,8 @@ namespace WebPage {
     }
 
     async function saveConfig() {
-      const coinDurationSeconds = Number(document.getElementById('coinDurationSeconds').value || 0);
+      const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
+      const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
       const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
       const availableCoins = Number(document.getElementById('availableCoins').value || 0);
 
