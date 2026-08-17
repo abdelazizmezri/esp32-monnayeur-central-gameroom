@@ -226,11 +226,24 @@ namespace WebPage {
       <div class="page-grid">
         <div class="panel">
           <h2>Ajouter un utilisateur</h2>
-          <div class="form-group"><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div>
-          <div class="form-group"><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div>
-          <div class="form-group"><input id="createLastName" maxlength="64" placeholder="Nom" /></div>
-          <div class="form-group"><input id="createPassword" type="password" minlength="6" placeholder="Mot de passe (6 caractères minimum)" /></div>
           <div class="form-group">
+            <label for="createUsername">Nom d'utilisateur</label>
+            <input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" />
+          </div>
+          <div class="form-group">
+            <label for="createFirstName">Prénom</label>
+            <input id="createFirstName" maxlength="64" placeholder="Prénom" />
+          </div>
+          <div class="form-group">
+            <label for="createLastName">Nom</label>
+            <input id="createLastName" maxlength="64" placeholder="Nom" />
+          </div>
+          <div class="form-group">
+            <label for="createPassword">Mot de passe</label>
+            <input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" />
+          </div>
+          <div class="form-group">
+            <label for="createRole">Rôle</label>
             <select id="createRole">
               <option value="user">Utilisateur simple</option>
               <option value="admin">Administrateur</option>
@@ -712,15 +725,27 @@ namespace WebPage {
                 <div><b>${esc(user.username)}</b>${isCurrent ? ' (vous)' : ''}</div>
                 <span class="badge ${user.role === 'admin' ? 'active' : 'idle'}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
               </div>
-              <div class="form-group"><input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" /></div>
-              <div class="form-group"><input id="user-last-${user.username}" maxlength="64" value="${esc(user.lastName)}" placeholder="Nom" /></div>
               <div class="form-group">
+                <label for="user-first-${user.username}">Prénom</label>
+                <input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" />
+              </div>
+              <div class="form-group">
+                <label for="user-last-${user.username}">Nom</label>
+                <input id="user-last-${user.username}" maxlength="64" value="${esc(user.lastName)}" placeholder="Nom" />
+              </div>
+              <div class="form-group">
+                <label for="user-role-${user.username}">Rôle</label>
                 <select id="user-role-${user.username}" ${isCurrent ? 'disabled' : ''}>
                   <option value="user" ${user.role === 'user' ? 'selected' : ''}>Utilisateur simple</option>
                   <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrateur</option>
                 </select>
               </div>
-              ${isCurrent ? '' : `<div class="form-group"><input id="user-password-${user.username}" type="password" minlength="6" placeholder="Nouveau mot de passe (facultatif)" /></div>`}
+              ${isCurrent ? '' : `
+                <div class="form-group">
+                  <label for="user-password-${user.username}">Nouveau mot de passe (facultatif)</label>
+                  <input id="user-password-${user.username}" type="password" minlength="6" placeholder="6 caractères minimum" />
+                </div>
+              `}
               <div class="actions">
                 <button class="action primary" onclick="updateUser('${user.username}', ${isCurrent})">Enregistrer</button>
                 <button class="action danger" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">Supprimer</button>

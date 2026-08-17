@@ -56,13 +56,13 @@ La centrale charge depuis sa mémoire NVS :
 
 Elle crée ou migre ensuite le compte administrateur, se connecte au Wi-Fi et
 publie `http://gameroom.local` avec mDNS. Si aucun réseau valide n'est enregistré,
-elle ouvre le point d'accès `GAMEROOM-CENTRAL-SETUP` et son portail captif.
+elle ouvre un point d'accès `GAMEROOM-CENTRAL-<chipId>` et son portail captif.
 
 ### 2. Démarrage d'un poste
 
 Le poste calcule son `chipId` matériel, charge son identité et ses identifiants
 Wi-Fi depuis la NVS, puis force le relais à l'arrêt. En cas d'échec Wi-Fi, il
-ouvre un point d'accès dont le nom commence par `GAMEROOM-POSTE-SETUP`.
+ouvre un point d'accès `GAMEROOM-POSTE-<chipId>`.
 
 Une fois connecté, il publie son propre service mDNS, résout `gameroom.local` et
 annonce son état à la centrale toutes les cinq secondes.
@@ -256,12 +256,12 @@ arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
 ## Mise en service rapide
 
 1. Téléverser et démarrer la centrale.
-2. Se connecter à `GAMEROOM-CENTRAL-SETUP` avec le mot de passe `12345678`.
+2. Se connecter à `GAMEROOM-CENTRAL-<chipId>` avec le mot de passe `12345678`.
 3. Ouvrir `http://192.168.4.1` et sélectionner le réseau local.
 4. Ouvrir `http://gameroom.local`, se connecter avec `admin` / `admin1234`, puis
    changer immédiatement le mot de passe.
 5. Téléverser et démarrer un poste configuré avec le même secret partagé.
-6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-SETUP...`, ouvrir
+6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-<chipId>`, ouvrir
    `http://192.168.4.1` et choisir le même réseau local.
 7. Dans **Gestion des postes**, attendre le `chipId`, puis attribuer un `id` et
    un nom au poste.
@@ -272,11 +272,11 @@ arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
 
 | Appareil | Namespace NVS | Données conservées |
 |---|---|---|
-| Centrale | `wifi` | SSID et mot de passe Wi-Fi. |
+| Centrale | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
 | Centrale | `appcfg` | Durée par coin, impulsions par coin et solde. |
 | Centrale | `auth` | Comptes, hashes salés et token API. |
 | Centrale | `posts` | Identité et dernière IP des postes configurés. |
-| Poste | `wifi` | SSID et mot de passe Wi-Fi. |
+| Poste | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
 | Poste | `identity` | Identifiant logique et nom du poste. |
 | Poste | `session` | Dernier temps restant sauvegardé ; une valeur positive indique une session interrompue. |
 

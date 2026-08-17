@@ -98,12 +98,23 @@ Si aucun Wi-Fi valide n'est enregistré, la centrale crée ce point d'accès :
 
 | Paramètre | Valeur par défaut |
 |---|---|
-| SSID | `GAMEROOM-CENTRAL-SETUP` |
+| SSID | `GAMEROOM-CENTRAL-<chipId>` |
 | Mot de passe | `12345678` |
 | Adresse du portail | `http://192.168.4.1` |
 
-Le portail scanne les réseaux disponibles, teste les identifiants saisis, les
-enregistre uniquement après une connexion réussie puis redémarre l'ESP32.
+Le portail scanne les réseaux disponibles et propose deux modes d'adressage :
+
+- **Automatique (DHCP)**, utilisé par défaut et compatible avec les anciennes
+  configurations enregistrées ;
+- **Manuel (IP fixe)**, avec adresse IPv4, passerelle, masque de sous-réseau et
+  DNS principal/secondaire facultatifs.
+
+Les identifiants et les paramètres réseau sont validés puis enregistrés
+uniquement après une connexion réussie. La centrale redémarre ensuite avec la
+même configuration. Il n'existe pas de proxy HTTP système sur l'ESP32 : les
+communications avec les postes et mDNS restent directes sur le réseau local.
+Le suffixe `chipId`, calculé depuis l'eFuse, distingue aussi plusieurs centrales
+qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
@@ -293,7 +304,7 @@ Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou
 ### 1. Première mise en service
 
 1. Alimenter la centrale et ouvrir le moniteur série.
-2. Se connecter au Wi-Fi `GAMEROOM-CENTRAL-SETUP`.
+2. Se connecter au Wi-Fi `GAMEROOM-CENTRAL-<chipId>` affiché dans le moniteur série.
 3. Utiliser le mot de passe `12345678`.
 4. Ouvrir `http://192.168.4.1` si le portail ne s'affiche pas automatiquement.
 5. Sélectionner le réseau local partagé par la centrale et les postes.
@@ -457,7 +468,7 @@ La classe `Preferences` enregistre les données dans plusieurs espaces NVS :
 
 | Namespace | Données |
 |---|---|
-| `wifi` | SSID et mot de passe Wi-Fi. |
+| `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
 | `appcfg` | Durée d'un coin, impulsions par coin et solde. |
 | `auth` | Token API et comptes avec hash des mots de passe. |
 | `posts` | Identité et adresse IP des postes configurés. |
@@ -517,7 +528,7 @@ déploiement.
 
 ### Le portail Wi-Fi ne s'ouvre pas
 
-- vérifier la connexion au SSID `GAMEROOM-CENTRAL-SETUP` ;
+- vérifier la connexion au SSID `GAMEROOM-CENTRAL-<chipId>` ;
 - ouvrir manuellement `http://192.168.4.1` ;
 - désactiver temporairement les données mobiles ou le VPN ;
 - consulter le moniteur série à 115200 bauds.
@@ -566,7 +577,7 @@ déploiement.
 Les constantes principales se trouvent dans `AppConfig.h` :
 
 ```cpp
-AP_SSID
+AP_SSID_PREFIX
 AP_PASSWORD
 MDNS_HOSTNAME
 DEFAULT_ADMIN_USERNAME

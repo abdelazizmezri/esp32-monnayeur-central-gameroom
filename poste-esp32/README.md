@@ -144,15 +144,23 @@ Si la connexion échoue, l'ESP32 crée un point d'accès :
 
 | Paramètre | Valeur par défaut |
 |---|---|
-| Préfixe du SSID | `GAMEROOM-POSTE-SETUP` |
-| SSID réel | préfixe suivi de l'identifiant du poste s'il existe |
+| Préfixe du SSID | `GAMEROOM-POSTE` |
+| SSID réel | `GAMEROOM-POSTE-<chipId>` |
 | Mot de passe | aucun, réseau ouvert |
 | Adresse habituelle | `http://192.168.4.1` |
 
 Le portail scanne les réseaux disponibles et permet aussi de saisir un SSID
-manuellement. Les identifiants ne sont enregistrés qu'après une connexion
-réussie. Le point d'accès reste actif cinq secondes pour afficher le résultat,
-puis l'ESP32 continue en mode station sans redémarrer.
+manuellement. L'adressage est **automatique (DHCP)** par défaut. Le mode
+**manuel (IP fixe)** demande une adresse IPv4, une passerelle et un masque ; les
+DNS principal et secondaire sont facultatifs. Les identifiants et les paramètres
+réseau ne sont enregistrés qu'après une connexion réussie. Le point d'accès
+reste actif cinq secondes pour afficher le résultat, puis l'ESP32 continue en
+mode station sans redémarrer.
+
+L'ESP32 ne fournit pas de proxy HTTP système. Les annonces mDNS et les échanges
+avec la centrale utilisent donc toujours une connexion directe au réseau local.
+Le `chipId` provient de l'eFuse et est disponible même sur un poste neuf : chaque
+poste diffuse ainsi un nom de point d'accès distinct avant son identification.
 
 Quand le portail est actif, `/` et les URL usuelles de détection de portail
 captif redirigent vers `/wifi`.
@@ -186,7 +194,7 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `WIFI_SSID` | `YOUR_WIFI` | SSID de secours compilé dans le firmware. |
 | `WIFI_PASSWORD` | `YOUR_PASSWORD` | Mot de passe du SSID de secours. |
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai maximal de connexion Wi-Fi. |
-| `WIFI_SETUP_AP_SSID_PREFIX` | `GAMEROOM-POSTE-SETUP` | Préfixe du point d'accès de configuration. |
+| `WIFI_SETUP_AP_SSID_PREFIX` | `GAMEROOM-POSTE` | Préfixe suivi automatiquement du `chipId` matériel. |
 | `WIFI_SETUP_AP_PASSWORD` | chaîne vide | Mot de passe du point d'accès ; huit caractères minimum pour le protéger. |
 | `WIFI_SETUP_AP_SHUTDOWN_DELAY_MS` | `5000` | Délai avant l'arrêt du portail après connexion. |
 | `CENTRAL_MDNS_HOSTNAME` | `gameroom` | Nom mDNS de la centrale, sans `.local`. |
@@ -273,7 +281,7 @@ sous Windows.
 2. Téléverser le firmware du poste après avoir configuré le token et le relais.
 3. Ouvrir le moniteur série à 115200 bauds.
 4. Si aucun Wi-Fi valide n'est connu, se connecter au point d'accès
-   `GAMEROOM-POSTE-SETUP`.
+   `GAMEROOM-POSTE-<chipId>` affiché dans le moniteur série.
 5. Ouvrir `http://192.168.4.1` si le portail ne s'affiche pas automatiquement.
 6. Choisir le même réseau local que celui de la centrale et saisir son mot de
    passe.
@@ -490,7 +498,7 @@ dans la NVS sans chiffrement applicatif.
 
 ### Le portail Wi-Fi ne s'ouvre pas
 
-- vérifier la connexion au SSID commençant par `GAMEROOM-POSTE-SETUP` ;
+- vérifier la connexion au SSID `GAMEROOM-POSTE-<chipId>` ;
 - ouvrir manuellement `http://192.168.4.1` ;
 - désactiver temporairement les données mobiles ou le VPN ;
 - consulter le moniteur série à 115200 bauds ;

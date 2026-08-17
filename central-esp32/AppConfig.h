@@ -1,8 +1,8 @@
 #pragma once
 
 namespace AppConfig {
-  static const char* AP_SSID = "GAMEROOM-CENTRAL-SETUP";
-  static const char* AP_PASSWORD = "12345678";
+  static const char* AP_SSID_PREFIX = "GAMEROOM-CENTRAL";
+  static const char* AP_PASSWORD = "";
   static const char* MDNS_HOSTNAME = "gameroom";
   static const char* DEFAULT_ADMIN_USERNAME = "admin";
   static const char* DEFAULT_ADMIN_PASSWORD = "admin1234";

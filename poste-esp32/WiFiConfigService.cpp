@@ -18,6 +18,15 @@ namespace WiFiConfigService {
 
   static const byte DNS_PORT = 53;
 
+  struct NetworkConfig {
+    bool useStaticIp = false;
+    IPAddress localIp;
+    IPAddress gateway;
+    IPAddress subnet;
+    IPAddress dns1;
+    IPAddress dns2;
+  };
+
   static String htmlEscape(const String& value) {
     String escaped = value;
     escaped.replace("&", "&amp;");
@@ -26,6 +35,97 @@ namespace WiFiConfigService {
     escaped.replace("\"", "&quot;");
     escaped.replace("'", "&#39;");
     return escaped;
+  }
+
+  static bool parseIpv4(const String& value, const String& fieldName, IPAddress& result,
+                        String& error, bool required = true) {
+    String trimmed = value;
+    trimmed.trim();
+
+    if (trimmed.isEmpty() && !required) {
+      result = INADDR_NONE;
+      return true;
+    }
+
+    if (trimmed.isEmpty() || !result.fromString(trimmed) || result == INADDR_NONE) {
+      error = fieldName + " invalide.";
+      return false;
+    }
+
+    return true;
+  }
+
+  static bool parseNetworkConfig(bool useStaticIp,
+                                 const String& localIp,
+                                 const String& gateway,
+                                 const String& subnet,
+                                 const String& dns1,
+                                 const String& dns2,
+                                 NetworkConfig& config,
+                                 String& error) {
+    config = NetworkConfig();
+    config.useStaticIp = useStaticIp;
+
+    if (!useStaticIp) {
+      return true;
+    }
+
+    return parseIpv4(localIp, "Adresse IP", config.localIp, error) &&
+           parseIpv4(gateway, "Passerelle", config.gateway, error) &&
+           parseIpv4(subnet, "Masque de sous-reseau", config.subnet, error) &&
+           parseIpv4(dns1, "DNS principal", config.dns1, error, false) &&
+           parseIpv4(dns2, "DNS secondaire", config.dns2, error, false);
+  }
+
+  static bool readNetworkConfigFromRequest(NetworkConfig& config, String& error) {
+    bool useStaticIp = gServer->arg("networkMode") == "static";
+    return parseNetworkConfig(useStaticIp,
+                              gServer->arg("localIp"),
+                              gServer->arg("gateway"),
+                              gServer->arg("subnet"),
+                              gServer->arg("dns1"),
+                              gServer->arg("dns2"),
+                              config,
+                              error);
+  }
+
+  static bool loadNetworkConfig(NetworkConfig& config, String& error) {
+    bool useStaticIp = preferences.getBool("staticIp", false);
+    return parseNetworkConfig(useStaticIp,
+                              preferences.getString("localIp", ""),
+                              preferences.getString("gateway", ""),
+                              preferences.getString("subnet", ""),
+                              preferences.getString("dns1", ""),
+                              preferences.getString("dns2", ""),
+                              config,
+                              error);
+  }
+
+  static void saveNetworkConfig(const NetworkConfig& config) {
+    preferences.putBool("staticIp", config.useStaticIp);
+
+    if (config.useStaticIp) {
+      preferences.putString("localIp", config.localIp.toString());
+      preferences.putString("gateway", config.gateway.toString());
+      preferences.putString("subnet", config.subnet.toString());
+      preferences.putString("dns1", config.dns1 == INADDR_NONE ? "" : config.dns1.toString());
+      preferences.putString("dns2", config.dns2 == INADDR_NONE ? "" : config.dns2.toString());
+      return;
+    }
+
+    preferences.remove("localIp");
+    preferences.remove("gateway");
+    preferences.remove("subnet");
+    preferences.remove("dns1");
+    preferences.remove("dns2");
+  }
+
+  static bool applyNetworkConfig(const NetworkConfig& config) {
+    if (!config.useStaticIp) {
+      return WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
+    }
+
+    return WiFi.config(config.localIp, config.gateway, config.subnet, config.dns1, config.dns2);
   }
 
   static bool hasUsableDefaultCredentials() {
@@ -41,13 +141,22 @@ namespace WiFiConfigService {
     }
   }
 
-  static bool connectToWifi(const String& ssid, const String& password, bool keepPortalActive) {
+  static bool connectToWifi(const String& ssid, const String& password, bool keepPortalActive,
+                            const NetworkConfig& networkConfig) {
     if (ssid.isEmpty()) return false;
 
     Serial.print("Connecting to WiFi ");
     Serial.print(ssid);
 
     WiFi.mode(keepPortalActive ? WIFI_AP_STA : WIFI_STA);
+    WiFi.disconnect(false, false);
+    delay(100);
+
+    if (!applyNetworkConfig(networkConfig)) {
+      Serial.println("Unable to apply IP configuration.");
+      return false;
+    }
+
     WiFi.begin(ssid.c_str(), password.c_str());
 
     unsigned long startedAt = millis();
@@ -75,21 +184,40 @@ namespace WiFiConfigService {
     preferences.begin("wifi", true);
     String ssid = preferences.getString("ssid", "");
     String password = preferences.getString("password", "");
+    NetworkConfig networkConfig;
+    String configError;
+    bool configOk = loadNetworkConfig(networkConfig, configError);
     preferences.end();
 
     if (ssid.isEmpty() && hasUsableDefaultCredentials()) {
       ssid = PosteConfig::WIFI_SSID;
       password = PosteConfig::WIFI_PASSWORD;
+      networkConfig = NetworkConfig();
+      configOk = true;
     }
 
-    return connectToWifi(ssid, password, false);
+    if (!configOk) {
+      Serial.println("Invalid saved IP configuration: " + configError);
+      return false;
+    }
+
+    return connectToWifi(ssid, password, false, networkConfig);
   }
 
   static String buildApSsid() {
-    String suffix = gState->id;
-    suffix.replace(" ", "-");
-    suffix.toUpperCase();
-    return String(PosteConfig::WIFI_SETUP_AP_SSID_PREFIX) + suffix;
+    String chipId = gState->chipId;
+
+    if (chipId.isEmpty()) {
+      uint64_t mac = ESP.getEfuseMac();
+      char buffer[13];
+      snprintf(buffer, sizeof(buffer), "%04X%08X",
+               (uint16_t)(mac >> 32),
+               (uint32_t)mac);
+      chipId = buffer;
+    }
+
+    chipId.toUpperCase();
+    return String(PosteConfig::WIFI_SETUP_AP_SSID_PREFIX) + "-" + chipId;
   }
 
   static void startPortal() {
@@ -173,6 +301,8 @@ namespace WiFiConfigService {
     page += ".msg{padding:12px;border-radius:6px;margin:14px 0;background:#fff4cc;color:#594400}";
     page += ".ok{background:#dff5e7;color:#145c2d}.ip{font-size:20px;font-weight:700}";
     page += "a{color:#1769e0;text-decoration:none}.small{color:#5d687b;font-size:14px}";
+    page += ".network-fields{margin-top:12px;padding:2px 14px 14px;background:#f5f7fb;border-radius:6px}";
+    page += "[hidden]{display:none!important}";
     page += "</style></head><body><main><section>";
     page += "<h1>Configuration WiFi</h1>";
     page += "<p class=\"small\">Connectez ce poste au reseau local utilise par le central.</p>";
@@ -194,8 +324,37 @@ namespace WiFiConfigService {
       page += "<input id=\"ssidManual\" name=\"ssidManual\" placeholder=\"Nom du reseau\">";
       page += "<label for=\"password\">Mot de passe</label>";
       page += "<input id=\"password\" name=\"password\" type=\"password\" autocomplete=\"current-password\">";
+      page += "<label for=\"networkMode\">Configuration IP</label>";
+      page += "<select id=\"networkMode\" name=\"networkMode\" onchange=\"toggleNetworkFields()\">";
+      page += "<option value=\"dhcp\">Automatique (DHCP)</option>";
+      page += "<option value=\"static\">Manuelle (IP fixe)</option></select>";
+      page += "<div id=\"manualNetworkFields\" class=\"network-fields\" hidden>";
+      page += "<label for=\"localIp\">Adresse IP fixe</label>";
+      page += "<input id=\"localIp\" name=\"localIp\" inputmode=\"decimal\" placeholder=\"192.168.1.51\">";
+      page += "<label for=\"gateway\">Passerelle</label>";
+      page += "<input id=\"gateway\" name=\"gateway\" inputmode=\"decimal\" placeholder=\"192.168.1.1\">";
+      page += "<label for=\"subnet\">Masque de sous-reseau</label>";
+      page += "<input id=\"subnet\" name=\"subnet\" inputmode=\"decimal\" value=\"255.255.255.0\">";
+      page += "<label for=\"dns1\">DNS principal (facultatif)</label>";
+      page += "<input id=\"dns1\" name=\"dns1\" inputmode=\"decimal\" placeholder=\"192.168.1.1\">";
+      page += "<label for=\"dns2\">DNS secondaire (facultatif)</label>";
+      page += "<input id=\"dns2\" name=\"dns2\" inputmode=\"decimal\" placeholder=\"1.1.1.1\">";
+      page += "<p class=\"small\">Un proxy HTTP systeme n'est pas pris en charge. Les echanges avec la centrale restent directs sur le reseau local.</p>";
+      page += "</div>";
       page += "<button type=\"submit\">Connecter</button>";
-      page += "</form><p class=\"small\"><a href=\"/wifi\">Actualiser la liste</a></p>";
+      page += "</form>";
+      page += R"rawliteral(<script>
+        function toggleNetworkFields() {
+          var manual = document.getElementById('networkMode').value === 'static';
+          document.getElementById('manualNetworkFields').hidden = !manual;
+          ['localIp', 'gateway', 'subnet'].forEach(function(id) {
+            document.getElementById(id).required = manual;
+          });
+        }
+        document.getElementById('ssidManual').value = document.getElementById('ssidList').value;
+        toggleNetworkFields();
+      </script>)rawliteral";
+      page += "<p class=\"small\"><a href=\"/wifi\">Actualiser la liste</a></p>";
     }
 
     page += "</section></main></body></html>";
@@ -236,7 +395,14 @@ namespace WiFiConfigService {
       return;
     }
 
-    bool connected = connectToWifi(ssid, password, true);
+    NetworkConfig networkConfig;
+    String configError;
+    if (!readNetworkConfigFromRequest(networkConfig, configError)) {
+      sendConfigPage(configError, false);
+      return;
+    }
+
+    bool connected = connectToWifi(ssid, password, true, networkConfig);
 
     if (!connected) {
       WiFi.mode(WIFI_AP_STA);
@@ -247,6 +413,7 @@ namespace WiFiConfigService {
     preferences.begin("wifi", false);
     preferences.putString("ssid", ssid);
     preferences.putString("password", password);
+    saveNetworkConfig(networkConfig);
     preferences.end();
 
     stopPortalSoon();
