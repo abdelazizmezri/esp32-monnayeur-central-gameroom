@@ -27,7 +27,7 @@ jeu depuis une interface web locale.
 
 - configuration Wi-Fi par point d'accès et portail captif ;
 - accès local par adresse IP ou `http://gameroom.local` ;
-- lecture du monnayeur sur le GPIO 27 ;
+- lecture du monnayeur sur le GPIO 32 ;
 - conversion configurable des impulsions en coins ;
 - crédit disponible sauvegardé en mémoire NVS ;
 - découverte automatique des ESP32 des postes ;
@@ -45,7 +45,7 @@ jeu depuis une interface web locale.
 
 ```mermaid
 flowchart LR
-    Coin[Monnayeur] -->|Impulsions GPIO 27| Central[Centrale ESP32]
+    Coin[Monnayeur] -->|Impulsions GPIO 32| Central[Centrale ESP32]
     Admin[Navigateur administrateur] -->|HTTP local| Central
     User[Navigateur utilisateur simple] -->|HTTP local| Central
     Central -->|Commandes HTTP| Post1[ESP32 Poste 1]
@@ -118,7 +118,7 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-Le monnayeur est relié au GPIO 27 configuré en `INPUT_PULLUP`. Une impulsion est
+Le monnayeur est relié au GPIO 32 configuré en `INPUT_PULLUP`. Une impulsion est
 détectée sur le front descendant. Un délai anti-rebond de 80 ms élimine les
 impulsions parasites rapprochées.
 
@@ -207,7 +207,7 @@ ne peut pas être modifié ou supprimé.
 | Champ | Valeur |
 |---|---|
 | Nom d'utilisateur | `admin` |
-| Mot de passe | `admin1234` |
+| Mot de passe | `12345678` |
 | Rôle | Administrateur |
 
 Au premier démarrage après mise à jour d'une ancienne version, l'ancien mot de
@@ -316,7 +316,7 @@ Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou
 ### 2. Première connexion
 
 1. Saisir le nom d'utilisateur `admin`.
-2. Saisir le mot de passe `admin1234`.
+2. Saisir le mot de passe `12345678`.
 3. Aller immédiatement dans **Mot de passe / Token**.
 4. Choisir un nouveau mot de passe d'au moins 6 caractères.
 5. Se reconnecter avec le nouveau mot de passe.
@@ -512,7 +512,7 @@ réannonce après le redémarrage de la centrale.
 
 Avant une utilisation réelle :
 
-1. changer immédiatement le mot de passe `admin1234` ;
+1. changer immédiatement le mot de passe `12345678` ;
 2. modifier `AP_PASSWORD` dans `AppConfig.h` ;
 3. remplacer `POSTE_COMMAND_TOKEN` sur la centrale et tous les postes ;
 4. régénérer le token API depuis l'interface ;
@@ -549,7 +549,7 @@ déploiement.
 
 ### Les coins ne sont pas détectés
 
-- contrôler le câblage du GPIO 27 et de la masse ;
+- contrôler le câblage du GPIO 32 et de la masse ;
 - vérifier le niveau électrique et le circuit d'adaptation ;
 - ajuster **Impulsions par coin** ;
 - utiliser **+1 coin** de simulation pour distinguer un problème matériel d'un problème logiciel.
@@ -558,7 +558,7 @@ déploiement.
 
 - utiliser le nom d'utilisateur `admin` ;
 - utiliser l'ancien mot de passe administrateur, automatiquement migré ;
-- sur une installation neuve, utiliser `admin1234`.
+- sur une installation neuve, utiliser `12345678`.
 
 ## Limites connues
 

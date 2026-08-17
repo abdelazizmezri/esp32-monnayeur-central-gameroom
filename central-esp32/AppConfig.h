@@ -5,14 +5,16 @@ namespace AppConfig {
   static const char* AP_PASSWORD = "";
   static const char* MDNS_HOSTNAME = "gameroom";
   static const char* DEFAULT_ADMIN_USERNAME = "admin";
-  static const char* DEFAULT_ADMIN_PASSWORD = "admin1234";
+  static const char* DEFAULT_ADMIN_PASSWORD = "12345678";
   // Must match PosteConfig::COMMAND_TOKEN on every poste ESP32.
   static const char* POSTE_COMMAND_TOKEN = "gameroom-poste-token-change-me";
 
   static const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 
   static const int SERVER_PORT = 80;
-  static const int COIN_PIN = 27;
+
+  static const int COIN_PIN = 13;
+
   static const int DEFAULT_COIN_DURATION_SECONDS = 1800;
   static const int DEFAULT_PULSES_PER_COIN = 1;
   static const int DEFAULT_AVAILABLE_COINS = 0;
