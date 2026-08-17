@@ -286,12 +286,9 @@ namespace WiFiConfigService {
     }
 
     if (success && ip.length() > 0) {
-      String hostname = "poste-" + gState->chipId;
-      hostname.toLowerCase();
       infoBlock += "<p>Nouvelle adresse IP :</p><p class='ip'>" + htmlEscape(ip) + "</p>";
-      infoBlock += "<p>Nom de domaine :</p><p class='ip'>http://" + htmlEscape(hostname) + ".local</p>";
       infoBlock += "<p class='small'>L'ESP32 va redémarrer automatiquement dans quelques secondes. "
-                   "Reconnecte ton PC au réseau local puis ouvre l'adresse affichée.</p>";
+                   "Reconnecte ton PC au réseau local puis utilise l'adresse IP affichée.</p>";
     }
 
     String html = R"rawliteral(
@@ -309,6 +306,8 @@ namespace WiFiConfigService {
     select,input,button{box-sizing:border-box;width:100%;font-size:16px;border-radius:6px}
     select,input{border:1px solid #bac4d6;padding:12px;background:#fff}
     button{border:0;background:#1769e0;color:#fff;padding:13px 14px;margin-top:18px;font-weight:700;cursor:pointer}
+    button.secondary{background:#eef3fb;color:#1769e0;border:1px solid #bac4d6;margin-top:10px}
+    button:disabled{opacity:.65;cursor:wait}
     .msg{padding:12px;border-radius:6px;margin:14px 0;background:#fff4cc;color:#594400}
     .ok{background:#dff5e7;color:#145c2d}.ip{font-size:20px;font-weight:700;margin:4px 0 12px;word-break:break-word}
     a{color:#1769e0;text-decoration:none}.small,.muted{color:#5d687b;font-size:14px}
@@ -336,6 +335,8 @@ namespace WiFiConfigService {
 
     html += R"rawliteral(
       </select>
+      <button id="refreshNetworks" class="secondary" type="button" onclick="refreshWifiList()">Actualiser la liste</button>
+      <p id="scanStatus" class="muted" aria-live="polite"></p>
 
       <label for="ssid">SSID</label>
       <input id="ssid" name="ssid" placeholder="Nom du Wi-Fi" required>
@@ -372,6 +373,49 @@ namespace WiFiConfigService {
     </form>
 
     <script>
+      async function refreshWifiList() {
+        var button = document.getElementById('refreshNetworks');
+        var select = document.getElementById('ssidList');
+        var ssidInput = document.getElementById('ssid');
+        var status = document.getElementById('scanStatus');
+
+        button.disabled = true;
+        button.textContent = 'Recherche en cours...';
+        status.textContent = '';
+
+        try {
+          var response = await fetch('/wifi/scan', {cache: 'no-store'});
+          if (!response.ok) throw new Error('scan failed');
+
+          var payload = await response.json();
+          var networks = Array.isArray(payload.networks) ? payload.networks : [];
+          var selectedSsid = ssidInput.value;
+
+          select.replaceChildren();
+          var placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = '-- Sélectionner un réseau --';
+          select.appendChild(placeholder);
+
+          networks.forEach(function(network) {
+            var option = document.createElement('option');
+            option.value = network.ssid || '';
+            option.textContent = option.value + ' (' + network.rssi + ' dBm)';
+            select.appendChild(option);
+          });
+
+          select.value = selectedSsid;
+          status.textContent = networks.length
+            ? networks.length + ' réseau(x) détecté(s).'
+            : 'Aucun réseau détecté.';
+        } catch (error) {
+          status.textContent = 'Impossible d’actualiser la liste.';
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Actualiser la liste';
+        }
+      }
+
       function toggleNetworkFields() {
         var manual = document.getElementById('networkMode').value === 'static';
         document.getElementById('manualNetworkFields').hidden = !manual;
@@ -383,7 +427,7 @@ namespace WiFiConfigService {
     </script>
 
     <p class="muted">
-      Après succès, utilise l'adresse IP ou le nom de domaine affiché.
+      Après succès, utilise l'adresse IP affichée.
     </p>
 )rawliteral";
     }

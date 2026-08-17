@@ -153,9 +153,9 @@ Le portail scanne les réseaux disponibles et permet aussi de saisir un SSID
 manuellement. L'adressage est **automatique (DHCP)** par défaut. Le mode
 **manuel (IP fixe)** demande une adresse IPv4, une passerelle et un masque ; les
 DNS principal et secondaire sont facultatifs. Les identifiants et les paramètres
-réseau ne sont enregistrés qu'après une connexion réussie. Comme la centrale,
-le poste affiche la nouvelle adresse IP et son nom de domaine, puis redémarre
-automatiquement après huit secondes.
+réseau ne sont enregistrés qu'après une connexion réussie. Le poste affiche
+uniquement sa nouvelle adresse IP, puis redémarre automatiquement après huit
+secondes.
 
 L'ESP32 ne fournit pas de proxy HTTP système. Les annonces mDNS et les échanges
 avec la centrale utilisent donc toujours une connexion directe au réseau local.
