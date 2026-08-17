@@ -1,0 +1,46 @@
+# Système d'exploitation
+.DS_Store
+Thumbs.db
+
+# Éditeurs et IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Arduino IDE / arduino-cli
+.arduinoIDE/
+build/
+build-*/
+build_*/
+*.ino.cpp
+*.o
+*.d
+*.a
+*.elf
+*.eep
+*.hex
+*.bin
+*.map
+*.lst
+
+# PlatformIO (si utilisé ultérieurement)
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Rapports et journaux locaux
+*.log
+core
+core.*
+coredump*.bin
+
+# Identifiants et configurations locales sensibles
+.env
+.env.*
+!.env.example
+**/arduino_secrets.h
+**/secrets.h
+**/credentials.h
+*.local.h
