@@ -153,9 +153,9 @@ Le portail scanne les réseaux disponibles et permet aussi de saisir un SSID
 manuellement. L'adressage est **automatique (DHCP)** par défaut. Le mode
 **manuel (IP fixe)** demande une adresse IPv4, une passerelle et un masque ; les
 DNS principal et secondaire sont facultatifs. Les identifiants et les paramètres
-réseau ne sont enregistrés qu'après une connexion réussie. Le point d'accès
-reste actif cinq secondes pour afficher le résultat, puis l'ESP32 continue en
-mode station sans redémarrer.
+réseau ne sont enregistrés qu'après une connexion réussie. Comme la centrale,
+le poste affiche la nouvelle adresse IP et son nom de domaine, puis redémarre
+automatiquement après huit secondes.
 
 L'ESP32 ne fournit pas de proxy HTTP système. Les annonces mDNS et les échanges
 avec la centrale utilisent donc toujours une connexion directe au réseau local.
@@ -163,7 +163,7 @@ Le `chipId` provient de l'eFuse et est disponible même sur un poste neuf : chaq
 poste diffuse ainsi un nom de point d'accès distinct avant son identification.
 
 Quand le portail est actif, `/` et les URL usuelles de détection de portail
-captif redirigent vers `/wifi`.
+captif ouvrent la même page de configuration Wi-Fi que la centrale.
 
 ### Identité et découverte
 
@@ -196,7 +196,6 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai maximal de connexion Wi-Fi. |
 | `WIFI_SETUP_AP_SSID_PREFIX` | `GAMEROOM-POSTE` | Préfixe suivi automatiquement du `chipId` matériel. |
 | `WIFI_SETUP_AP_PASSWORD` | chaîne vide | Mot de passe du point d'accès ; huit caractères minimum pour le protéger. |
-| `WIFI_SETUP_AP_SHUTDOWN_DELAY_MS` | `5000` | Délai avant l'arrêt du portail après connexion. |
 | `CENTRAL_MDNS_HOSTNAME` | `gameroom` | Nom mDNS de la centrale, sans `.local`. |
 | `ANNOUNCE_INTERVAL_MS` | `5000` | Période d'annonce à la centrale. |
 | `SESSION_CHECKPOINT_INTERVAL_MS` | `60000` | Période de sauvegarde du temps restant pendant une session. |
