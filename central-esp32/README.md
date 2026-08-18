@@ -27,7 +27,7 @@ jeu depuis une interface web locale.
 
 - configuration Wi-Fi par point d'accès et portail captif ;
 - accès local par adresse IP ou `http://gameroom.local` ;
-- lecture du monnayeur sur le GPIO 32 ;
+- lecture du monnayeur sur le GPIO 13 ;
 - conversion configurable des impulsions en coins ;
 - crédit disponible sauvegardé en mémoire NVS ;
 - découverte automatique des ESP32 des postes ;
@@ -45,7 +45,7 @@ jeu depuis une interface web locale.
 
 ```mermaid
 flowchart LR
-    Coin[Monnayeur] -->|Impulsions GPIO 32| Central[Centrale ESP32]
+    Coin[Monnayeur] -->|Impulsions GPIO 13| Central[Centrale ESP32]
     Admin[Navigateur administrateur] -->|HTTP local| Central
     User[Navigateur utilisateur simple] -->|HTTP local| Central
     Central -->|Commandes HTTP| Post1[ESP32 Poste 1]
@@ -118,9 +118,21 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-Le monnayeur est relié au GPIO 32 configuré en `INPUT_PULLUP`. Une impulsion est
-détectée sur le front descendant. Un délai anti-rebond de 80 ms élimine les
-impulsions parasites rapprochées.
+![Câblage du monnayeur JY-133B sur le GPIO 13 de l'ESP32](docs/images/cablage-jy-133b-esp32-gpio13.png)
+
+Le fil de signal du monnayeur est relié au GPIO 13 configuré en `INPUT`.
+La masse du monnayeur et celle de l'ESP32 doivent être communes. Le firmware ne
+compte une impulsion qu'après avoir observé un niveau bas complet entre 10 et
+250 ms, ou un niveau haut de même durée si le monnayeur est réglé en contact
+normalement fermé (`NC`). La polarité `NO`/`NC` est détectée automatiquement.
+Un délai anti-rebond de 80 ms élimine ensuite les impulsions parasites rapprochées.
+
+Pour un JY-133B alimenté en 12 V, relier la sortie `COIN` au GPIO 13 et partager
+la masse avec l'ESP32. Une résistance pull-down externe de 4,7 kΩ doit relier
+le GPIO 13 au GND. Elle maintient un niveau bas stable lorsque la sortie du
+monnayeur est inactive. Vérifier au multimètre que le signal `COIN` ne dépasse
+jamais 3,3 V : ne jamais relier directement un signal 12 V au GPIO. Conserver
+le câble de signal court et éloigné des relais et des fils 12 V.
 
 ```text
 nouveaux coins = nouvelles impulsions / impulsions par coin
@@ -549,7 +561,7 @@ déploiement.
 
 ### Les coins ne sont pas détectés
 
-- contrôler le câblage du GPIO 32 et de la masse ;
+- contrôler le câblage du GPIO 13 et de la masse ;
 - vérifier le niveau électrique et le circuit d'adaptation ;
 - ajuster **Impulsions par coin** ;
 - utiliser **+1 coin** de simulation pour distinguer un problème matériel d'un problème logiciel.
