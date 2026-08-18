@@ -130,13 +130,12 @@ sa NVS au démarrage de la session, après chaque ajout de temps, puis toutes le
 2. le poste passe à l'état `recovery_pending` ;
 3. il annonce séparément le temps récupérable à la centrale ;
 4. la centrale affiche **Reprise en attente** sur la carte du poste concerné ;
-5. l'opérateur peut saisir un nombre de minutes supplémentaires et cliquer sur
-   **Relancer le poste**, ou cliquer sur **Annuler le temps**.
+5. l'opérateur peut **Reprendre** le temps sauvegardé ou l'**Annuler**.
 
 Chaque poste possède son propre état de reprise. Plusieurs sessions interrompues
 peuvent donc être traitées indépendamment depuis la centrale. Une relance envoie
-`START_SESSION` avec le temps sauvegardé et le supplément demandé. Une annulation
-envoie `STOP_SESSION` et efface définitivement l'instantané du poste.
+`START_SESSION` avec le temps sauvegardé. Une annulation envoie `STOP_SESSION`
+et efface définitivement l'instantané du poste.
 
 L'ESP32 ne disposant pas ici d'une horloge secourue, le temps passé hors tension
 n'est pas déduit. Avec l'intervalle par défaut, le temps proposé peut également
@@ -292,7 +291,7 @@ centrale pour une relance ou une annulation explicite.
 | Fichier | Rôle |
 |---|---|
 | `central-esp32/central-esp32.ino` | Point d'entrée Arduino : crée l'état global et le serveur, initialise les services et exécute leur boucle. |
-| `central-esp32/AppConfig.h` | Regroupe les valeurs par défaut, secrets, GPIO, port, délais et limite du supplément de reprise. |
+| `central-esp32/AppConfig.h` | Regroupe les valeurs par défaut, secrets, GPIO, port et délais. |
 | `central-esp32/AppState.h` | Définit l'état partagé en RAM : crédits, impulsions, comptes, sessions, logs et postes. |
 | `central-esp32/Post.h` | Définit la structure d'un poste configuré, son dernier état connu et une éventuelle reprise en attente. |
 | `central-esp32/AuthService.h` | Déclare l'API interne d'authentification et de gestion des utilisateurs. |

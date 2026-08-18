@@ -101,7 +101,7 @@ stateDiagram-v2
     Active --> Idle: STOP_SESSION
     Active --> Idle: Temps écoulé
     Active --> RecoveryPending: Coupure puis redémarrage
-    RecoveryPending --> Active: START_SESSION(temps sauvegardé + supplément)
+    RecoveryPending --> Active: START_SESSION(temps sauvegardé)
     RecoveryPending --> Idle: STOP_SESSION / annulation
 ```
 

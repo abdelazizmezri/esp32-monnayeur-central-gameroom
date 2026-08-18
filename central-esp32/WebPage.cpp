@@ -101,7 +101,6 @@ namespace WebPage {
     .relay.on{color:var(--success-text)}
     .relay.off{color:var(--danger-text)}
     .recovery-box{margin:12px 0;padding:14px;border-radius:12px;background:var(--warning-bg);color:var(--warning-text);border:1px solid #fbbf24}
-    .recovery-box .form-group{margin:10px 0}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button.action{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
     button.action:disabled{opacity:.45;cursor:not-allowed}
@@ -302,7 +301,6 @@ namespace WebPage {
     let currentRole = 'user';
     let currentUsername = '';
     let postNames = {};
-    const recoveryDrafts = {};
 
     function applyPermissions(data) {
       currentRole = data.accessRole || 'user';
@@ -423,9 +421,7 @@ namespace WebPage {
         'use password settings': 'Utilisez la page Sécurité pour modifier votre propre mot de passe.',
         'admin required': 'Cette action est réservée aux administrateurs.',
         'recovery pending': "Décidez d'abord de relancer ou d'annuler la session interrompue.",
-        'no recovery pending': "Il n'y a plus de session interrompue à traiter.",
-        'invalid extra minutes': 'Le supplément doit être un nombre entier entre 0 et 10080 minutes.',
-        'duration too large': 'La durée totale demandée est trop grande.'
+        'no recovery pending': "Il n'y a plus de session interrompue à traiter."
       })[message] || message;
     }
 
@@ -456,10 +452,6 @@ namespace WebPage {
     }
 
     async function load() {
-      document.querySelectorAll('.recovery-minutes').forEach(input => {
-        recoveryDrafts[input.dataset.postId] = input.value;
-      });
-
       const data = await api('/posts');
       applyPermissions(data);
       const posts = data.posts || [];
@@ -507,22 +499,16 @@ namespace WebPage {
           </div>
           <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <div class="timer">
-            <div>${p.recoveryPending ? 'Temps sauvegardé avant coupure' : 'Temps restant'}</div>
+            <div>${p.recoveryPending ? 'Temps sauvegardé' : 'Temps restant'}</div>
             <div class="timer-value">${formatTime(p.recoveryPending ? p.recoveryRemaining : p.remaining)}</div>
           </div>
           <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
           ${p.recoveryPending ? `
             <div class="recovery-box">
-              <div><b>Coupure détectée.</b> Le relais reste arrêté jusqu'à votre décision.</div>
-              <div class="form-group">
-                <label for="recovery-extra-${esc(p.id)}">Minutes à ajouter au temps sauvegardé</label>
-                <input class="recovery-minutes" data-post-id="${esc(p.id)}" id="recovery-extra-${esc(p.id)}"
-                       type="number" min="0" max="10080" step="1"
-                       value="${esc(recoveryDrafts[p.id] ?? 0)}" />
-              </div>
+              <div><b>Coupure détectée.</b> Reprendre ou annuler ?</div>
               <div class="actions">
-                <button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Relancer le poste</button>
-                <button class="action danger" onclick="cancelRecovery('${esc(p.id)}')">Annuler le temps</button>
+                <button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
+                <button class="action danger" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
               </div>
             </div>
           ` : ''}
@@ -577,22 +563,14 @@ namespace WebPage {
     }
 
     async function resumeRecovery(postId) {
-      const input = document.getElementById(`recovery-extra-${postId}`);
-      const extraMinutes = Number(input?.value || 0);
-      if (!Number.isInteger(extraMinutes) || extraMinutes < 0 || extraMinutes > 10080) {
-        alert('Saisissez un nombre entier entre 0 et 10080 minutes.');
-        return;
-      }
-
-      if (!confirm(`Relancer ${postLabel(postId)} avec le temps sauvegardé + ${extraMinutes} minute(s) ?`)) return;
+      if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
 
       try {
         await api('/recovery/resume', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ post_id: postId, extraMinutes })
+          body:JSON.stringify({ post_id: postId })
         });
-        delete recoveryDrafts[postId];
         load();
       } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
     }
@@ -606,7 +584,6 @@ namespace WebPage {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ post_id: postId })
         });
-        delete recoveryDrafts[postId];
         load();
       } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
     }

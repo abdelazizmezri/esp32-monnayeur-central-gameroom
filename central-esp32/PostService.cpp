@@ -5,7 +5,6 @@
 #include "AppConfig.h"
 
 #include <Arduino.h>
-#include <limits.h>
 
 namespace PostService {
   void begin(AppState& state) {
@@ -349,13 +348,7 @@ namespace PostService {
     return true;
   }
 
-  bool resumeInterruptedSession(AppState& state, const String& postId,
-                                int extraMinutes, String& error) {
-    if (extraMinutes < 0 || extraMinutes > AppConfig::MAX_RECOVERY_EXTRA_MINUTES) {
-      error = "invalid extra minutes";
-      return false;
-    }
-
+  bool resumeInterruptedSession(AppState& state, const String& postId, String& error) {
     Post* post = findById(state, postId);
     if (!post) {
       error = "post not found";
@@ -367,13 +360,7 @@ namespace PostService {
       return false;
     }
 
-    long extraSeconds = (long)extraMinutes * 60L;
-    if (post->recoveryRemaining > LONG_MAX - extraSeconds) {
-      error = "duration too large";
-      return false;
-    }
-
-    long duration = post->recoveryRemaining + extraSeconds;
+    long duration = post->recoveryRemaining;
     if (!PosteClient::sendCommand(post->ip, "START_SESSION", duration)) {
       error = "poste unreachable";
       LogService::error(state, "Impossible de reprendre la session de " + postId);
@@ -386,7 +373,7 @@ namespace PostService {
     post->recoveryPending = false;
     post->recoveryRemaining = 0;
     LogService::info(state, "Session reprise sur " + postId + ": " +
-                     String(duration) + " s, supplément=" + String(extraMinutes) + " min");
+                     String(duration) + " s");
     return true;
   }
 

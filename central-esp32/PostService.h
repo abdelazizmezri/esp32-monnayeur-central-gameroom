@@ -21,8 +21,7 @@ namespace PostService {
 
   bool assignCoins(AppState& state, const String& postId, int coins, String& error);
   bool stopPost(AppState& state, const String& postId, String& error);
-  bool resumeInterruptedSession(AppState& state, const String& postId,
-                                int extraMinutes, String& error);
+  bool resumeInterruptedSession(AppState& state, const String& postId, String& error);
   bool cancelInterruptedSession(AppState& state, const String& postId, String& error);
 
   void refreshStatuses(AppState& state);

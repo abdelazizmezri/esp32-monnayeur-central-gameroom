@@ -186,11 +186,8 @@ Lors de l'affectation de coins :
 
 Si un poste redémarre pendant une session, son firmware compatible annonce
 `recoveryPending=true` avec `recoveryRemaining`. La centrale affiche alors une
-proposition de reprise propre à ce poste. L'opérateur peut :
-
-- relancer le temps sauvegardé sans supplément ;
-- saisir un nombre entier de minutes à ajouter, puis relancer ;
-- annuler définitivement le temps sauvegardé.
+proposition de reprise propre à ce poste. L'opérateur peut reprendre le temps
+sauvegardé ou l'annuler définitivement.
 
 Le relais du poste reste coupé tant qu'aucune décision n'a été envoyée. Les
 reprises de plusieurs postes sont affichées et traitées indépendamment.
@@ -423,7 +420,7 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 | GET | `/posts` | Connecté/API | État des postes et crédit disponible. |
 | POST | `/assign` | Connecté/API | Affecte des coins à un poste. |
 | POST | `/stop` | Connecté/API | Arrête une session. |
-| POST | `/recovery/resume` | Connecté/API | Relance le temps sauvegardé avec `extraMinutes` supplémentaires. |
+| POST | `/recovery/resume` | Connecté/API | Relance le temps sauvegardé. |
 | POST | `/recovery/cancel` | Connecté/API | Annule le temps sauvegardé d'un poste. |
 
 ### Routes administrateur

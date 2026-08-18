@@ -288,13 +288,12 @@ static void handleStop() {
 static void handleRecoveryResume() {
   if (!AuthService::requireApiAuth(*gServer, *gState)) return;
 
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(128);
   if (!parseJsonBody(doc)) return;
 
   String error;
   bool ok = PostService::resumeInterruptedSession(*gState,
                                                    doc["post_id"] | "",
-                                                   doc["extraMinutes"] | 0,
                                                    error);
   if (!ok) {
     int code = 400;
