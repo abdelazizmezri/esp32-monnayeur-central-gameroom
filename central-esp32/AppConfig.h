@@ -13,12 +13,18 @@ namespace AppConfig {
 
   static const int SERVER_PORT = 80;
 
+  // Le monnayeur est câblé sur le GPIO 13.
   static const int COIN_PIN = 13;
 
   static const int DEFAULT_COIN_DURATION_SECONDS = 1800;
   static const int DEFAULT_PULSES_PER_COIN = 1;
   static const int DEFAULT_AVAILABLE_COINS = 0;
 
+  // Le JY-133B fournit une sortie impulsionnelle à collecteur ouvert, NO ou NC.
+  // Une pull-down externe de 4,7 kΩ relie COIN/GPIO 13 au GND.
+  // On valide une impulsion complète pour ne pas créditer les fronts parasites.
+  static const unsigned long COIN_MIN_PULSE_MS = 10;
+  static const unsigned long COIN_MAX_PULSE_MS = 250;
   static const unsigned long COIN_DEBOUNCE_MS = 80;
   static const unsigned long POST_REFRESH_INTERVAL_MS = 5000;
   static const unsigned long POST_OFFLINE_TIMEOUT_MS = 10000;
