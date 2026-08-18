@@ -305,7 +305,7 @@ de 16 caractères.
 
 | Méthode | Route | Authentification | Description |
 |---|---|---|---|
-| GET | `/` | Non | Retourne `ESP32 Poste OK`, ou redirige vers le portail Wi-Fi. |
+| GET | `/` | Non | Retourne `Poste OK`, ou redirige vers le portail Wi-Fi. |
 | GET | `/status` | Non | Retourne l'identité, l'état du relais et le temps restant. |
 | POST | `/configure` | Bearer | Enregistre un `id` et un `name` non vides. |
 | POST | `/identity/clear` | Bearer | Arrête la session et efface l'identité du poste. |

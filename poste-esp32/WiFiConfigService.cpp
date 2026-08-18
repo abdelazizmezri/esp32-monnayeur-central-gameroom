@@ -287,7 +287,7 @@ namespace WiFiConfigService {
 
     if (success && ip.length() > 0) {
       infoBlock += "<p>Nouvelle adresse IP :</p><p class='ip'>" + htmlEscape(ip) + "</p>";
-      infoBlock += "<p class='small'>L'ESP32 va redémarrer automatiquement dans quelques secondes. "
+      infoBlock += "<p class='small'>Le poste va redémarrer automatiquement dans quelques secondes. "
                    "Reconnecte ton PC au réseau local puis utilise l'adresse IP affichée.</p>";
     }
 
@@ -318,7 +318,7 @@ namespace WiFiConfigService {
 <body>
   <main><section>
     <h1>Configuration Wi-Fi</h1>
-    <p class="small">Connecte ce poste ESP32 au réseau local utilisé par la centrale.</p>
+    <p class="small">Connecte ce poste au réseau local utilisé par la centrale.</p>
 )rawliteral";
 
     html += infoBlock;

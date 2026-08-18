@@ -144,7 +144,7 @@ namespace PosteWebServer {
       return;
     }
 
-    gServer->send(200, "text/plain", "ESP32 Poste OK");
+    gServer->send(200, "text/plain", "Poste OK");
   }
 
   void begin(WebServer& server, PosteState& state) {

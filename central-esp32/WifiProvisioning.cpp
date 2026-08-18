@@ -218,7 +218,7 @@ static String buildWifiPage(const String& message = "", bool success = false, co
   if (success && ip.length() > 0) {
     infoBlock += "<p>Nouvelle adresse IP :</p><p class='ip'>" + htmlEscape(ip) + "</p>";
     infoBlock += "<p>Nom de domaine :</p><p class='ip'>http://" + String(AppConfig::MDNS_HOSTNAME) + ".local</p>";
-    infoBlock += "<p class='small'>L'ESP32 va redémarrer automatiquement dans quelques secondes. "
+    infoBlock += "<p class='small'>La centrale va redémarrer automatiquement dans quelques secondes. "
                  "Reconnecte ton PC au réseau local puis ouvre l'adresse affichée.</p>";
   }
 
@@ -249,7 +249,7 @@ static String buildWifiPage(const String& message = "", bool success = false, co
 <body>
   <main><section>
     <h1>Configuration Wi-Fi</h1>
-    <p class="small">Connecte la centrale ESP32 au réseau local utilisé par les postes.</p>
+    <p class="small">Connecte la centrale au réseau local utilisé par les postes.</p>
 )rawliteral";
 
   html += infoBlock;
