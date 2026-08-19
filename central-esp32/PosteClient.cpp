@@ -14,7 +14,7 @@ namespace PosteClient {
     String url = "http://" + ip + "/command";
 
     http.begin(url);
-    http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
+    http.setTimeout(AppConfig::POSTE_COMMAND_TIMEOUT_MS);
     http.addHeader("Content-Type", "application/json");
     addAuthHeader(http);
 
@@ -38,7 +38,7 @@ namespace PosteClient {
     String url = "http://" + ip + "/configure";
 
     http.begin(url);
-    http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
+    http.setTimeout(AppConfig::POSTE_COMMAND_TIMEOUT_MS);
     http.addHeader("Content-Type", "application/json");
     addAuthHeader(http);
 
@@ -60,7 +60,7 @@ namespace PosteClient {
     String url = "http://" + ip + "/identity/clear";
 
     http.begin(url);
-    http.setTimeout(AppConfig::POSTE_STATUS_TIMEOUT_MS);
+    http.setTimeout(AppConfig::POSTE_COMMAND_TIMEOUT_MS);
     http.addHeader("Content-Type", "application/json");
     addAuthHeader(http);
 

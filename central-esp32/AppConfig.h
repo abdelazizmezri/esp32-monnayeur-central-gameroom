@@ -29,5 +29,8 @@ namespace AppConfig {
   static const unsigned long POST_REFRESH_INTERVAL_MS = 5000;
   static const unsigned long POST_OFFLINE_TIMEOUT_MS = 10000;
   static const unsigned long POSTE_STATUS_TIMEOUT_MS = 1200;
+  // Une commande peut arriver pendant que le poste attend la réponse à son
+  // annonce HTTP. Ce délai doit donc être supérieur au timeout de l'annonce.
+  static const unsigned long POSTE_COMMAND_TIMEOUT_MS = 4000;
   static const unsigned long PENDING_POST_TIMEOUT_MS = 30000;
 }

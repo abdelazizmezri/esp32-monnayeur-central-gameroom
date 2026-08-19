@@ -126,7 +126,11 @@ namespace PosteWebServer {
       }
       RelayService::addTime(*gState, duration);
     } else if (action == "STOP_SESSION") {
+      // Répondre avant l'écriture NVS effectuée par stopSession(). La commande
+      // est sans échec possible une fois validée et reste idempotente.
+      gServer->send(200, "application/json", "{\"ok\":true}");
       RelayService::stopSession(*gState);
+      return;
     } else if (action == "PING") {
       // no-op
     } else {
