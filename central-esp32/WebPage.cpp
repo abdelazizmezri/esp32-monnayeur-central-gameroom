@@ -80,14 +80,23 @@ namespace WebPage {
     .view{display:none}
     .view.active{display:block}
     .page-title{margin:0 0 14px;color:#fff}
+    .posts-list-title{margin:24px 0 12px;color:#fff;font-size:22px}
+    .posts-empty{margin:0;color:#cbd5e1;font-size:16px}
     .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
     .stat-card,.panel{background:var(--surface);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
     .page-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;align-items:start}
-    .posts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-    .post-card{background:var(--surface);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;border:1px solid var(--border)}
-    .post-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-    .post-title{font-size:18px;font-weight:700;margin:0}
-    .meta{color:var(--muted);font-size:13px;margin:4px 0;word-break:break-word}
+    .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,280px));gap:12px;align-items:start;justify-content:start}
+    .post-card{background:#f1f5f9;color:var(--text);border-radius:12px;box-shadow:var(--shadow);padding:14px;border:1px solid #cbd5e1;transition:transform .15s ease,box-shadow .15s ease}
+    .post-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.16)}
+    .post-card.active{background:#dcfce7;border-color:#86efac}
+    .post-card.idle{background:#e2e8f0;border-color:#94a3b8}
+    .post-card.offline{background:#fee2e2;border-color:#fca5a5}
+    .post-card.error{background:#ffedd5;border-color:#fdba74}
+    .post-card.recovery_pending{background:#fef3c7;border-color:#fbbf24}
+    .post-card.unknown{background:#f1f5f9;border-color:#cbd5e1}
+    .post-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}
+    .post-title{font-size:16px;font-weight:700;line-height:1.25;margin:0}
+    .meta{color:#475569;font-size:12px;margin:2px 0;word-break:break-word}
     .badge{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
     .badge.active{background:var(--success-bg);color:var(--success-text)}
     .badge.idle{background:var(--idle-bg);color:var(--idle-text)}
@@ -95,12 +104,18 @@ namespace WebPage {
     .badge.error{background:var(--warning-bg);color:var(--warning-text)}
     .badge.recovery_pending{background:var(--warning-bg);color:var(--warning-text)}
     .badge.unknown{background:var(--idle-bg);color:var(--idle-text)}
-    .timer{margin:14px 0;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid var(--border)}
-    .timer-value{font-size:24px;font-weight:700}
-    .relay{font-size:13px;font-weight:700;margin-bottom:12px}
+    .post-card .badge{padding:4px 7px;background:rgba(255,255,255,.62);color:#334155;border:1px solid rgba(51,65,85,.12);font-size:10px}
+    .timer{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:9px 0;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.55);border:1px solid rgba(51,65,85,.12)}
+    .timer-label{font-size:11px;color:#475569}
+    .timer-value{font-size:20px;font-weight:700;line-height:1}
+    .relay{font-size:11px;font-weight:700;margin-bottom:8px}
     .relay.on{color:var(--success-text)}
     .relay.off{color:var(--danger-text)}
-    .recovery-box{margin:12px 0;padding:14px;border-radius:12px;background:var(--warning-bg);color:var(--warning-text);border:1px solid #fbbf24}
+    .recovery-box{margin:8px 0 0;padding:8px;border-radius:9px;background:rgba(255,255,255,.48);color:var(--warning-text);border:1px solid rgba(146,64,14,.2)}
+    .recovery-copy{font-size:12px;line-height:1.3;margin-bottom:7px}
+    .post-card .actions{gap:6px}
+    .post-card button.action{padding:8px 10px;border-radius:8px;font-size:12px}
+    .post-card .coin-action{min-width:40px}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button.action{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
     button.action:disabled{opacity:.45;cursor:not-allowed}
@@ -118,7 +133,7 @@ namespace WebPage {
     .logs{height:62vh;min-height:360px;overflow:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:monospace;font-size:12px}
     .log-item{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)}
     .empty{background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.22);border-radius:14px;padding:20px;color:#cbd5e1}
-    @media (max-width:720px){.container{padding:14px}.nav a{flex:1 1 auto;text-align:center}.topbar-actions{width:100%;display:flex;gap:8px}.topbar-actions button{flex:1}}
+    @media (max-width:720px){.container{padding:14px}.nav a{flex:1 1 auto;text-align:center}.topbar-actions{width:100%;display:flex;gap:8px}.topbar-actions button{flex:1}.posts-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
   </style>
 </head>
 <body>
@@ -127,7 +142,6 @@ namespace WebPage {
       <div class="topbar">
         <div>
           <h1 style="margin:0 0 8px;">Central monnayeur</h1>
-          <div style="color:#cbd5e1;">Gestion des postes, crédits, configuration, logs et sécurité.</div>
           <div id="currentUserLabel" style="color:#93c5fd;font-size:13px;margin-top:6px;"></div>
         </div>
         <div class="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -148,6 +162,7 @@ namespace WebPage {
     <section class="view" id="view-home">
       <h2 class="page-title">Vue des postes</h2>
       <div class="stats" id="stats"></div>
+      <h2 class="posts-list-title">Liste des postes</h2>
       <div id="posts" class="posts-grid"></div>
     </section>
 
@@ -301,6 +316,22 @@ namespace WebPage {
     let currentRole = 'user';
     let currentUsername = '';
     let postNames = {};
+    let testCoinDurationSeconds = 1800;
+    const showTestPosts = true;
+    const testPosts = [
+      {chipId:'test-recovery-1',id:'__test_recovery_1',name:'Poste coupure 1',ip:'192.168.1.201',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:15*60},
+      {chipId:'test-recovery-2',id:'__test_recovery_2',name:'Poste coupure 2',ip:'192.168.1.202',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:7*60+30},
+      {chipId:'test-active-1',id:'__test_active_1',name:'Poste actif 1',ip:'192.168.1.203',status:'active',relay:true,remaining:24*60+20,recoveryPending:false,recoveryRemaining:0},
+      {chipId:'test-active-2',id:'__test_active_2',name:'Poste actif 2',ip:'192.168.1.204',status:'active',relay:true,remaining:9*60+45,recoveryPending:false,recoveryRemaining:0},
+      {chipId:'test-offline-1',id:'__test_offline_1',name:'Poste hors ligne 1',ip:'192.168.1.205',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+      {chipId:'test-offline-2',id:'__test_offline_2',name:'Poste hors ligne 2',ip:'192.168.1.206',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+      {chipId:'test-idle-1',id:'__test_idle_1',name:'Poste inactif 1',ip:'192.168.1.207',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+      {chipId:'test-idle-2',id:'__test_idle_2',name:'Poste inactif 2',ip:'192.168.1.208',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0}
+    ];
+
+    function findTestPost(postId) {
+      return testPosts.find(post => post.id === postId);
+    }
 
     function applyPermissions(data) {
       currentRole = data.accessRole || 'user';
@@ -454,7 +485,9 @@ namespace WebPage {
     async function load() {
       const data = await api('/posts');
       applyPermissions(data);
-      const posts = data.posts || [];
+      const realPosts = data.posts || [];
+      const posts = showTestPosts ? [...realPosts, ...testPosts] : realPosts;
+      testCoinDurationSeconds = Number(data.coinDurationSeconds || 1800);
       postNames = Object.fromEntries(posts.map(post => [post.id, post.name]));
       const activeCount = posts.filter(p => p.status === 'active').length;
       const offlineCount = posts.filter(p => p.status === 'offline').length;
@@ -492,37 +525,38 @@ namespace WebPage {
       `).join('') : '<div class="empty">Aucun poste en attente.</div>';
 
       document.getElementById('posts').innerHTML = posts.length ? posts.map(p => `
-        <div class="post-card">
+        <div class="post-card ${badgeClass(p.status)}">
           <div class="post-header">
             <h3 class="post-title">${esc(p.name)}</h3>
             <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
           </div>
           <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
           <div class="timer">
-            <div>${p.recoveryPending ? 'Temps sauvegardé' : 'Temps restant'}</div>
+            <div class="timer-label">${p.recoveryPending ? 'Temps sauvegardé' : 'Temps restant'}</div>
             <div class="timer-value">${formatTime(p.recoveryPending ? p.recoveryRemaining : p.remaining)}</div>
           </div>
           <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
           ${p.recoveryPending ? `
             <div class="recovery-box">
-              <div><b>Coupure détectée.</b> Reprendre ou annuler ?</div>
+              <div class="recovery-copy"><b>Coupure détectée.</b></div>
               <div class="actions">
                 <button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
                 <button class="action danger" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
               </div>
             </div>
-          ` : ''}
-          <div class="actions">
-            <button class="action primary" ${p.recoveryPending ? 'disabled' : ''} onclick="assign('${esc(p.id)}',1)">+1 coin</button>
-            <button class="action primary" ${p.recoveryPending ? 'disabled' : ''} onclick="assign('${esc(p.id)}',2)">+2 coins</button>
-            <button class="action secondary" ${p.recoveryPending ? 'disabled' : ''} onclick="stopPost('${esc(p.id)}')">Arrêter</button>
-          </div>
+          ` : `
+            <div class="actions">
+              <button class="action primary coin-action" title="Affecter 1 coin de plus pour ce poste" aria-label="Affecter 1 coin de plus pour ce poste" onclick="assign('${esc(p.id)}',1)">+1</button>
+              <button class="action primary coin-action" title="Affecter 2 coins de plus pour ce poste" aria-label="Affecter 2 coins de plus pour ce poste" onclick="assign('${esc(p.id)}',2)">+2</button>
+              <button class="action secondary" title="Arrêter ce poste" onclick="stopPost('${esc(p.id)}')">Arrêter</button>
+            </div>
+          `}
         </div>
-      `).join('') : '<div class="empty">Aucun poste configuré.</div>';
+      `).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
 
       const managedPostsEl = document.getElementById('managedPosts');
       if (managedPostsEl) {
-        managedPostsEl.innerHTML = posts.length ? posts.map(p => {
+        managedPostsEl.innerHTML = realPosts.length ? realPosts.map(p => {
           const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
           return `
             <div class="pending-item">
@@ -552,6 +586,23 @@ namespace WebPage {
     }
 
     async function assign(postId, coins) {
+      const testPost = findTestPost(postId);
+      if (testPost) {
+        if (testPost.status === 'offline') {
+          alert('Ce poste de test est hors ligne.');
+          return;
+        }
+        if (testPost.recoveryPending) {
+          alert(friendlyError('recovery pending'));
+          return;
+        }
+        testPost.status = 'active';
+        testPost.relay = true;
+        testPost.remaining += coins * testCoinDurationSeconds;
+        load();
+        return;
+      }
+
       try {
         await api('/assign', {
           method:'POST',
@@ -565,6 +616,17 @@ namespace WebPage {
     async function resumeRecovery(postId) {
       if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
 
+      const testPost = findTestPost(postId);
+      if (testPost) {
+        testPost.status = 'active';
+        testPost.relay = true;
+        testPost.remaining = testPost.recoveryRemaining;
+        testPost.recoveryPending = false;
+        testPost.recoveryRemaining = 0;
+        load();
+        return;
+      }
+
       try {
         await api('/recovery/resume', {
           method:'POST',
@@ -577,6 +639,17 @@ namespace WebPage {
 
     async function cancelRecovery(postId) {
       if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
+
+      const testPost = findTestPost(postId);
+      if (testPost) {
+        testPost.status = 'idle';
+        testPost.relay = false;
+        testPost.remaining = 0;
+        testPost.recoveryPending = false;
+        testPost.recoveryRemaining = 0;
+        load();
+        return;
+      }
 
       try {
         await api('/recovery/cancel', {
@@ -679,6 +752,19 @@ namespace WebPage {
     }
 
     async function stopPost(postId) {
+      const testPost = findTestPost(postId);
+      if (testPost) {
+        if (testPost.status === 'offline') {
+          alert('Ce poste de test est hors ligne.');
+          return;
+        }
+        testPost.status = 'idle';
+        testPost.relay = false;
+        testPost.remaining = 0;
+        load();
+        return;
+      }
+
       try {
         await api('/stop', {
           method:'POST',
