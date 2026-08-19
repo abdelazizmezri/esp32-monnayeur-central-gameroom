@@ -9,42 +9,534 @@ namespace WebPage {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Connexion admin</title>
+  <meta name="theme-color" content="#020817">
+  <title>GAME ROOM — Connexion</title>
   <style>
-    body{font-family:Arial,sans-serif;background:#0f172a;margin:0;padding:20px;color:#fff}
-    .card{max-width:420px;margin:60px auto;background:#fff;color:#0f172a;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;margin-top:10px}
-    button{margin-top:16px;width:100%;padding:12px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
-    .error{color:#991b1b;margin-top:10px;font-size:14px}
+    :root {
+      color-scheme:dark;
+      --bg:#020817;
+      --panel:#061021;
+      --card:#081426;
+      --border:#2a3950;
+      --field:#091422;
+      --text:#f7f9ff;
+      --muted:#a9b1d3;
+      --blue:#0877ff;
+      --purple:#9138f4;
+      --danger:#ff6b7a;
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%;margin:0}
+    body{
+      min-height:100vh;
+      overflow-x:hidden;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+    button,input{font:inherit}
+    button,a,label{touch-action:manipulation}
+    .login-shell{
+      display:grid;
+      grid-template-columns:50.4% 49.6%;
+      min-height:100vh;
+      background:#020817;
+    }
+    .visual-panel{
+      position:relative;
+      min-height:100vh;
+      overflow:hidden;
+      background-color:#020614;
+      background-image:
+        linear-gradient(180deg,rgba(1,5,18,.22) 0%,rgba(1,5,18,.02) 48%,rgba(1,5,18,.88) 100%),
+        url('/assets/login-station-v2.jpg');
+      background-position:center top;
+      background-size:cover;
+      border-right:1px solid rgba(104,128,180,.23);
+    }
+    .visual-panel::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(90deg,rgba(0,4,17,.04),rgba(0,4,17,0) 70%),
+        radial-gradient(circle at 35% 30%,rgba(16,62,194,.08),transparent 43%);
+    }
+    .brand{
+      position:absolute;
+      z-index:1;
+      top:36px;
+      left:46px;
+      width:min(535px,68%);
+      height:auto;
+      display:block;
+      mix-blend-mode:screen;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    .visual-copy{
+      position:absolute;
+      z-index:1;
+      left:45px;
+      right:38px;
+      bottom:88px;
+      max-width:600px;
+      text-shadow:0 3px 18px rgba(0,0,0,.72);
+    }
+    .visual-copy h2{
+      margin:0 0 12px;
+      font-size:clamp(28px,2.1vw,36px);
+      line-height:1.18;
+      letter-spacing:-.02em;
+      font-weight:650;
+    }
+    .visual-copy p{
+      max-width:560px;
+      margin:0;
+      color:#cbd2ef;
+      font-size:clamp(17px,1.35vw,22px);
+      line-height:1.55;
+    }
+    .form-panel{
+      position:relative;
+      display:grid;
+      place-items:center;
+      min-width:0;
+      min-height:100vh;
+      padding:60px 64px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 43%,rgba(20,48,100,.17),transparent 42%),
+        linear-gradient(135deg,#020817 0%,#030b1a 55%,#020817 100%);
+    }
+    .form-panel::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      opacity:.18;
+      pointer-events:none;
+      background-image:linear-gradient(rgba(61,98,160,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(61,98,160,.04) 1px,transparent 1px);
+      background-size:56px 56px;
+      mask-image:linear-gradient(to bottom,transparent,#000 38%,transparent 88%);
+    }
+    .login-card{
+      position:relative;
+      z-index:1;
+      width:min(536px,100%);
+      min-height:630px;
+      padding:31px 39px 25px;
+      border:1px solid rgba(87,107,143,.52);
+      border-radius:15px;
+      background:linear-gradient(145deg,rgba(11,25,46,.96),rgba(5,15,31,.96));
+      box-shadow:0 28px 70px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.025);
+      transform:translateX(-15px);
+    }
+    .lock-badge{
+      display:grid;
+      place-items:center;
+      width:77px;
+      height:77px;
+      margin:0 auto 17px;
+      border:1px solid rgba(94,66,235,.36);
+      border-radius:50%;
+      color:#dfe7ff;
+      background:
+        radial-gradient(circle at 42% 30%,rgba(33,107,255,.48),transparent 50%),
+        linear-gradient(145deg,rgba(17,70,180,.58),rgba(105,35,174,.6));
+      box-shadow:0 0 35px rgba(88,52,231,.2),inset 0 0 20px rgba(128,72,255,.22);
+    }
+    .lock-badge svg{width:31px;height:31px}
+    .login-card h1{
+      margin:0;
+      text-align:center;
+      font-size:42px;
+      line-height:1.15;
+      letter-spacing:-.035em;
+      font-weight:650;
+    }
+    .subtitle{
+      margin:4px 0 26px;
+      color:var(--muted);
+      text-align:center;
+      font-size:17px;
+      line-height:1.45;
+    }
+    .field-group{margin-bottom:19px}
+    .field-group label{
+      display:block;
+      margin:0 0 8px;
+      color:#f1f4fb;
+      font-size:16px;
+      line-height:1.2;
+    }
+    .field-shell{
+      position:relative;
+      display:flex;
+      align-items:center;
+      height:57px;
+      border:1px solid rgba(82,99,127,.43);
+      border-radius:10px;
+      background:linear-gradient(180deg,rgba(12,25,42,.95),rgba(8,19,33,.95));
+      transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+    }
+    .field-shell:focus-within{
+      border-color:rgba(43,121,255,.78);
+      background:#0a1728;
+      box-shadow:0 0 0 3px rgba(28,101,255,.13),0 0 22px rgba(24,79,205,.08);
+    }
+    .field-icon{
+      flex:0 0 auto;
+      width:23px;
+      height:23px;
+      margin-left:19px;
+      color:#7f8eac;
+    }
+    .field-shell input{
+      width:100%;
+      min-width:0;
+      height:100%;
+      padding:0 18px;
+      border:0;
+      outline:0;
+      color:#f7f9ff;
+      background:transparent;
+      font-size:18px;
+      caret-color:#5d8fff;
+    }
+    .field-shell input::placeholder{color:#71809c}
+    .password-input{padding-right:54px!important}
+    .password-toggle{
+      position:absolute;
+      right:6px;
+      top:50%;
+      display:grid;
+      place-items:center;
+      width:44px;
+      height:44px;
+      padding:0;
+      border:0;
+      border-radius:8px;
+      color:#8ea0ca;
+      background:transparent;
+      cursor:pointer;
+      transform:translateY(-50%);
+      transition:color .15s ease,background .15s ease;
+    }
+    .password-toggle:hover,.password-toggle:focus-visible{color:#c7d4ff;background:rgba(62,92,157,.15);outline:0}
+    .password-toggle svg{width:24px;height:24px}
+    .password-toggle .eye-off{display:none}
+    .password-toggle[aria-pressed="true"] .eye-on{display:none}
+    .password-toggle[aria-pressed="true"] .eye-off{display:block}
+    .form-options{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      margin:-1px 0 20px;
+      color:#c3cae2;
+      font-size:15px;
+    }
+    .remember{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      cursor:pointer;
+      user-select:none;
+    }
+    .remember input{
+      position:absolute;
+      width:1px;
+      height:1px;
+      opacity:0;
+      pointer-events:none;
+    }
+    .checkmark{
+      position:relative;
+      flex:0 0 auto;
+      width:22px;
+      height:22px;
+      border:1px solid #51627f;
+      border-radius:5px;
+      background:#0b192b;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
+      transition:.16s ease;
+    }
+    .remember input:checked + .checkmark{
+      border-color:#247cff;
+      background:linear-gradient(145deg,#2485ff,#075ae6);
+      box-shadow:0 0 12px rgba(20,112,255,.25);
+    }
+    .remember input:checked + .checkmark::after{
+      content:"";
+      position:absolute;
+      left:7px;
+      top:3px;
+      width:5px;
+      height:10px;
+      border:solid white;
+      border-width:0 2px 2px 0;
+      transform:rotate(45deg);
+    }
+    .remember input:focus-visible + .checkmark{outline:2px solid #7aa7ff;outline-offset:2px}
+    .submit-btn{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:22px;
+      width:100%;
+      height:61px;
+      padding:0 28px;
+      border:0;
+      border-radius:8px;
+      color:white;
+      background:linear-gradient(105deg,#0878ff 0%,#2057ff 45%,#9239f1 100%);
+      box-shadow:0 12px 28px rgba(36,53,223,.22),inset 0 1px 0 rgba(255,255,255,.22);
+      font-size:19px;
+      font-weight:540;
+      cursor:pointer;
+      overflow:hidden;
+      transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;
+    }
+    .submit-btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.16),transparent 70%);
+      transform:translateX(-120%);
+      transition:transform .55s ease;
+    }
+    .submit-btn:hover{filter:brightness(1.08);box-shadow:0 15px 34px rgba(42,62,235,.3);transform:translateY(-1px)}
+    .submit-btn:hover::before{transform:translateX(120%)}
+    .submit-btn:active{transform:translateY(0)}
+    .submit-btn:focus-visible{outline:3px solid rgba(111,155,255,.55);outline-offset:3px}
+    .submit-btn:disabled{opacity:.72;cursor:wait;transform:none}
+    .submit-btn svg{width:27px;height:27px;transition:transform .16s ease}
+    .submit-btn:not(:disabled):hover svg{transform:translateX(4px)}
+    .error{
+      min-height:0;
+      margin:0;
+      color:var(--danger);
+      text-align:center;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .error:not(:empty){min-height:19px;margin:9px 0 -2px}
+    .security-note{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:11px;
+      margin-top:16px;
+      padding-top:18px;
+      border-top:1px solid rgba(75,94,126,.36);
+      color:#aeb8dc;
+      font-size:15px;
+    }
+    .security-note svg{width:28px;height:28px;color:#aebcff}
+    .product-footer{
+      position:absolute;
+      z-index:1;
+      right:42px;
+      bottom:40px;
+      color:#8894bc;
+      text-align:right;
+      font-size:16px;
+      letter-spacing:.01em;
+    }
+    .product-footer strong{color:#aeb9e5;font-weight:600;letter-spacing:.04em}
+    @media (max-width:1100px){
+      .login-shell{grid-template-columns:44% 56%}
+      .form-panel{padding-left:40px;padding-right:40px}
+      .brand{left:34px;width:72%}
+      .visual-copy{left:34px}
+      .login-card{transform:none}
+    }
+    @media (max-width:780px){
+      .login-shell{display:block}
+      .visual-panel{display:none}
+      .form-panel{min-height:100vh;padding:30px 20px 86px}
+      .login-card{min-height:0;padding:27px 25px 23px}
+      .product-footer{left:20px;right:20px;bottom:24px;text-align:center;font-size:13px}
+    }
+    @media (max-width:480px){
+      .login-card h1{font-size:34px}
+      .subtitle{font-size:15px}
+      .login-card{padding-left:20px;padding-right:20px}
+    }
+    @media (max-height:760px) and (min-width:781px){
+      .form-panel{padding-top:24px;padding-bottom:72px}
+      .login-card{min-height:0;padding-top:22px;padding-bottom:20px}
+      .lock-badge{width:62px;height:62px;margin-bottom:10px}
+      .login-card h1{font-size:34px}
+      .subtitle{margin-bottom:16px}
+      .field-group{margin-bottom:13px}
+      .product-footer{bottom:20px}
+      .visual-copy{bottom:52px}
+    }
+    @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Connexion</h1>
-    <input id="username" type="text" value="admin" placeholder="Nom d'utilisateur" autocomplete="username">
-    <input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password">
-    <button onclick="login()">Se connecter</button>
-    <div class="error" id="error"></div>
-  </div>
+  <main class="login-shell">
+    <section class="visual-panel" aria-label="Salle GAME ROOM équipée de postes PlayStation">
+      <img class="brand" src="/assets/game-room-logo-v2.jpg" alt="GAME ROOM — Lounge PlayStation">
+      <div class="visual-copy">
+        <h2>Pilotez votre salle de jeu</h2>
+        <p>Gérez les postes, les sessions et les crédits<br>depuis une interface centrale sécurisée.</p>
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <form class="login-card" id="loginForm" novalidate>
+        <div class="lock-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.5" y="10" width="15" height="11" rx="2"></rect>
+            <path d="M8 10V7.2a4 4 0 0 1 8 0V10"></path>
+            <path d="M12 14.5v2"></path>
+          </svg>
+        </div>
+
+        <h1>Connexion</h1>
+        <p class="subtitle">Accédez à l’interface d’administration</p>
+
+        <div class="field-group">
+          <label for="username">Nom d’utilisateur</label>
+          <div class="field-shell">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="7.2" r="4"></circle>
+              <path d="M4.8 21v-2.2a7.2 7.2 0 0 1 14.4 0V21z"></path>
+            </svg>
+            <input id="username" name="username" type="text" value="admin" placeholder="Nom d’utilisateur" autocomplete="username" spellcheck="false" required>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="password">Mot de passe</label>
+          <div class="field-shell">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4.5" y="10" width="15" height="11" rx="2"></rect>
+              <path d="M8 10V7.2a4 4 0 0 1 8 0V10"></path>
+            </svg>
+            <input class="password-input" id="password" name="password" type="password" placeholder="••••••••••••" autocomplete="current-password" required>
+            <button class="password-toggle" id="passwordToggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false" title="Afficher le mot de passe">
+              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path>
+                <circle cx="12" cy="12" r="2.7"></circle>
+              </svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3l18 18"></path>
+                <path d="M10.6 6.2A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-3 3.7"></path>
+                <path d="M6.1 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6a9.4 9.4 0 0 0 3-.5"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="remember">
+            <input id="remember" type="checkbox" checked>
+            <span class="checkmark" aria-hidden="true"></span>
+            <span>Se souvenir de moi</span>
+          </label>
+        </div>
+
+        <button class="submit-btn" id="submitButton" type="submit">
+          <span id="submitLabel">Se connecter</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14"></path>
+            <path d="m14 7 5 5-5 5"></path>
+          </svg>
+        </button>
+        <div class="error" id="error" role="alert" aria-live="polite"></div>
+
+        <div class="security-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3 4.5 6v5.3c0 4.8 3.2 8.2 7.5 9.7 4.3-1.5 7.5-4.9 7.5-9.7V6z"></path>
+            <path d="m8.8 12 2.1 2.1 4.4-4.5"></path>
+          </svg>
+          <span>Connexion locale sécurisée</span>
+        </div>
+      </form>
+
+      <footer class="product-footer"><strong>GAME ROOM</strong> · Système central de monnayeur</footer>
+    </section>
+  </main>
 
   <script>
-    async function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const rememberInput = document.getElementById('remember');
+    const passwordToggle = document.getElementById('passwordToggle');
+    const submitButton = document.getElementById('submitButton');
+    const submitLabel = document.getElementById('submitLabel');
+    const errorBox = document.getElementById('error');
+    const rememberedUsername = localStorage.getItem('gameroom.rememberedUsername');
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        document.getElementById('error').textContent = data.error || 'Erreur de connexion';
+    if (rememberedUsername) {
+      usernameInput.value = rememberedUsername;
+      rememberInput.checked = true;
+    }
+
+    passwordToggle.addEventListener('click', () => {
+      const showPassword = passwordInput.type === 'password';
+      passwordInput.type = showPassword ? 'text' : 'password';
+      passwordToggle.setAttribute('aria-pressed', String(showPassword));
+      passwordToggle.setAttribute('aria-label', showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      passwordToggle.title = showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe';
+      passwordInput.focus({ preventScroll:true });
+    });
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      errorBox.textContent = '';
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      const remember = rememberInput.checked;
+
+      if (!username || !password) {
+        errorBox.textContent = 'Saisissez votre nom d’utilisateur et votre mot de passe.';
+        (!username ? usernameInput : passwordInput).focus();
         return;
       }
 
-      window.location.href = '/';
-    }
+      submitButton.disabled = true;
+      submitLabel.textContent = 'Connexion…';
+
+      try {
+        const response = await fetch('/login', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({username,password,remember})
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erreur de connexion');
+        }
+
+        if (remember) {
+          localStorage.setItem('gameroom.rememberedUsername',username);
+        } else {
+          localStorage.removeItem('gameroom.rememberedUsername');
+        }
+        window.location.href = '/';
+      } catch (error) {
+        errorBox.textContent = error.message || 'Impossible de joindre le système central.';
+        passwordInput.select();
+      } finally {
+        submitButton.disabled = false;
+        submitLabel.textContent = 'Se connecter';
+      }
+    });
+
+    window.addEventListener('load', () => {
+      if (usernameInput.value) passwordInput.focus();
+    });
   </script>
 </body>
 </html>

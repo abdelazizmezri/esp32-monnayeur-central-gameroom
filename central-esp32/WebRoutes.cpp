@@ -1,6 +1,7 @@
 #include "WebRoutes.h"
 #include "AppConfig.h"
 #include "WebPage.h"
+#include "WebAssets.h"
 #include "PostService.h"
 #include "StorageService.h"
 #include "AuthService.h"
@@ -73,7 +74,24 @@ static void handleAdminPage() {
 }
 
 static void handleLoginPage() {
+  gServer->sendHeader("Cache-Control", "no-store");
   gServer->send(200, "text/html", WebPage::loginPage());
+}
+
+static void handleLoginStationAsset() {
+  gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  gServer->send_P(200,
+                  "image/jpeg",
+                  reinterpret_cast<PGM_P>(WebAssets::LOGIN_STATION_JPG),
+                  WebAssets::LOGIN_STATION_JPG_LENGTH);
+}
+
+static void handleGameRoomLogoAsset() {
+  gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  gServer->send_P(200,
+                  "image/jpeg",
+                  reinterpret_cast<PGM_P>(WebAssets::GAME_ROOM_LOGO_JPG),
+                  WebAssets::GAME_ROOM_LOGO_JPG_LENGTH);
 }
 
 static void handleLogin() {
@@ -82,6 +100,7 @@ static void handleLogin() {
 
   String username = doc["username"] | "";
   String password = doc["password"] | "";
+  bool remember = doc["remember"] | false;
   if (!AuthService::login(*gState, username, password)) {
     sendJsonError(401, "Nom d'utilisateur ou mot de passe incorrect");
     return;
@@ -90,7 +109,11 @@ static void handleLogin() {
   String sessionToken = gState->sessions.back().token;
   UserAccount* user = AuthService::findUser(*gState, username);
   LogService::info(*gState, "Connexion réussie: " + (user ? user->username : username));
-  gServer->sendHeader("Set-Cookie", "ESPSESSION=" + sessionToken + "; Path=/; HttpOnly; SameSite=Strict");
+  String cookie = "ESPSESSION=" + sessionToken + "; Path=/; HttpOnly; SameSite=Strict";
+  if (remember) {
+    cookie += "; Max-Age=2592000";
+  }
+  gServer->sendHeader("Set-Cookie", cookie);
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
@@ -648,6 +671,8 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/security", HTTP_GET, handleAdminPage);
   server.on("/users", HTTP_GET, handleAdminPage);
   server.on("/login", HTTP_GET, handleLoginPage);
+  server.on("/assets/login-station-v2.jpg", HTTP_GET, handleLoginStationAsset);
+  server.on("/assets/game-room-logo-v2.jpg", HTTP_GET, handleGameRoomLogoAsset);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
 
