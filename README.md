@@ -81,7 +81,7 @@ disparaître un poste non encore configuré de la liste d'attente.
 
 ### 4. Réception d'une pièce
 
-Le monnayeur est lu sur le GPIO 27 de la centrale, en `INPUT_PULLUP`, sur front
+Le monnayeur est lu sur le GPIO 13 de la centrale, en `INPUT_PULLUP`, sur front
 descendant. L'interruption applique un anti-rebond de 80 ms. Le nombre
 d'impulsions requis par coin est configurable ; chaque groupe complet augmente
 le solde central persistant.
@@ -212,45 +212,190 @@ connecter une machine, il faut définir le vrai GPIO dans `PosteConfig.h` et ada
 > l'isolation et les protections adaptées. Le câblage secteur doit être confié à
 > une personne qualifiée.
 
-## Compilation et téléversement
+## Installation de l'environnement et téléversement
 
-### Prérequis
+Cette procédure part d'une installation neuve d'Arduino IDE 2 et va jusqu'au
+premier démarrage des deux firmwares. Le projet a été vérifié avec le cœur ESP32
+3.3.11 et ArduinoJson 7.4.3.
 
-- Arduino IDE ou `arduino-cli` ;
-- le cœur **esp32 by Espressif Systems** ;
-- la bibliothèque **ArduinoJson** ;
-- une carte compatible, par exemple **ESP32 Dev Module**.
+### 1. Installer Arduino IDE
 
-Les bibliothèques `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`,
-`HTTPClient` et mbedTLS sont fournies par le cœur ESP32.
+1. Télécharger **Arduino IDE 2** depuis la
+   [page officielle Arduino](https://www.arduino.cc/en/software).
+2. Installer puis démarrer l'application.
+3. Sous macOS, autoriser l'application si le système le demande. Sous Windows,
+   accepter l'installation du pilote série proposé avec la carte.
 
-### Centrale
+Voir également le
+[guide officiel d'installation d'Arduino IDE](https://support.arduino.cc/hc/en-us/articles/360019833020-Download-and-install-Arduino-IDE).
 
-1. Ouvrir `central-esp32/central-esp32.ino` dans Arduino IDE.
-2. Remplacer les secrets et vérifier `COIN_PIN` dans `AppConfig.h`.
-3. Compiler puis téléverser sur l'ESP32 central.
-4. Ouvrir le moniteur série à 115200 bauds.
+### 2. Ajouter les cartes ESP32 à Arduino IDE
 
-Avec `arduino-cli` :
+1. Ouvrir **Arduino IDE → Settings** sur macOS ou
+   **File → Preferences** sous Windows/Linux.
+2. Dans **Additional Boards Manager URLs**, ajouter l'adresse stable officielle :
+
+   ```text
+   https://espressif.github.io/arduino-esp32/package_esp32_index.json
+   ```
+
+   Si une autre adresse est déjà présente, ajouter celle-ci sur une nouvelle
+   ligne ou la séparer par une virgule.
+3. Ouvrir **Tools → Board → Boards Manager**.
+4. Rechercher `esp32` puis installer **esp32 by Espressif Systems**.
+5. Redémarrer Arduino IDE après l'installation.
+
+La procédure et l'URL sont publiées dans la
+[documentation officielle Arduino-ESP32](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
+
+### 3. Installer les bibliothèques nécessaires
+
+La seule bibliothèque à installer séparément est :
+
+- **ArduinoJson**, par Benoit Blanchon — version 7.4.3 testée.
+
+Dans Arduino IDE :
+
+1. Ouvrir **Tools → Manage Libraries** ou l'icône **Library Manager** dans la
+   barre latérale.
+2. Rechercher `ArduinoJson`.
+3. Sélectionner la bibliothèque de **Benoit Blanchon**, puis cliquer sur
+   **Install**.
+
+`WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient` et
+mbedTLS sont installés automatiquement avec **esp32 by Espressif Systems**. Il
+ne faut pas installer d'autres bibliothèques portant ces noms. Voir le
+[guide officiel du gestionnaire de bibliothèques](https://support.arduino.cc/hc/en-us/articles/5145457742236-Add-libraries-to-Arduino-IDE).
+
+### 4. Brancher et sélectionner l'ESP32
+
+1. Utiliser un câble USB qui transporte les **données** et pas uniquement
+   l'alimentation.
+2. Pour le premier essai, débrancher le monnayeur, le relais et toute charge de
+   puissance de la carte.
+3. Brancher l'ESP32 au PC.
+4. Sélectionner **Tools → Board → ESP32 Arduino → ESP32 Dev Module**, ou le
+   modèle exact de la carte s'il est connu.
+5. Sélectionner le port dans **Tools → Port**.
+
+Si aucun port n'apparaît, essayer un autre câble ou port USB, puis installer le
+pilote correspondant au convertisseur USB-série de la carte, souvent CP210x ou
+CH340. La sélection correcte de la carte est détaillée dans le
+[guide Espressif du menu Tools](https://docs.espressif.com/projects/arduino-esp32/en/latest/guides/tools_menu.html).
+
+### 5. Régler la carte et les partitions
+
+Utiliser les réglages suivants pour une carte ESP32 classique avec 4 Mo de
+flash :
+
+| Réglage Arduino IDE | Centrale | Poste |
+|---|---|---|
+| Board | ESP32 Dev Module | ESP32 Dev Module |
+| Flash Size | 4MB | 4MB |
+| Upload Speed | 460800, ou 115200 en cas d'échec | 460800, ou 115200 en cas d'échec |
+| Partition Scheme | **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)** | Default 4MB with spiffs |
+| Port | Port USB de la centrale | Port USB du poste concerné |
+
+Le réglage **Minimal SPIFFS** est obligatoire pour la centrale : son interface
+web ne tient plus dans la partition OTA de 1,2 Mo. Le fichier
+[`central-esp32/partitions.csv`](central-esp32/partitions.csv) décrit également
+ce découpage avec deux emplacements OTA de 1,9 Mo.
+
+#### Si le menu Partition Scheme n'apparaît pas sur macOS
+
+1. Ouvrir le sketch [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
+2. Sélectionner **Outils → Type de carte → esp32 → ESP32 Dev Module**.
+3. Vérifier dans **Outils → Type de carte → Gestionnaire de cartes** que
+   **esp32 by Espressif Systems** est installé. Ne pas utiliser un profil
+   `Arduino Nano ESP32` ou un package provenant d'un autre éditeur.
+4. Redémarrer Arduino IDE, rouvrir le sketch central, puis ouvrir de nouveau le
+   menu **Outils**. L'option **Partition Scheme** doit alors apparaître.
+
+Les options du menu Outils dépendent du profil de carte sélectionné, comme
+l'indique le
+[guide officiel Espressif](https://docs.espressif.com/projects/arduino-esp32/en/latest/guides/tools_menu.html).
+Si le menu reste absent, le téléversement peut tout de même être effectué : le
+fichier `central-esp32/partitions.csv`, placé dans le même dossier que le sketch,
+est utilisé automatiquement par le cœur Arduino-ESP32. Il faut dans ce cas
+ouvrir le sketch depuis ce dossier et effectuer un téléversement complet par
+USB.
+
+Après un changement de table de partitions, effectuer impérativement un
+**téléversement complet par USB**. Une mise à jour OTA seule ne peut pas modifier
+la table de partitions. Ne pas activer **Erase All Flash** sauf en dernier
+recours, car cette option efface aussi le Wi-Fi, les comptes et les postes
+enregistrés en NVS.
+
+### 6. Préparer la configuration du projet
+
+Avant de compiler :
+
+1. Dans [`central-esp32/AppConfig.h`](central-esp32/AppConfig.h), remplacer
+   `POSTE_COMMAND_TOKEN` par un secret long et vérifier `COIN_PIN`, actuellement
+   réglé sur le GPIO 13.
+2. Dans [`poste-esp32/PosteConfig.h`](poste-esp32/PosteConfig.h), copier
+   exactement le même secret dans `COMMAND_TOKEN`.
+3. Vérifier `RELAY_PIN`, actuellement GPIO 27, et adapter
+   `RELAY_ACTIVE_HIGH` au module relais utilisé.
+
+Les identifiants du réseau Wi-Fi ne sont pas écrits dans le code : ils seront
+saisis plus tard dans les portails de configuration du central et des postes.
+
+### 7. Compiler et téléverser la centrale
+
+1. Ouvrir [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
+2. Vérifier de nouveau la carte, le port et le schéma
+   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+3. Cliquer sur **Verify** pour compiler.
+4. Cliquer sur **Upload** pour écrire le bootloader, la nouvelle table de
+   partitions et le firmware.
+5. Si Arduino reste sur `Connecting...`, maintenir le bouton **BOOT** de
+   l'ESP32, lancer le téléversement, puis relâcher BOOT dès que l'écriture
+   commence. Appuyer ensuite brièvement sur **EN/RESET** si nécessaire.
+6. Ouvrir **Tools → Serial Monitor** et choisir **115200 baud**.
+
+Le démarrage ne doit plus afficher `Image length ... doesn't fit in partition`.
+La centrale démarre soit sur le réseau enregistré, soit avec le point d'accès
+`GAMEROOM-CENTRAL-<chipId>`.
+
+### 8. Compiler et téléverser un poste
+
+1. Ouvrir [`poste-esp32/poste-esp32.ino`](poste-esp32/poste-esp32.ino) dans une
+   autre fenêtre Arduino IDE.
+2. Sélectionner l'ESP32 du poste, son port USB et le schéma de partitions par
+   défaut.
+3. Cliquer sur **Verify**, puis **Upload**.
+4. Ouvrir le moniteur série à **115200 baud**.
+5. Répéter l'opération sur chaque poste. Tous utilisent le même firmware et le
+   même secret, mais chaque ESP32 possède un `chipId` matériel unique.
+
+### 9. Installation équivalente avec arduino-cli
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 central-esp32
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_CENTRALE central-esp32
+arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core update-index
+arduino-cli core install esp32:esp32
+arduino-cli lib install ArduinoJson
+arduino-cli board list
 ```
 
-### Poste
-
-1. Ouvrir `poste-esp32/poste-esp32.ino` dans Arduino IDE.
-2. Reporter le secret inter-ESP32, choisir `RELAY_PIN` et vérifier la polarité.
-3. Compiler puis téléverser sur chaque ESP32 de poste.
-4. Ouvrir le moniteur série à 115200 bauds.
-
-Avec `arduino-cli` :
+Compiler et téléverser la centrale avec la grande partition OTA :
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 poste-esp32
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs central-esp32
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --port PORT_CENTRALE central-esp32
 ```
+
+Compiler et téléverser un poste :
+
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=default poste-esp32
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=default --port PORT_POSTE poste-esp32
+```
+
+Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
+`arduino-cli board list`, par exemple `COM5` sous Windows ou
+`/dev/cu.usbserial-...` sous macOS.
 
 ## Mise en service rapide
 
@@ -262,7 +407,7 @@ arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
 5. Téléverser et démarrer un poste configuré avec le même secret partagé.
 6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-<chipId>`, ouvrir
    `http://192.168.4.1` et choisir le même réseau local.
-7. Dans **Gestion des postes**, attendre le `chipId`, puis attribuer un `id` et
+7. Dans **Gestion des postes**, attendre la détection du `chipId`, puis attribuer
    un nom au poste.
 8. Simuler un coin ou insérer une pièce, affecter le crédit au poste et vérifier
    que le relais s'active et que le temps diminue.
@@ -314,6 +459,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebRoutes.cpp` | Implémente les pages, l'API JSON, les autorisations et la réception des annonces. |
 | `central-esp32/WebPage.h` | Déclare les générateurs des pages web embarquées. |
 | `central-esp32/WebPage.cpp` | Contient le HTML, le CSS et le JavaScript de la connexion et de l'interface d'administration. |
+| `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,9 Mo pour le firmware central et son interface web. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 
 ### Firmware d'un poste
