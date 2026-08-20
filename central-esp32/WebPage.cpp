@@ -572,6 +572,9 @@ navigationOrder.forEach(path => {
 const logActionButtons = document.querySelectorAll('#view-logs .actions button');
 if (logActionButtons[0]) logActionButtons[0].textContent = '↻ Actualiser';
 if (logActionButtons[1]) logActionButtons[1].textContent = 'Vider le journal';
+const postsRefreshButton = document.querySelector('#view-postes .panel:first-child .action.primary');
+postsRefreshButton.textContent = '↻ Actualiser';
+postsRefreshButton.onclick = () => refreshPosts(postsRefreshButton);
 
 const viewsByPath = {
 '/':'view-home',
@@ -746,6 +749,12 @@ el.style.display = el.style.display === 'block' ? 'none' : 'block';
 function postLabel(postId) {
 return postNames[postId] || 'ce poste';
 }
+async function refreshPosts(button) {
+button.disabled = true;
+button.textContent = 'Actualisation…';
+try { await load(); }
+finally { button.disabled = false; button.textContent = '↻ Actualiser'; }
+}
 async function load() {
 const data = await api('/posts');
 applyPermissions(data);
@@ -792,7 +801,7 @@ const realPendingPosts = data.pendingPosts || [];
 const pendingPosts = realPendingPosts;
 document.getElementById('pendingMessage').textContent = pendingPosts.length
 ? `${pendingPosts.length} poste(s) en attente de configuration.`
-: 'Aucun nouveau poste détecté.';
+: '';
 document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendingPosts.map(p => `
 <article class="discovered-card">
 <span class="discovered-tag">Nouveau poste détecté</span>
