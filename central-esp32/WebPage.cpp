@@ -561,6 +561,7 @@ Déconnexion
 #view-logs .panel{padding:22px;background:radial-gradient(circle at 85% 8%,rgba(38,80,160,.1),transparent 30%),linear-gradient(145deg,#09172b,#050f20)}#view-logs .panel>div:first-child{align-items:flex-start!important;margin-bottom:20px!important}#view-logs .panel>div:first-child h2{font-size:20px}#view-logs .panel>div:first-child h2:after{content:"Suivi en temps réel de l’activité de la Centrale et des postes";display:block;margin-top:7px;color:#8295b3;font-size:11px;font-weight:400}#view-logs .actions .primary{border:1px solid #176ecd;color:#79bfff;background:#071b35;box-shadow:none}#view-logs .actions .danger{color:#ff707b;border-color:#d93448!important;background:#190d19}.logs{height:62vh;min-height:360px;padding:0;overflow:auto;border:1px solid #263d58;border-radius:10px;color:#dbe6f3;background:#030c1b;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px}.log-table-head,.log-row{display:grid;grid-template-columns:110px 160px minmax(0,1fr);align-items:center}.log-table-head{position:sticky;top:0;z-index:2;min-height:46px;padding:0 18px;border-bottom:1px solid #263d58;color:#aab9cc;background:#0b172b;font-size:11px;font-weight:750}.log-row{min-height:50px;padding:8px 18px;border-bottom:1px solid rgba(43,65,90,.42);background:#040e1e}.log-row:nth-child(odd){background:#091528}.log-time{color:#e8eef7;font-family:"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}.log-level{justify-self:start;padding:5px 8px;border:1px solid;border-radius:6px;font-size:9px;font-weight:850}.log-level.info{color:#64b3ff;border-color:#145ca8;background:#082850}.log-level.warn{color:#ffc333;border-color:#8e6106;background:#392707}.log-level.error{color:#ff646d;border-color:#a9212a;background:#3d1218}.log-message{min-width:0;color:#d9e3f0;line-height:1.35;overflow-wrap:anywhere}.log-empty{grid-column:1/-1;padding:40px;text-align:center;color:#71859e}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes";display:block;margin:14px 8px 0;color:#7f91a9;font-size:10px}#view-logs .panel:after{color:#8295b3}#view-logs .panel:after::first-letter{color:var(--cyan)}@media(max-width:680px){#view-logs .panel{padding:15px}.log-table-head,.log-row{grid-template-columns:68px 100px minmax(0,1fr);padding-left:11px;padding-right:11px}.log-table-head{font-size:9px}.log-row{font-size:10px}.log-level{padding:4px 6px;font-size:8px}#view-logs .panel>div:first-child h2:after{max-width:230px}}
 </style>
 <style>.auth-pending .nav,.auth-pending .sidebar-footer{visibility:hidden}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes · mise à jour " attr(data-last-refresh)}</style>
+<style>#view-users>.page-grid{grid-template-columns:minmax(250px,.7fr) minmax(0,1.4fr)}#view-users .panel:first-child>.primary{width:100%}#usersList{gap:0}.users-head,.user-row{display:grid;grid-template-columns:1fr 1.3fr 1fr 80px;gap:8px;align-items:center}.users-head{color:var(--muted)}.user-row{padding:14px 0;border-top:1px solid var(--border)}.user-cell em,.account-role{color:var(--cyan)}.user-actions{display:flex}.user-editor{grid-column:1/-1}@media(max-width:680px){.users-head{display:none}.user-row{grid-template-columns:1fr auto}.user-actions{grid-column:1/-1}}</style>
 <script>
 document.body.classList.add('auth-pending');
 const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
@@ -1018,14 +1019,15 @@ try {
 const data = await api('/users/data');
 currentUsername = data.currentUsername || currentUsername;
 const users = data.users || [];
-document.getElementById('usersList').innerHTML = users.length ? users.map(user => {
+document.getElementById('usersList').innerHTML = users.length ? '<div class="users-head"><span>Utilisateur</span><span>Nom complet</span><span>Rôle</span><span>Actions</span></div>' + users.map(user => {
 const isCurrent = user.username === currentUsername;
 return `
-<div class="pending-item">
-<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
-<div><b>${esc(user.username)}</b>${isCurrent ? ' (vous)' : ''}</div>
-<span class="badge ${user.role === 'admin' ? 'active' : 'idle'}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
-</div>
+<div class="user-row">
+<div class="user-cell"><b>${esc(user.username)}</b>${isCurrent ? '<em>Vous</em>' : ''}</div>
+<div>${esc(user.firstName)} ${esc(user.lastName)}</div>
+<span class="account-role ${user.role}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
+<div class="user-actions"><button class="action primary" title="Modifier" onclick="toggleEdit('user-${user.username}')">✎</button><button class="action danger" title="Supprimer" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">⌫</button></div>
+<div class="editor user-editor" id="editor-user-${user.username}">
 <div class="form-group">
 <label for="user-first-${user.username}">Prénom</label>
 <input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" />
@@ -1049,11 +1051,11 @@ ${isCurrent ? '' : `
 `}
 <div class="actions">
 <button class="action primary" onclick="updateUser('${user.username}', ${isCurrent})">Enregistrer</button>
-<button class="action danger" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">Supprimer</button>
+</div>
 </div>
 </div>
 `;
-}).join('') : '<div class="empty">Aucun utilisateur.</div>';
+}).join('') + `<div class="user-count">${users.length} compte(s) configuré(s)</div>` : '<div class="empty">Aucun utilisateur.</div>';
 } catch(e) {
 if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
 }
