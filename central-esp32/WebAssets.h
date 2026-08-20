@@ -5,6 +5,6 @@
 namespace WebAssets {
   extern const uint8_t LOGIN_STATION_JPG[] PROGMEM;
   extern const size_t LOGIN_STATION_JPG_LENGTH;
-  extern const uint8_t GAME_ROOM_LOGO_JPG[] PROGMEM;
-  extern const size_t GAME_ROOM_LOGO_JPG_LENGTH;
+  extern const uint8_t GAME_ROOM_LOGO_WEBP[] PROGMEM;
+  extern const size_t GAME_ROOM_LOGO_WEBP_LENGTH;
 }

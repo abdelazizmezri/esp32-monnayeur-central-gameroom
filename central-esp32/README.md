@@ -1,4 +1,4 @@
-# Centrale ESP32 - Monnayeur Game Room
+# Centrale ESP32 - PS TIME MANAGER
 
 Firmware de la centrale d'un système de gestion de postes de jeu à monnayeur.
 La centrale ESP32 reçoit les impulsions du monnayeur, transforme ces impulsions

@@ -89,9 +89,9 @@ static void handleLoginStationAsset() {
 static void handleGameRoomLogoAsset() {
   gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
   gServer->send_P(200,
-                  "image/jpeg",
-                  reinterpret_cast<PGM_P>(WebAssets::GAME_ROOM_LOGO_JPG),
-                  WebAssets::GAME_ROOM_LOGO_JPG_LENGTH);
+                  "image/webp",
+                  reinterpret_cast<PGM_P>(WebAssets::GAME_ROOM_LOGO_WEBP),
+                  WebAssets::GAME_ROOM_LOGO_WEBP_LENGTH);
 }
 
 static void handleLogin() {
@@ -672,7 +672,7 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/users", HTTP_GET, handleAdminPage);
   server.on("/login", HTTP_GET, handleLoginPage);
   server.on("/assets/login-station-v2.jpg", HTTP_GET, handleLoginStationAsset);
-  server.on("/assets/game-room-logo-v2.jpg", HTTP_GET, handleGameRoomLogoAsset);
+  server.on("/assets/game-room-logo-v4.webp", HTTP_GET, handleGameRoomLogoAsset);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
 

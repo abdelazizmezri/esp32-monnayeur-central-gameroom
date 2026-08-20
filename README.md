@@ -1,4 +1,4 @@
-# Monnayeur central Game Room sur ESP32
+# PS TIME MANAGER sur ESP32
 
 Ce dépôt contient les deux firmwares Arduino qui composent un système local de
 gestion de postes de jeu à monnayeur :
