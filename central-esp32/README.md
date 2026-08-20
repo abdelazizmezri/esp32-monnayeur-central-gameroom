@@ -26,7 +26,7 @@ jeu depuis une interface web locale.
 ## Fonctions principales
 
 - configuration Wi-Fi par point d'accès et portail captif ;
-- accès local par adresse IP ou `http://gameroom.local` ;
+- accès local par adresse IP ou `http://pmm.local` ;
 - lecture du monnayeur sur le GPIO 13 ;
 - conversion configurable des impulsions en coins ;
 - crédit disponible sauvegardé en mémoire NVS ;
@@ -320,7 +320,7 @@ Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou
 6. Saisir son mot de passe et valider.
 7. Attendre le redémarrage automatique.
 8. Reconnecter le téléphone ou le PC au réseau local.
-9. Ouvrir l'adresse IP affichée ou `http://gameroom.local`.
+9. Ouvrir l'adresse IP affichée ou `http://pmm.local`.
 
 ### 2. Première connexion
 
@@ -456,7 +456,7 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 Affecter deux coins :
 
 ```bash
-curl -X POST http://gameroom.local/assign \
+curl -X POST http://pmm.local/assign \
   -H 'Authorization: Bearer VOTRE_TOKEN_API' \
   -H 'Content-Type: application/json' \
   -d '{"post_id":"post1","coins":2}'
@@ -465,7 +465,7 @@ curl -X POST http://gameroom.local/assign \
 Créer un utilisateur simple :
 
 ```bash
-curl -X POST http://gameroom.local/users/create \
+curl -X POST http://pmm.local/users/create \
   -H 'Authorization: Bearer VOTRE_TOKEN_API' \
   -H 'Content-Type: application/json' \
   -d '{"username":"sami","firstName":"Sami","lastName":"Ben Ali","password":"motdepasse","role":"user"}'
@@ -508,7 +508,7 @@ réannonce après le redémarrage de la centrale.
 | `StorageService.h` | Interface de persistance et d'import/export. |
 | `StorageService.cpp` | Lecture et écriture des namespaces NVS. |
 | `WifiService.h` | Interface de connexion Wi-Fi et mDNS. |
-| `WifiService.cpp` | Connexion au Wi-Fi sauvegardé et publication de `gameroom.local`. |
+| `WifiService.cpp` | Connexion au Wi-Fi sauvegardé et publication de `pmm.local`. |
 | `WifiProvisioning.h` | Interface du mode de configuration Wi-Fi. |
 | `WifiProvisioning.cpp` | Point d'accès, DNS captif, scan, formulaire et sauvegarde Wi-Fi. |
 | `WebRoutes.h` | Déclaration de l'enregistrement des routes web. |
@@ -542,7 +542,7 @@ déploiement.
 - désactiver temporairement les données mobiles ou le VPN ;
 - consulter le moniteur série à 115200 bauds.
 
-### `gameroom.local` ne répond pas
+### `pmm.local` ne répond pas
 
 - utiliser l'adresse IP affichée sur le port série ;
 - vérifier que le client et l'ESP32 sont sur le même réseau ;

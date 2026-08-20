@@ -55,7 +55,7 @@ La centrale charge depuis sa mémoire NVS :
 - les identifiants Wi-Fi.
 
 Elle crée ou migre ensuite le compte administrateur, se connecte au Wi-Fi et
-publie `http://gameroom.local` avec mDNS. Si aucun réseau valide n'est enregistré,
+publie `http://pmm.local` avec mDNS. Si aucun réseau valide n'est enregistré,
 elle ouvre un point d'accès `GAMEROOM-CENTRAL-<chipId>` et son portail captif.
 
 ### 2. Démarrage d'un poste
@@ -64,7 +64,7 @@ Le poste calcule son `chipId` matériel, charge son identité et ses identifiant
 Wi-Fi depuis la NVS, puis force le relais à l'arrêt. En cas d'échec Wi-Fi, il
 ouvre un point d'accès `GAMEROOM-POSTE-<chipId>`.
 
-Une fois connecté, il publie son propre service mDNS, résout `gameroom.local` et
+Une fois connecté, il publie son propre service mDNS, résout `pmm.local` et
 annonce son état à la centrale toutes les cinq secondes.
 
 ### 3. Découverte et configuration
@@ -175,7 +175,7 @@ clients externes.
 ## Interface et droits
 
 La centrale fournit une interface web responsive sur son IP et sur
-`http://gameroom.local`.
+`http://pmm.local`.
 
 | Fonction | Administrateur | Utilisateur simple |
 |---|:---:|:---:|
@@ -257,7 +257,7 @@ arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
 1. Téléverser et démarrer la centrale.
 2. Se connecter à `GAMEROOM-CENTRAL-<chipId>` avec le mot de passe `12345678`.
 3. Ouvrir `http://192.168.4.1` et sélectionner le réseau local.
-4. Ouvrir `http://gameroom.local`, se connecter avec `admin` / `admin1234`, puis
+4. Ouvrir `http://pmm.local`, se connecter avec `admin` / `admin1234`, puis
    changer immédiatement le mot de passe.
 5. Téléverser et démarrer un poste configuré avec le même secret partagé.
 6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-<chipId>`, ouvrir
@@ -307,7 +307,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/StorageService.h` | Déclare la persistance et l'import/export de configuration. |
 | `central-esp32/StorageService.cpp` | Lit et écrit les namespaces NVS avec `Preferences` et sérialise les données en JSON. |
 | `central-esp32/WifiService.h` | Déclare la connexion normale au réseau et le démarrage mDNS. |
-| `central-esp32/WifiService.cpp` | Utilise le Wi-Fi enregistré et publie le service HTTP `gameroom.local`. |
+| `central-esp32/WifiService.cpp` | Utilise le Wi-Fi enregistré et publie le service HTTP `pmm.local`. |
 | `central-esp32/WifiProvisioning.h` | Déclare le mode de configuration Wi-Fi. |
 | `central-esp32/WifiProvisioning.cpp` | Implémente le point d'accès, le DNS captif, le scan, le formulaire et la sauvegarde Wi-Fi. |
 | `central-esp32/WebRoutes.h` | Déclare l'enregistrement des routes du serveur web. |
@@ -367,7 +367,7 @@ sont présents dans le firmware ou la NVS sans chiffrement applicatif.
   qu'à l'intervalle du dernier instantané, 60 secondes par défaut ;
 - le temps écoulé pendant la coupure n'est pas déduit sans horloge RTC secourue ;
 - raccourcir fortement l'intervalle de sauvegarde augmente l'usure de la flash ;
-- la résolution de `gameroom.local` dépend du support mDNS du réseau ;
+- la résolution de `pmm.local` dépend du support mDNS du réseau ;
 - les postes sont interrogés séquentiellement, donc un tour complet prend
   environ cinq secondes multipliées par leur nombre ;
 - les logs de la centrale sont limités à 100 entrées et perdus au redémarrage ;

@@ -8,7 +8,7 @@ namespace PosteConfig {
   static const char* WIFI_SETUP_AP_SSID_PREFIX = "GAMEROOM-POSTE";
   static const char* WIFI_SETUP_AP_PASSWORD = "";
 
-  static const char* CENTRAL_MDNS_HOSTNAME = "gameroom";
+  static const char* CENTRAL_MDNS_HOSTNAME = "pmm";
   static const unsigned long ANNOUNCE_INTERVAL_MS = 5000;
 
   // Sauvegarde périodique du temps restant pour proposer une reprise après coupure.

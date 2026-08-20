@@ -27,7 +27,7 @@ le temps de jeu attribué.
 - connexion à un Wi-Fi enregistré ou défini dans le code ;
 - portail captif de configuration si la connexion Wi-Fi échoue ;
 - identité persistante composée d'un identifiant et d'un nom ;
-- découverte automatique par annonce HTTP auprès de `gameroom.local` ;
+- découverte automatique par annonce HTTP auprès de `pmm.local` ;
 - serveur HTTP local sur le port 80 ;
 - démarrage, prolongation et arrêt d'une session ;
 - activation d'un relais pendant toute la durée de la session ;
@@ -40,7 +40,7 @@ le temps de jeu attribué.
 
 ```mermaid
 flowchart LR
-    Admin["Navigateur de l'administrateur"] -->|HTTP| Central["Centrale ESP32<br>gameroom.local"]
+    Admin["Navigateur de l'administrateur"] -->|HTTP| Central["Centrale ESP32<br>pmm.local"]
     Central -->|"START_SESSION, ADD_TIME,<br>STOP_SESSION, configuration"| Poste["ESP32 du poste"]
     Poste -->|"Annonce toutes les 5 s<br>et état du poste"| Central
     Poste -->|GPIO| Relay["Module relais"]
@@ -57,7 +57,7 @@ Les deux ESP32 doivent :
 1. être connectés au même réseau local ;
 2. utiliser le même token de communication ;
 3. pouvoir communiquer directement en HTTP ;
-4. disposer de mDNS afin que le poste puisse résoudre `gameroom.local`.
+4. disposer de mDNS afin que le poste puisse résoudre `pmm.local`.
 
 ## Fonctionnement du firmware
 
@@ -178,7 +178,7 @@ L'identité du poste contient :
 Une fois connecté au Wi-Fi et hors du portail captif, le poste :
 
 1. démarre mDNS sous le nom `poste-<chipId>` en minuscules ;
-2. résout le nom `gameroom.local` ;
+2. résout le nom `pmm.local` ;
 3. envoie son annonce à `POST /poste/announce` toutes les cinq secondes.
 
 Un poste sans identité apparaît dans les postes découverts de la centrale. La
@@ -196,7 +196,7 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai maximal de connexion Wi-Fi. |
 | `WIFI_SETUP_AP_SSID_PREFIX` | `GAMEROOM-POSTE` | Préfixe suivi automatiquement du `chipId` matériel. |
 | `WIFI_SETUP_AP_PASSWORD` | chaîne vide | Mot de passe du point d'accès ; huit caractères minimum pour le protéger. |
-| `CENTRAL_MDNS_HOSTNAME` | `gameroom` | Nom mDNS de la centrale, sans `.local`. |
+| `CENTRAL_MDNS_HOSTNAME` | `pmm` | Nom mDNS de la centrale, sans `.local`. |
 | `ANNOUNCE_INTERVAL_MS` | `5000` | Période d'annonce à la centrale. |
 | `SESSION_CHECKPOINT_INTERVAL_MS` | `60000` | Période de sauvegarde du temps restant pendant une session. |
 | `DEFAULT_POST_ID` | chaîne vide | Identifiant initial si la NVS est vide. |
@@ -274,7 +274,7 @@ sous Windows.
 
 ## Première mise en service
 
-1. Vérifier que la centrale fonctionne et publie `gameroom.local`.
+1. Vérifier que la centrale fonctionne et publie `pmm.local`.
 2. Téléverser le firmware du poste après avoir configuré le token et le relais.
 3. Ouvrir le moniteur série à 115200 bauds.
 4. Si aucun Wi-Fi valide n'est connu, se connecter au point d'accès
@@ -407,7 +407,7 @@ curl -X POST http://ADRESSE_IP_DU_POSTE/command \
 Toutes les cinq secondes, le poste envoie une requête à :
 
 ```text
-POST http://gameroom.local/poste/announce
+POST http://pmm.local/poste/announce
 ```
 
 L'en-tête Bearer et `Content-Type: application/json` sont ajoutés. Le contenu est
@@ -505,7 +505,7 @@ dans la NVS sans chiffrement applicatif.
 
 - vérifier que les deux ESP32 sont sur le même réseau ;
 - ouvrir `http://ADRESSE_IP_DU_POSTE/status` ;
-- vérifier que `gameroom.local` résout vers la centrale ;
+- vérifier que `pmm.local` résout vers la centrale ;
 - comparer `COMMAND_TOKEN` du poste et `POSTE_COMMAND_TOKEN` de la centrale ;
 - vérifier que le réseau n'isole pas ses clients Wi-Fi ;
 - attendre au moins cinq secondes après la connexion.
@@ -542,7 +542,7 @@ niveau haut et `false` si elle s'active au niveau bas.
 - le portail Wi-Fi est ouvert avec la configuration par défaut ;
 - il n'existe pas de route HTTP dédiée à l'effacement des identifiants Wi-Fi ;
 - le firmware n'impose pas de durée maximale de session ;
-- la résolution de `gameroom.local` dépend du support mDNS du réseau ;
+- la résolution de `pmm.local` dépend du support mDNS du réseau ;
 - le serveur HTTP Arduino traite un nombre limité de requêtes et convient à un
   réseau local, pas à une exposition publique ;
 - le changement de `COMMAND_TOKEN` nécessite de recompiler chaque poste et de

@@ -3,7 +3,7 @@
 namespace AppConfig {
   static const char* AP_SSID_PREFIX = "GAMEROOM-CENTRAL";
   static const char* AP_PASSWORD = "";
-  static const char* MDNS_HOSTNAME = "gameroom";
+  static const char* MDNS_HOSTNAME = "pmm";
   static const char* DEFAULT_ADMIN_USERNAME = "admin";
   static const char* DEFAULT_ADMIN_PASSWORD = "12345678";
   // Must match PosteConfig::COMMAND_TOKEN on every poste ESP32.
