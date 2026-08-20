@@ -6,5 +6,6 @@
 - `ps-time-manager-logo-horizontal-hq.png` : déclinaison horizontale haute qualité avec fond transparent (2172 × 724 px), adaptée aux en-têtes et à l’impression.
 - `login-station.png` : image source de la station de jeu utilisée dans le panneau gauche.
 - `login-station-embedded.jpg` : version optimisée intégrée au firmware et servie sur `/assets/login-station-v2.jpg`, recompressée afin de réserver davantage d’espace au logo transparent.
+- `playstation-mark.png` : icône PlayStation multicolore transparente utilisée pour identifier les nouveaux postes détectés avant leur configuration.
 
-La maquette de référence validée est archivée dans `../docs/ui/login-reference.png`. Les fichiers `LoginStationAsset.inc` et `GameRoomLogoAsset.inc` sont les représentations `PROGMEM` générées depuis les versions optimisées afin de servir les images sans stockage externe.
+La maquette de référence validée est archivée dans `../docs/ui/login-reference.png`. Les fichiers `LoginStationAsset.inc`, `GameRoomLogoAsset.inc` et `PlayStationMarkAsset.inc` sont les représentations `PROGMEM` générées depuis les versions optimisées afin de servir les images sans stockage externe.

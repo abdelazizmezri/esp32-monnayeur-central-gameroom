@@ -3,4 +3,5 @@
 namespace WebAssets {
   #include "LoginStationAsset.inc"
   #include "GameRoomLogoAsset.inc"
+  #include "PlayStationMarkAsset.inc"
 }

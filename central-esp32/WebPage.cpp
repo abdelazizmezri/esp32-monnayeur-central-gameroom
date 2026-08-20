@@ -551,6 +551,9 @@ Réinitialiser le Wi-Fi
 Déconnexion
 </button></div></aside><div class="workspace"><header class="topbar"><button class="mobile-menu" type="button" aria-label="Ouvrir le menu" aria-controls="appSidebar" aria-expanded="false" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="topbar-title"><div class="eyebrow">Console centrale</div><h1 id="pageHeading">Vue des postes</h1></div><div class="topbar-meta"><div class="live-pill"><span class="live-dot"></span>En ligne</div><div class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="currentClock">--:--:--</span></div></div></header><main class="content"><section class="view" id="view-home"><h2 class="page-title">Vue des postes</h2><div class="stats" id="stats"></div><div class="section-heading"><div><h2 class="posts-list-title">Liste des postes</h2><p class="section-kicker">État et contrôle des stations en temps réel</p></div></div><div id="posts" class="posts-grid"></div></section><section class="view" id="view-config"><h2 class="page-title">Configuration et import/export</h2><div class="page-grid"><div class="panel"><h2>Configuration générale</h2><div class="form-group"><label for="coinDurationMinutes">Durée par coin (minutes)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par coin (min)" /></div><div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" /></div><div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" /></div><button class="action primary" onclick="saveConfig()">Enregistrer</button><div class="message" id="configMessage"></div></div><div class="panel"><h2>Export / Import</h2><div class="actions"><button class="action primary" onclick="exportConfig()">Exporter JSON</button><button class="action secondary" onclick="importConfig()">Importer JSON</button></div><div class="form-group" style="margin-top:12px;"><textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea></div><div class="message" id="importExportMessage"></div></div></div></section><section class="view" id="view-logs"><h2 class="page-title">Logs</h2><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Journal d'événements</h2><div class="actions"><button class="action primary" onclick="loadLogs()">Actualiser</button><button class="action danger" onclick="clearLogs()">Vider</button></div></div><div id="logs" class="logs"></div></div></section><section class="view" id="view-postes"><h2 class="page-title">Gestion des postes</h2><div class="page-grid"><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Postes configurés</h2><button class="action primary" onclick="load()">Actualiser</button></div><div id="managedPosts" class="pending-list"></div><div class="message" id="managedMessage"></div></div><div class="panel"><h2>Postes découverts</h2><div id="pendingPosts" class="pending-list"></div><div class="message" id="pendingMessage"></div></div></div></section><section class="view" id="view-users"><h2 class="page-title">Gestion des utilisateurs</h2><div class="page-grid"><div class="panel"><h2>Ajouter un utilisateur</h2><div class="form-group"><label for="createUsername">Nom d'utilisateur</label><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div><div class="form-group"><label for="createFirstName">Prénom</label><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div><div class="form-group"><label for="createLastName">Nom</label><input id="createLastName" maxlength="64" placeholder="Nom" /></div><div class="form-group"><label for="createPassword">Mot de passe</label><input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" /></div><div class="form-group"><label for="createRole">Rôle</label><select id="createRole"><option value="user">Utilisateur simple</option><option value="admin">Administrateur</option></select></div><button class="action primary" onclick="createUser()">Ajouter</button><div class="message" id="createUserMessage"></div></div><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Comptes existants</h2><button class="action primary" onclick="loadUsers()">Actualiser</button></div><div id="usersList" class="pending-list"></div><div class="message" id="usersMessage"></div></div></div></section><section class="view" id="view-security"><h2 class="page-title">Mot de passe et API token</h2><div class="page-grid"><div class="panel"><h2>Votre mot de passe administrateur</h2><div class="form-group"><input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" /></div><button class="action primary" onclick="changePassword()">Changer mot de passe</button><div class="message" id="authMessage"></div></div><div class="panel"><h2>Token API</h2><div id="authInfo" style="font-size:13px;color:#8fa3bd;"></div><button class="action warn" style="margin-top:14px;" onclick="regenerateToken()">Régénérer token API</button><div class="message" id="tokenMessage"></div></div></div></section></main></div></div><div class="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
 
+<style>
+#view-postes>.page-grid{grid-template-columns:minmax(0,2.15fr) minmax(270px,.72fr);gap:16px}#view-postes .panel{padding:20px;overflow:hidden}#view-postes .panel:first-child{background:linear-gradient(145deg,rgba(8,25,45,.98),rgba(4,15,29,.98))}#view-postes .panel:last-child{background:radial-gradient(circle at 50% 15%,rgba(112,54,255,.1),transparent 34%),linear-gradient(160deg,#09172d,#050f20)}#view-postes .panel:first-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:14px;border-bottom:1px solid rgba(54,81,108,.55)}#view-postes .panel h2{font-size:17px}#managedPosts{gap:0}.managed-post{display:grid;grid-template-columns:minmax(175px,1fr) minmax(110px,.7fr) 92px auto auto;gap:14px;align-items:center;padding:15px 5px;border-bottom:1px solid rgba(47,73,99,.5);transition:background .16s ease}.managed-post:hover{background:rgba(8,51,76,.22)}.managed-main{display:flex;align-items:center;gap:11px;min-width:0}.managed-device{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;border:1px solid #205b9b;border-radius:9px;color:#64bdff;background:#092343}.managed-device svg{width:22px;height:22px}.managed-name{display:block;overflow:hidden;color:#f5f8ff;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.managed-id{margin-top:3px;color:#68809b;font-size:9px}.managed-fact{min-width:0}.managed-fact small{display:block;margin-bottom:4px;color:#6e85a0;font-size:9px;text-transform:uppercase;letter-spacing:.09em}.managed-fact span,.managed-fact strong{display:block;overflow:hidden;color:#d7e4f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.managed-fact strong{color:var(--cyan);font-family:"SFMono-Regular",Consolas,monospace;font-size:14px}.managed-actions{display:flex;gap:5px}.managed-actions .action{min-height:34px;padding:7px 9px;font-size:10px}.managed-post>.editor,.managed-lock{grid-column:1/-1}.managed-lock{margin:0;color:#71869e;font-size:10px}.managed-post .editor{margin:0;padding:13px;border:1px solid #28435e;border-radius:8px;background:#061427}#pendingPosts{display:grid;gap:12px;margin-top:15px}.discovered-card{position:relative;padding:15px;overflow:hidden;border:1px solid #6843c9;border-radius:12px;text-align:center;background:radial-gradient(circle at 50% 40%,rgba(31,105,197,.18),transparent 42%),linear-gradient(160deg,#0b1630,#0b0d24);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 28px rgba(0,0,0,.22)}.discovered-card:before{content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:12px;box-shadow:inset 0 0 24px rgba(119,60,255,.09)}.discovered-tag{display:inline-flex;padding:5px 8px;border-radius:6px;color:#cfbaff;background:rgba(101,50,210,.28);font-size:9px;font-weight:750}.discovered-logo{display:block;width:96px;height:73px;margin:16px auto 10px;object-fit:contain;filter:drop-shadow(0 8px 13px rgba(0,0,0,.45))}.discovered-ip{color:#f2f7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;font-weight:700}.discovered-id{margin:5px 0 14px;color:#6e84a0;font-size:9px}.discover-add{position:relative;width:100%;min-height:42px;border:0!important;color:#fff!important;background:linear-gradient(105deg,#176eff,#7c38f1)!important;box-shadow:0 10px 22px rgba(59,63,240,.25)}#view-postes .panel:last-child>.message{margin:12px 0 0;color:#8194ae;font-size:10px;text-align:center}#pendingPosts>.empty{min-height:155px;display:grid;place-items:center;text-align:center}@media(max-width:1180px){#view-postes>.page-grid{grid-template-columns:1fr}#pendingPosts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}@media(max-width:760px){.managed-post{grid-template-columns:minmax(0,1fr) auto}.managed-main{grid-column:1/-1}.managed-actions{grid-column:1/-1}.managed-actions .action{flex:1}.managed-fact strong{font-size:13px}}
+</style>
 <script>
 const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
 const primaryNavigation = document.querySelector('.nav');
@@ -793,11 +796,14 @@ document.getElementById('pendingMessage').textContent = pendingPosts.length
 ? `${pendingPosts.length} poste(s) en attente de configuration.`
 : 'Aucun nouveau poste détecté.';
 document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendingPosts.map(p => `
-<div class="pending-item">
-<div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
-<button class="action primary" style="margin-top:8px;" onclick="configurePending('${esc(p.chipId)}')">Ajouter</button>
-</div>
-`).join('') : '<div class="empty">Aucun poste en attente.</div>';
+<article class="discovered-card">
+<span class="discovered-tag">Nouveau poste détecté</span>
+<img class="discovered-logo" src="/assets/playstation-mark.png" alt="Logo PlayStation" />
+<div class="discovered-ip">${esc(p.ip)}</div>
+<div class="discovered-id">Identifiant ${esc(p.chipId)}</div>
+<button class="action discover-add" onclick="configurePending('${esc(p.chipId)}')">＋ Ajouter ce poste</button>
+</article>
+`).join('') : '<div class="empty">✓<br>Aucun nouveau poste en attente.</div>';
 document.getElementById('posts').innerHTML = posts.length ? posts.map(p => `
 <div class="post-card ${badgeClass(p.status)}">
 <div class="post-header">
@@ -851,27 +857,26 @@ if (managedPostsEl) {
 managedPostsEl.innerHTML = realPosts.length ? realPosts.map(p => {
 const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
 return `
-<div class="pending-item">
-<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-<div>
-<div style="font-size:16px;font-weight:700;">${esc(p.name)}</div>
-<div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
-<div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
-${p.recoveryPending ? `<div class="meta"><b>Temps récupérable :</b> ${formatTime(p.recoveryRemaining)}</div>` : ''}
+<article class="managed-post">
+<div class="managed-main">
+<span class="managed-device"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+<div><strong class="managed-name">${esc(p.name)}</strong><div class="managed-id">${esc(p.id)}</div></div>
 </div>
+<div class="managed-fact"><small>Adresse IP</small><span>${esc(p.ip)}</span></div>
+<div class="managed-fact"><small>Temps restant</small><strong>${formatTime(p.remaining)}</strong></div>
 <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
-</div>
-<div class="actions" style="margin-top:10px;">
+<div class="managed-actions">
 <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
 <button class="action warn" ${locked ? 'disabled' : ''} onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
 <button class="action danger" ${locked ? 'disabled' : ''} onclick="deletePost('${esc(p.id)}')">Supprimer</button>
 </div>
-${locked ? '<div class="message">Modification et suppression disponibles uniquement si le poste est inactif et le timer est à 0.</div>' : ''}
+${p.recoveryPending ? `<p class="managed-lock">Temps récupérable : ${formatTime(p.recoveryRemaining)}</p>` : ''}
+${locked ? '<p class="managed-lock">Modification et suppression disponibles lorsque le poste est inactif et le timer à zéro.</p>' : ''}
 <div class="editor" id="editor-${esc(p.id)}">
 <div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
 <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
 </div>
-</div>
+</article>
 `;
 }).join('') : '<div class="empty">Aucun poste configuré.</div>';
 }

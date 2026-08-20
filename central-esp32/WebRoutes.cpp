@@ -94,6 +94,14 @@ static void handleGameRoomLogoAsset() {
                   WebAssets::GAME_ROOM_LOGO_WEBP_LENGTH);
 }
 
+static void handlePlayStationMarkAsset() {
+  gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
+  gServer->send_P(200,
+                  "image/png",
+                  reinterpret_cast<PGM_P>(WebAssets::PLAYSTATION_MARK_PNG),
+                  WebAssets::PLAYSTATION_MARK_PNG_LENGTH);
+}
+
 static void handleLogin() {
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
@@ -673,6 +681,7 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/login", HTTP_GET, handleLoginPage);
   server.on("/assets/login-station-v2.jpg", HTTP_GET, handleLoginStationAsset);
   server.on("/assets/game-room-logo-v4.webp", HTTP_GET, handleGameRoomLogoAsset);
+  server.on("/assets/playstation-mark.png", HTTP_GET, handlePlayStationMarkAsset);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
 
