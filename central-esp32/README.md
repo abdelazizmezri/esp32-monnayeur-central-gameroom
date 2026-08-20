@@ -571,7 +571,7 @@ déploiement.
 
 ## Limites connues
 
-- le firmware occupe environ 98 % de la partition programme standard avec les assets UI intégrés ;
+- l’espace programme disponible reste limité lorsque les assets UI sont intégrés au firmware ;
 - les communications HTTP ne sont pas chiffrées ;
 - les logs sont perdus au redémarrage ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut

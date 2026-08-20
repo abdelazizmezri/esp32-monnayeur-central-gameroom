@@ -561,7 +561,53 @@ Déconnexion
 #view-logs .panel{padding:22px;background:radial-gradient(circle at 85% 8%,rgba(38,80,160,.1),transparent 30%),linear-gradient(145deg,#09172b,#050f20)}#view-logs .panel>div:first-child{align-items:flex-start!important;margin-bottom:20px!important}#view-logs .panel>div:first-child h2{font-size:20px}#view-logs .panel>div:first-child h2:after{content:"Suivi en temps réel de l’activité de la Centrale et des postes";display:block;margin-top:7px;color:#8295b3;font-size:11px;font-weight:400}#view-logs .actions .primary{border:1px solid #176ecd;color:#79bfff;background:#071b35;box-shadow:none}#view-logs .actions .danger{color:#ff707b;border-color:#d93448!important;background:#190d19}.logs{height:62vh;min-height:360px;padding:0;overflow:auto;border:1px solid #263d58;border-radius:10px;color:#dbe6f3;background:#030c1b;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px}.log-table-head,.log-row{display:grid;grid-template-columns:110px 160px minmax(0,1fr);align-items:center}.log-table-head{position:sticky;top:0;z-index:2;min-height:46px;padding:0 18px;border-bottom:1px solid #263d58;color:#aab9cc;background:#0b172b;font-size:11px;font-weight:750}.log-row{min-height:50px;padding:8px 18px;border-bottom:1px solid rgba(43,65,90,.42);background:#040e1e}.log-row:nth-child(odd){background:#091528}.log-time{color:#e8eef7;font-family:"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}.log-level{justify-self:start;padding:5px 8px;border:1px solid;border-radius:6px;font-size:9px;font-weight:850}.log-level.info{color:#64b3ff;border-color:#145ca8;background:#082850}.log-level.warn{color:#ffc333;border-color:#8e6106;background:#392707}.log-level.error{color:#ff646d;border-color:#a9212a;background:#3d1218}.log-message{min-width:0;color:#d9e3f0;line-height:1.35;overflow-wrap:anywhere}.log-empty{grid-column:1/-1;padding:40px;text-align:center;color:#71859e}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes";display:block;margin:14px 8px 0;color:#7f91a9;font-size:10px}#view-logs .panel:after{color:#8295b3}#view-logs .panel:after::first-letter{color:var(--cyan)}@media(max-width:680px){#view-logs .panel{padding:15px}.log-table-head,.log-row{grid-template-columns:68px 100px minmax(0,1fr);padding-left:11px;padding-right:11px}.log-table-head{font-size:9px}.log-row{font-size:10px}.log-level{padding:4px 6px;font-size:8px}#view-logs .panel>div:first-child h2:after{max-width:230px}}
 </style>
 <style>.auth-pending .nav,.auth-pending .sidebar-footer{visibility:hidden}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes · mise à jour " attr(data-last-refresh)}</style>
-<style>#view-users>.page-grid{grid-template-columns:minmax(250px,.7fr) minmax(0,1.4fr)}#view-users .panel:first-child>.primary{width:100%}#usersList{gap:0}.users-head,.user-row{display:grid;grid-template-columns:1fr 1.3fr 1fr 80px;gap:8px;align-items:center}.users-head{color:var(--muted)}.user-row{padding:14px 0;border-top:1px solid var(--border)}.user-cell em,.account-role{color:var(--cyan)}.user-actions{display:flex}.user-editor{grid-column:1/-1}@media(max-width:680px){.users-head{display:none}.user-row{grid-template-columns:1fr auto}.user-actions{grid-column:1/-1}}</style>
+<style>
+#view-users>.page-grid{grid-template-columns:minmax(330px,.78fr) minmax(0,1.35fr);gap:16px;align-items:stretch}
+#view-users .panel{align-self:stretch;min-height:660px;padding:24px;background:radial-gradient(circle at 84% 8%,rgba(31,91,180,.09),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}
+#view-users .panel h2{font-size:20px}
+#view-users .panel:first-child{display:flex;flex-direction:column}
+#view-users .panel:first-child .form-group{margin-bottom:14px}
+#view-users .panel:first-child input,#view-users .panel:first-child select{min-height:48px}
+#view-users .panel:first-child>.primary{width:100%;min-height:52px;margin-top:8px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 24px rgba(50,64,238,.23)}
+#view-users .panel:first-child>.primary svg{width:20px;height:20px;margin-right:8px;vertical-align:middle}
+#view-users .panel:last-child{display:flex;flex-direction:column}
+#view-users .panel:last-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:8px}
+.user-refresh{color:#d8eaff!important;border-color:#1774ff!important;background:#07162b!important;box-shadow:none!important}
+.user-refresh svg{width:18px;height:18px;margin-right:7px;vertical-align:middle}
+.user-refresh.loading svg{animation:user-spin .7s linear infinite}
+@keyframes user-spin{to{transform:rotate(360deg)}}
+#usersList{display:flex;flex:1;flex-direction:column;gap:0}
+.users-head,.user-row{display:grid;grid-template-columns:1fr 1.25fr 1.3fr 110px;gap:14px;align-items:center}
+.users-head{min-height:54px;padding:20px 0 12px;border-bottom:1px solid #263a55;color:#a9b6cc;font-size:11px}
+.user-row{padding:18px 0;border-bottom:1px solid #20364e;color:#f3f6fd;font-size:12px}
+.user-cell b{font-size:13px}
+.user-fullname{color:#e0e7f2}
+.user-role-cell{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
+.account-role,.current-tag{display:inline-flex;align-items:center;padding:6px 9px;border:1px solid;border-radius:5px;font-size:9px;font-weight:700;line-height:1;white-space:nowrap}
+.account-role.admin{color:#e5d1ff;border-color:#7446cf;background:linear-gradient(135deg,rgba(113,58,205,.72),rgba(75,35,132,.72))}
+.account-role.user{color:#cbe4ff;border-color:#1d68c7;background:linear-gradient(135deg,rgba(17,84,169,.72),rgba(10,53,111,.72))}
+.current-tag{color:#60efff;border-color:#00a9bd;background:#063142}
+.user-actions{display:flex;justify-content:flex-end;gap:7px}
+.user-actions .action{display:grid;place-items:center;width:38px;height:38px;min-height:38px;padding:0;border-radius:7px;background:#071426;box-shadow:none}
+.user-actions svg{width:18px;height:18px}
+.user-edit{color:#dff0ff;border-color:#1774ff!important}
+.user-delete{color:#ff6472;border-color:#d82d43!important}
+.user-delete:disabled{color:#7d8797;border-color:#454c59!important}
+.user-editor{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:16px;border:1px solid #28435e;border-radius:8px;background:#061427}
+.user-editor .form-group{margin:0}
+.user-editor .actions{grid-column:1/-1}
+.user-count{margin-top:auto;padding-top:24px;color:#aebbd0;font-size:12px}
+.password-group{position:relative}
+.password-group input{padding-right:46px}
+.password-eye{position:absolute;right:8px;bottom:7px;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;color:#9cb0c9;background:transparent;cursor:pointer}
+.password-eye:hover{color:#e8f5ff}
+.password-eye svg{width:20px;height:20px}
+@media(max-width:1100px){#view-users>.page-grid{grid-template-columns:1fr}#view-users .panel{min-height:auto}}
+@media(max-width:680px){#view-users .panel{padding:17px}.users-head{display:none}.user-row{grid-template-columns:minmax(0,1fr) auto;gap:9px}.user-fullname{grid-column:1/-1}.user-role-cell{grid-column:1}.user-actions{grid-column:2;grid-row:1/4}.user-editor{grid-column:1/-1;grid-template-columns:1fr}.user-editor .actions{grid-column:1}}
+</style>
+<style>
+.config-toolbar{display:flex;justify-content:flex-end;margin-bottom:14px}.config-toolbar .action{display:inline-flex;align-items:center;gap:8px;color:#d9e8f8;border-color:#49627e!important;background:#071426;box-shadow:none}.config-toolbar svg{width:17px;height:17px}.config-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);align-items:stretch}.config-grid>.panel{min-height:585px;padding:25px;background:radial-gradient(circle at 88% 7%,rgba(57,82,182,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.panel-heading{display:flex;align-items:center;gap:13px;margin-bottom:24px}.panel-heading-icon{display:grid;place-items:center;flex:0 0 auto;width:46px;height:46px;border:1px solid #314bd8;border-radius:12px;color:#6381ff;background:rgba(36,53,154,.18);box-shadow:0 0 22px rgba(70,81,255,.1)}.panel-heading-icon.purple{color:#8b67ff;border-color:#6243cb;background:rgba(84,45,175,.17)}.panel-heading-icon svg{width:27px;height:27px}.panel-heading h2{margin:0 0 5px;font-size:19px}.panel-heading p{margin:0;color:#8ea1ba;font-size:11px;line-height:1.4}.config-grid .form-group{margin:0}.config-grid input{min-height:49px}.field-help{margin:7px 0 16px;color:#8295ae;font-size:10px}.field-divider{height:1px;margin:0 0 16px;background:rgba(43,67,92,.55)}.config-save,.config-import{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;margin-top:18px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 25px rgba(50,64,238,.22)}.config-save svg,.config-import svg{width:19px;height:19px}.backup-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0 23px;border-bottom:1px solid rgba(43,67,92,.6)}.backup-row strong,.import-label{color:#eef5ff;font-size:12px}.export-file{display:flex;align-items:center;gap:8px;min-width:134px;justify-content:center;color:#e8f0ff;border-color:#7156f2!important;background:#071426;box-shadow:none}.export-file svg{width:17px;height:17px}.import-label{display:block;margin:23px 0 12px}.file-drop{display:flex;min-height:172px;flex-direction:column;align-items:center;justify-content:center;padding:22px;border:1px dashed #4a557f;border-radius:10px;color:#9fa9c9;background:radial-gradient(circle at 50% 45%,rgba(76,62,182,.12),transparent 55%),rgba(5,16,34,.7);text-align:center;transition:border-color .18s ease,background .18s ease}.file-drop.dragging{border-color:#8b67ff;background:rgba(71,48,158,.18)}.file-drop svg{width:33px;height:33px;margin-bottom:12px;color:#a99af1}.file-drop p{margin:0 0 14px;font-size:11px}.file-picker{color:#e8efff;border-color:#7156f2!important;background:#08172c;box-shadow:none}.selected-file{display:flex;align-items:center;gap:8px;max-width:100%;margin-top:12px;color:#80d8ff;font-size:10px}.selected-file svg{width:15px;height:15px;margin:0}.selected-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.config-warning,.token-warning{display:flex;align-items:center;gap:11px;margin-top:14px;padding:13px 15px;border:1px solid #9b6706;border-radius:8px;color:#ffc34a;background:rgba(72,45,3,.4);font-size:10px;line-height:1.4}.config-warning svg,.token-warning svg{flex:0 0 auto;width:22px;height:22px}.config-import:disabled{opacity:.38}.security-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px}.security-layout>.panel{padding:25px;background:radial-gradient(circle at 86% 8%,rgba(61,81,181,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.security-password,.security-token{min-height:430px}.secret-field{position:relative}.secret-field input{min-height:48px;padding-right:48px}.secret-toggle{position:absolute;right:7px;bottom:7px;display:grid;place-items:center;width:35px;height:35px;padding:0;border:0;color:#a5b8d0;background:transparent;cursor:pointer}.secret-toggle:hover{color:#fff}.secret-toggle svg{width:20px;height:20px}.password-strength{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:14px 0 18px}.strength-bars{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.strength-segment{height:5px;border-radius:4px;background:#26384d;transition:background .18s ease,box-shadow .18s ease}.strength-label{min-width:54px;color:#7f93ac;font-size:10px;text-align:right}.password-strength.strength-1{--strength-color:#ff5967}.password-strength.strength-2{--strength-color:#ff9c37}.password-strength.strength-3{--strength-color:#ffc43d}.password-strength.strength-4{--strength-color:#68d985}.password-strength.strength-5{--strength-color:#35e79a}.password-strength.strength-1 .strength-segment:nth-child(-n+1),.password-strength.strength-2 .strength-segment:nth-child(-n+2),.password-strength.strength-3 .strength-segment:nth-child(-n+3),.password-strength.strength-4 .strength-segment:nth-child(-n+4),.password-strength.strength-5 .strength-segment:nth-child(-n+5){background:var(--strength-color);box-shadow:0 0 8px color-mix(in srgb,var(--strength-color) 30%,transparent)}.password-strength[class*="strength-"] .strength-label{color:var(--strength-color)}.password-match{min-height:17px;margin:-6px 0 4px;color:#8295ae;font-size:10px}.password-match.ok{color:var(--green)}.password-match.error{color:var(--red)}.security-primary{width:100%;min-height:49px;color:#fff;background:linear-gradient(105deg,#176eff,#175ee9)}.token-box{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 13px;border:1px solid #49617c;border-radius:8px;background:#071426}.token-box code{min-width:0;flex:1;overflow:hidden;color:#d6e3f4;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.token-copy{display:grid;place-items:center;flex:0 0 auto;width:35px;height:35px;padding:0;border:0;color:#d6e3f4;background:transparent;cursor:pointer}.token-copy:hover{color:#fff}.token-copy svg{width:21px;height:21px}.token-example{margin:12px 0 0;color:#9aacbf;font-size:10px}.token-example code{color:#9fc3ec}.token-regenerate{width:100%;min-height:48px;margin-top:26px;color:#ffc34a;border-color:#b27405!important;background:#071426;box-shadow:none}.security-status{grid-column:1/-1;min-height:134px}.security-status h2{margin-bottom:20px}.security-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.security-check{display:flex;align-items:center;gap:12px;color:#d7e2ef;font-size:11px}.security-check-icon{display:grid;place-items:center;flex:0 0 auto;width:31px;height:31px;border:1px solid #42d872;border-radius:50%;color:#54e883;background:rgba(36,138,70,.08)}.security-check-icon svg{width:18px;height:18px}.security-message{min-height:18px;margin-top:10px;font-size:10px;color:#8fa3bd}@media(max-width:1050px){.config-grid,.security-layout{grid-template-columns:1fr}.config-grid>.panel{min-height:auto}.security-status{grid-column:1}.security-password,.security-token{min-height:auto}}@media(max-width:680px){.config-grid>.panel,.security-layout>.panel{padding:18px}.backup-row{align-items:flex-start;flex-direction:column}.export-file{width:100%}.security-checks{grid-template-columns:1fr}.config-toolbar .action{width:100%;justify-content:center}}
+</style>
 <script>
 document.body.classList.add('auth-pending');
 const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
@@ -576,6 +622,56 @@ if (logActionButtons[1]) logActionButtons[1].textContent = 'Vider le journal';
 const postsRefreshButton = document.querySelector('#view-postes .panel:first-child .action.primary');
 postsRefreshButton.textContent = '↻ Actualiser';
 postsRefreshButton.onclick = () => refreshPosts(postsRefreshButton);
+const userPanels = document.querySelectorAll('#view-users .panel');
+const createUserButton = userPanels[0]?.querySelector(':scope > .action.primary');
+if (createUserButton) {
+  createUserButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg>Ajouter l’utilisateur';
+}
+const usersRefreshButton = userPanels[1]?.querySelector('.action.primary');
+if (usersRefreshButton) {
+  usersRefreshButton.classList.add('user-refresh');
+  usersRefreshButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>Actualiser';
+  usersRefreshButton.onclick = () => refreshUsers(usersRefreshButton);
+}
+const createPasswordInput = document.getElementById('createPassword');
+if (createPasswordInput) {
+  createPasswordInput.parentElement.classList.add('password-group');
+  createPasswordInput.insertAdjacentHTML('afterend', '<button class="password-eye" type="button" aria-label="Afficher le mot de passe" onclick="toggleCreatePassword(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>');
+}
+const configView = document.getElementById('view-config');
+configView.innerHTML = `
+<h2 class="page-title">Configuration</h2>
+<div class="config-toolbar"><button class="action" type="button" onclick="resetConfigurationForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>Réinitialiser les champs</button></div>
+<div class="page-grid config-grid">
+<section class="panel config-general-panel">
+<div class="panel-heading"><span class="panel-heading-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34A1.7 1.7 0 0 0 14 20.91V21h-4v-.09A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14v-4h.09A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.09V3h4v.09A1.7 1.7 0 0 0 15.06 4.6a1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06A1.7 1.7 0 0 0 19.43 9 1.7 1.7 0 0 0 20.91 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg></span><div><h2>Configuration générale</h2><p>Paramètres de crédit et de durée des sessions.</p></div></div>
+<div class="form-group"><label for="coinDurationMinutes">Durée par coin</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="30" /></div><p class="field-help">Durée de jeu en minutes accordée pour chaque coin inséré.</p><div class="field-divider"></div>
+<div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" step="1" placeholder="1" /></div><p class="field-help">Nombre d’impulsions nécessaires pour créditer un coin.</p><div class="field-divider"></div>
+<div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" step="1" placeholder="0" /></div><p class="field-help">Nombre total de coins actuellement disponibles dans le système.</p>
+<button class="action config-save" type="button" onclick="saveConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h12l2 2v16H5Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg>Enregistrer les modifications</button><div class="message" id="configMessage"></div>
+</section>
+<section class="panel config-backup-panel">
+<div class="panel-heading"><span class="panel-heading-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 13v7h14v-7"/></svg></span><div><h2>Sauvegarde et restauration</h2><p>Exportez ou restaurez la configuration de la Centrale.</p></div></div>
+<div class="backup-row"><strong>Exporter la configuration</strong><button class="action export-file" type="button" onclick="exportConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 17v4h14v-4"/></svg>Exporter JSON</button></div>
+<label class="import-label" for="configFile">Importer une configuration</label><input id="configFile" type="file" accept="application/json,.json" hidden onchange="selectConfigFile(this.files[0])" />
+<div class="file-drop" id="configDropzone" role="button" tabindex="0" onclick="document.getElementById('configFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('configFile').click()}" ondragover="handleConfigDrag(event,true)" ondragleave="handleConfigDrag(event,false)" ondrop="dropConfigFile(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg><p>Déposez ici un fichier JSON de configuration</p><button class="action file-picker" type="button" onclick="event.stopPropagation();document.getElementById('configFile').click()">Choisir un fichier</button><div class="selected-file" id="selectedConfigFile" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 2h9l5 5v15H6Z"/><path d="M14 2v6h6"/></svg><span></span></div></div>
+<div class="config-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 2 21h20Z"/><path d="M12 9v5M12 18h.01"/></svg>L’importation remplacera la configuration actuelle.</div>
+<button class="action config-import" id="importConfigButton" type="button" onclick="importConfig()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg>Importer la configuration</button><div class="message" id="importExportMessage"></div>
+</section>
+</div>`;
+const securityView = document.getElementById('view-security');
+securityView.innerHTML = `
+<h2 class="page-title">Sécurité</h2><div class="security-layout">
+<section class="panel security-password"><div class="panel-heading"><span class="panel-heading-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><rect x="8.5" y="10" width="7" height="6" rx="1"/><path d="M10 10V8a2 2 0 0 1 4 0v2"/></svg></span><div><h2>Mot de passe administrateur</h2><p>Renforcez l’accès à l’interface d’administration.</p></div></div>
+<div class="form-group secret-field"><label for="newPassword">Nouveau mot de passe</label><input id="newPassword" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères minimum" oninput="updatePasswordStrength()" /><button class="secret-toggle" type="button" aria-label="Afficher le nouveau mot de passe" onclick="togglePasswordVisibility('newPassword',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div class="form-group secret-field"><label for="confirmPassword">Confirmer le mot de passe</label><input id="confirmPassword" type="password" minlength="6" autocomplete="new-password" placeholder="Saisissez-le une seconde fois" oninput="updatePasswordStrength()" /><button class="secret-toggle" type="button" aria-label="Afficher la confirmation" onclick="togglePasswordVisibility('confirmPassword',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div class="password-strength" id="passwordStrength"><div class="strength-bars"><span class="strength-segment"></span><span class="strength-segment"></span><span class="strength-segment"></span><span class="strength-segment"></span><span class="strength-segment"></span></div><span class="strength-label">Non évalué</span></div><div class="password-match" id="passwordMatch"></div>
+<button class="action security-primary" id="changePasswordButton" type="button" onclick="changePassword()" disabled>Changer le mot de passe</button><div class="security-message" id="authMessage"></div></section>
+<section class="panel security-token"><div class="panel-heading"><span class="panel-heading-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="15.5" cy="8.5" r="5.5"/><path d="m11.5 12.5-8 8V22H5l2-2h2v-2h2l2.5-2.5"/><circle cx="17" cy="7" r="1"/></svg></span><div><h2>Token API</h2><p>Utilisé par les clients autorisés pour accéder à l’API locale.</p></div></div>
+<div class="token-box" id="authInfo"><code id="apiTokenMasked">Chargement…</code><button class="token-copy" type="button" title="Copier le token affiché" aria-label="Copier le token affiché" onclick="copyDisplayedToken()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div><p class="token-example">Header : <code>Authorization: Bearer VOTRE_TOKEN</code></p>
+<div class="token-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 2 21h20Z"/><path d="M12 9v5M12 18h.01"/></svg>La régénération invalidera immédiatement l’ancien token.</div><button class="action token-regenerate" type="button" onclick="regenerateToken()">Régénérer le token API</button><div class="security-message" id="tokenMessage"></div></section>
+<section class="panel security-status"><h2>État de la sécurité</h2><div class="security-checks"><div class="security-check"><span class="security-check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 12 4 4 8-8"/></svg></span>Compte administrateur protégé</div><div class="security-check"><span class="security-check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 12 4 4 8-8"/></svg></span>API authentifiée</div><div class="security-check"><span class="security-check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 12 4 4 8-8"/></svg></span>Accès limité au réseau local</div></div></section>
+</div>`;
 
 const viewsByPath = {
 '/':'view-home',
@@ -593,7 +689,7 @@ const pageTitles = {
 '/discover':'Gestion des postes',
 '/postes':'Gestion des postes',
 '/users':'Gestion des utilisateurs',
-'/security':'Sécurité et accès API'
+'/security':'Sécurité'
 };
 let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
 let refreshTimer = null;
@@ -601,6 +697,9 @@ let logsTimer = null;
 let currentRole = 'user';
 let currentUsername = '';
 let postNames = {};
+let lastLoadedConfig = { coinDurationMinutes:30, pulsesPerCoin:1, availableCoins:0 };
+let selectedConfigJson = '';
+let currentDisplayedApiToken = '';
 function applyPermissions(data) {
 currentRole = data.accessRole || 'user';
 currentUsername = data.currentUser?.username || '';
@@ -745,7 +844,23 @@ return data;
 }
 function toggleEdit(id) {
 const el = document.getElementById(`editor-${id}`);
-el.style.display = el.style.display === 'block' ? 'none' : 'block';
+const openDisplay = el.classList.contains('user-editor') ? 'grid' : 'block';
+el.style.display = el.style.display === openDisplay ? 'none' : openDisplay;
+}
+function toggleCreatePassword(button) {
+const input = document.getElementById('createPassword');
+const show = input.type === 'password';
+input.type = show ? 'text' : 'password';
+button.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+}
+async function refreshUsers(button) {
+button.disabled = true;
+button.classList.add('loading');
+try { await loadUsers(); }
+finally {
+button.disabled = false;
+button.classList.remove('loading');
+}
 }
 function postLabel(postId) {
 return postNames[postId] || 'ce poste';
@@ -791,13 +906,17 @@ ${currentRole === 'admin' ? '<button class="action stat-action" title="Simuler u
 <div class="stat-value">${recoveryCount}</div>
 </div>
 `;
-document.getElementById('coinDurationMinutes').value = Number(data.coinDurationSeconds || 1800) / 60;
-document.getElementById('pulsesPerCoin').value = data.pulsesPerCoin || 1;
-document.getElementById('availableCoins').value = data.availableCoins || 0;
-document.getElementById('authInfo').innerHTML = `
-<b>Token API :</b> <code>${data.apiTokenMasked || ''}</code><br>
-<span style="font-size:11px;color:#7087a1;">Header: Authorization: Bearer TON_TOKEN</span>
-`;
+lastLoadedConfig = {
+coinDurationMinutes:Number(data.coinDurationSeconds || 1800) / 60,
+pulsesPerCoin:Number(data.pulsesPerCoin || 1),
+availableCoins:Number(data.availableCoins || 0)
+};
+document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
+document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
+document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
+currentDisplayedApiToken = data.apiTokenMasked || '';
+const tokenDisplay = document.getElementById('apiTokenMasked');
+if (tokenDisplay) tokenDisplay.textContent = currentDisplayedApiToken || 'Token indisponible';
 const realPendingPosts = data.pendingPosts || [];
 const pendingPosts = realPendingPosts;
 document.getElementById('pendingMessage').textContent = pendingPosts.length
@@ -987,11 +1106,71 @@ body:JSON.stringify({ id })
 alert(data.ok ? 'Ping réussi' : 'Ping échoué');
 } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
 }
+function clearSelectedConfigFile() {
+selectedConfigJson = '';
+const input = document.getElementById('configFile');
+if (input) input.value = '';
+const selected = document.getElementById('selectedConfigFile');
+if (selected) {
+selected.hidden = true;
+selected.querySelector('span').textContent = '';
+}
+const button = document.getElementById('importConfigButton');
+if (button) button.disabled = true;
+}
+function resetConfigurationForm() {
+document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
+document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
+document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
+clearSelectedConfigFile();
+setMessage('configMessage', 'Valeurs restaurées depuis la dernière configuration chargée.');
+setMessage('importExportMessage', '');
+}
+function handleConfigDrag(event, active) {
+event.preventDefault();
+event.stopPropagation();
+document.getElementById('configDropzone')?.classList.toggle('dragging', active);
+}
+function dropConfigFile(event) {
+handleConfigDrag(event, false);
+const file = event.dataTransfer?.files?.[0];
+if (file) selectConfigFile(file);
+}
+async function selectConfigFile(file) {
+if (!file) return;
+if (!file.name.toLowerCase().endsWith('.json')) {
+clearSelectedConfigFile();
+setMessage('importExportMessage', 'Sélectionnez un fichier avec l’extension .json.', true);
+return;
+}
+if (file.size > 1024 * 1024) {
+clearSelectedConfigFile();
+setMessage('importExportMessage', 'Le fichier JSON dépasse la limite de 1 Mo.', true);
+return;
+}
+try {
+const text = await file.text();
+JSON.parse(text);
+selectedConfigJson = text;
+const selected = document.getElementById('selectedConfigFile');
+selected.hidden = false;
+selected.querySelector('span').textContent = `${file.name} · ${Math.max(1, Math.round(file.size / 1024))} Ko`;
+document.getElementById('importConfigButton').disabled = false;
+setMessage('importExportMessage', 'Fichier JSON prêt à être importé.');
+} catch(e) {
+clearSelectedConfigFile();
+setMessage('importExportMessage', 'Le fichier sélectionné ne contient pas un JSON valide.', true);
+}
+}
 async function saveConfig() {
 const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
 const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
 const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
 const availableCoins = Number(document.getElementById('availableCoins').value || 0);
+if (!Number.isFinite(coinDurationMinutes) || coinDurationMinutes < 1 || !Number.isInteger(pulsesPerCoin) || pulsesPerCoin < 1 || !Number.isInteger(availableCoins) || availableCoins < 0) {
+setMessage('configMessage', 'Vérifiez la durée, les impulsions et le nombre de coins.', true);
+return;
+}
 try {
 await api('/config', {
 method:'POST',
@@ -1023,10 +1202,13 @@ document.getElementById('usersList').innerHTML = users.length ? '<div class="use
 const isCurrent = user.username === currentUsername;
 return `
 <div class="user-row">
-<div class="user-cell"><b>${esc(user.username)}</b>${isCurrent ? '<em>Vous</em>' : ''}</div>
-<div>${esc(user.firstName)} ${esc(user.lastName)}</div>
-<span class="account-role ${user.role}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
-<div class="user-actions"><button class="action primary" title="Modifier" onclick="toggleEdit('user-${user.username}')">✎</button><button class="action danger" title="Supprimer" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">⌫</button></div>
+<div class="user-cell"><b>${esc(user.username)}</b></div>
+<div class="user-fullname">${esc(user.firstName)} ${esc(user.lastName)}</div>
+<div class="user-role-cell"><span class="account-role ${user.role}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>${isCurrent ? '<span class="current-tag">Vous</span>' : ''}</div>
+<div class="user-actions">
+<button class="action user-edit" title="Modifier" aria-label="Modifier ${esc(user.username)}" onclick="toggleEdit('user-${user.username}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button>
+<button class="action user-delete" title="Supprimer" aria-label="Supprimer ${esc(user.username)}" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></svg></button>
+</div>
 <div class="editor user-editor" id="editor-user-${user.username}">
 <div class="form-group">
 <label for="user-first-${user.username}">Prénom</label>
@@ -1115,8 +1297,71 @@ loadUsers();
 if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
 }
 }
+function togglePasswordVisibility(inputId, button) {
+const input = document.getElementById(inputId);
+const show = input.type === 'password';
+input.type = show ? 'text' : 'password';
+button.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+}
+function updatePasswordStrength() {
+const password = document.getElementById('newPassword').value;
+const confirmation = document.getElementById('confirmPassword').value;
+let score = 0;
+if (password.length >= 6) score++;
+if (password.length >= 10) score++;
+if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+if (/\d/.test(password)) score++;
+if (/[^A-Za-z0-9]/.test(password)) score++;
+const labels = ['Non évalué','Très faible','Faible','Moyen','Bon','Robuste'];
+const strength = document.getElementById('passwordStrength');
+strength.className = 'password-strength';
+if (score > 0) strength.classList.add(`strength-${score}`);
+strength.querySelector('.strength-label').textContent = labels[score];
+const match = document.getElementById('passwordMatch');
+match.className = 'password-match';
+if (confirmation) {
+const matches = password === confirmation;
+match.textContent = matches ? 'Les deux mots de passe correspondent.' : 'Les mots de passe ne correspondent pas.';
+match.classList.add(matches ? 'ok' : 'error');
+} else {
+match.textContent = password ? 'Confirmez le nouveau mot de passe.' : '';
+}
+document.getElementById('changePasswordButton').disabled = password.length < 6 || password !== confirmation;
+}
+async function copyDisplayedToken() {
+if (!currentDisplayedApiToken) {
+setMessage('tokenMessage', 'Aucun token à copier.', true);
+return;
+}
+try {
+if (navigator.clipboard?.writeText) {
+await navigator.clipboard.writeText(currentDisplayedApiToken);
+} else {
+const helper = document.createElement('textarea');
+helper.value = currentDisplayedApiToken;
+helper.style.position = 'fixed';
+helper.style.opacity = '0';
+document.body.appendChild(helper);
+helper.select();
+document.execCommand('copy');
+helper.remove();
+}
+setMessage('tokenMessage', currentDisplayedApiToken.includes('•') ? 'Valeur masquée copiée. Régénérez le token pour obtenir sa valeur complète.' : 'Token copié dans le presse-papiers.');
+} catch(e) {
+setMessage('tokenMessage', 'Impossible de copier automatiquement le token.', true);
+}
+}
 async function changePassword() {
-const password = document.getElementById('newPassword').value.trim();
+const password = document.getElementById('newPassword').value;
+const confirmation = document.getElementById('confirmPassword').value;
+if (password.length < 6) {
+setMessage('authMessage', 'Le mot de passe doit contenir au moins 6 caractères.', true);
+return;
+}
+if (password !== confirmation) {
+setMessage('authMessage', 'Les mots de passe ne correspondent pas.', true);
+return;
+}
 try {
 const data = await api('/auth/password', {
 method:'POST',
@@ -1128,6 +1373,10 @@ alert('Mot de passe mis à jour. Veuillez vous reconnecter.');
 window.location.href = '/login';
 return;
 }
+document.getElementById('newPassword').value = '';
+document.getElementById('confirmPassword').value = '';
+updatePasswordStrength();
+setMessage('authMessage', 'Mot de passe mis à jour.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', friendlyError(e.message), true); }
 }
 async function regenerateToken() {
@@ -1135,32 +1384,43 @@ const yes = confirm("Régénérer le token API ? Les anciens clients devront êt
 if (!yes) return;
 try {
 const data = await api('/auth/token/regenerate', { method:'POST' });
-setMessage('tokenMessage', `Nouveau token: ${data.apiToken}`);
-load();
+currentDisplayedApiToken = data.apiToken || '';
+document.getElementById('apiTokenMasked').textContent = currentDisplayedApiToken || 'Token indisponible';
+setMessage('tokenMessage', 'Nouveau token généré. Copiez-le maintenant : il sera masqué au prochain chargement.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('tokenMessage', e.message, true); }
 }
 async function exportConfig() {
 try {
 const data = await api('/config/export');
-document.getElementById('configJson').value = data.configJson || '';
-setMessage('importExportMessage', 'Configuration exportée.');
+const configJson = typeof data.configJson === 'string' ? data.configJson : JSON.stringify(data.configJson || {}, null, 2);
+JSON.parse(configJson);
+const blob = new Blob([configJson], { type:'application/json;charset=utf-8' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+link.href = url;
+link.download = `ps-time-manager-config-${new Date().toISOString().slice(0,10)}.json`;
+document.body.appendChild(link);
+link.click();
+link.remove();
+setTimeout(() => URL.revokeObjectURL(url), 1000);
+setMessage('importExportMessage', 'Le fichier de configuration a été téléchargé.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
 }
 async function importConfig() {
-const configJson = document.getElementById('configJson').value.trim();
-if (!configJson) {
-setMessage('importExportMessage', 'Le JSON est vide.', true);
+if (!selectedConfigJson) {
+setMessage('importExportMessage', 'Choisissez d’abord un fichier JSON valide.', true);
 return;
 }
-const yes = confirm("Importer cette configuration et écraser la configuration actuelle ?");
+const yes = confirm("Importer ce fichier et remplacer la configuration actuelle ?");
 if (!yes) return;
 try {
 await api('/config/import', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ configJson })
+body:JSON.stringify({ configJson:selectedConfigJson })
 });
 setMessage('importExportMessage', 'Configuration importée avec succès.');
+clearSelectedConfigFile();
 load();
 } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
 }
