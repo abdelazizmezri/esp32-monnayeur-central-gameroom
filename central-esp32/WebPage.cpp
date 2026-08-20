@@ -545,925 +545,683 @@ namespace WebPage {
 
   const char* dashboardPage() {
     return R"rawliteral(
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta charset="UTF-8" />
-  <title>Système monnayeur</title>
-  <style>
-    :root {
-      --bg:#0f172a; --surface:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
-      --accent:#2563eb; --accent-soft:#dbeafe; --success-bg:#dcfce7; --success-text:#166534;
-      --warning-bg:#fef3c7; --warning-text:#92400e; --danger-bg:#fee2e2; --danger-text:#991b1b;
-      --idle-bg:#e2e8f0; --idle-text:#334155; --shadow:0 10px 30px rgba(15,23,42,.12); --radius:14px;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#1e293b);color:white}
-    .container{max-width:1280px;margin:0 auto;padding:20px}
-    .hero{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
-    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
-    .nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-    .nav a{color:#e2e8f0;text-decoration:none;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;font-weight:700;font-size:14px}
-    .nav a.active{background:#fff;color:#0f172a}
-    .small-btn{border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
-    .logout-btn{background:#e2e8f0;color:#0f172a}
-    .danger-btn{background:#dc2626;color:#fff}
-    .view{display:none}
-    .view.active{display:block}
-    .page-title{margin:0 0 14px;color:#fff}
-    .posts-list-title{margin:24px 0 12px;color:#fff;font-size:22px}
-    .posts-empty{margin:0;color:#cbd5e1;font-size:16px}
-    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
-    .stat-card,.panel{background:var(--surface);color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
-    .page-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;align-items:start}
-    .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,280px));gap:12px;align-items:start;justify-content:start}
-    .post-card{background:#f1f5f9;color:var(--text);border-radius:12px;box-shadow:var(--shadow);padding:14px;border:1px solid #cbd5e1;transition:transform .15s ease,box-shadow .15s ease}
-    .post-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.16)}
-    .post-card.active{background:#dcfce7;border-color:#86efac}
-    .post-card.idle{background:#e2e8f0;border-color:#94a3b8}
-    .post-card.offline{background:#fee2e2;border-color:#fca5a5}
-    .post-card.error{background:#ffedd5;border-color:#fdba74}
-    .post-card.recovery_pending{background:#fef3c7;border-color:#fbbf24}
-    .post-card.unknown{background:#f1f5f9;border-color:#cbd5e1}
-    .post-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}
-    .post-title{font-size:16px;font-weight:700;line-height:1.25;margin:0}
-    .meta{color:#475569;font-size:12px;margin:2px 0;word-break:break-word}
-    .badge{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
-    .badge.active{background:var(--success-bg);color:var(--success-text)}
-    .badge.idle{background:var(--idle-bg);color:var(--idle-text)}
-    .badge.offline{background:var(--danger-bg);color:var(--danger-text)}
-    .badge.error{background:var(--warning-bg);color:var(--warning-text)}
-    .badge.recovery_pending{background:var(--warning-bg);color:var(--warning-text)}
-    .badge.unknown{background:var(--idle-bg);color:var(--idle-text)}
-    .post-card .badge{padding:4px 7px;background:rgba(255,255,255,.62);color:#334155;border:1px solid rgba(51,65,85,.12);font-size:10px}
-    .timer{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:9px 0;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.55);border:1px solid rgba(51,65,85,.12)}
-    .timer-label{font-size:11px;color:#475569}
-    .timer-value{font-size:20px;font-weight:700;line-height:1}
-    .relay{font-size:11px;font-weight:700;margin-bottom:8px}
-    .relay.on{color:var(--success-text)}
-    .relay.off{color:var(--danger-text)}
-    .recovery-box{margin:8px 0 0;padding:8px;border-radius:9px;background:rgba(255,255,255,.48);color:var(--warning-text);border:1px solid rgba(146,64,14,.2)}
-    .recovery-copy{font-size:12px;line-height:1.3;margin-bottom:7px}
-    .post-card .actions{gap:6px}
-    .post-card button.action{padding:8px 10px;border-radius:8px;font-size:12px}
-    .post-card .coin-action{min-width:40px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    button.action{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
-    button.action:disabled{opacity:.45;cursor:not-allowed}
-    .primary{background:var(--accent);color:white}
-    .secondary{background:#e2e8f0;color:#0f172a}
-    .warn{background:#f59e0b;color:#fff}
-    .danger{background:#dc2626;color:#fff}
-    .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-    input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
-    textarea{min-height:220px;resize:vertical;font-family:monospace}
-    .message{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
-    .pending-list{display:grid;gap:10px}
-    .pending-item{border:1px solid var(--border);border-radius:12px;padding:12px;background:#f8fafc}
-    .editor{margin-top:12px;display:none;border-top:1px solid #e5e7eb;padding-top:12px}
-    .logs{height:62vh;min-height:360px;overflow:auto;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:monospace;font-size:12px}
-    .log-item{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-    .empty{background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.22);border-radius:14px;padding:20px;color:#cbd5e1}
-    @media (max-width:720px){.container{padding:14px}.nav a{flex:1 1 auto;text-align:center}.topbar-actions{width:100%;display:flex;gap:8px}.topbar-actions button{flex:1}.posts-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="hero">
-      <div class="topbar">
-        <div>
-          <h1 style="margin:0 0 8px;">Central monnayeur</h1>
-          <div id="currentUserLabel" style="color:#93c5fd;font-size:13px;margin-top:6px;"></div>
-        </div>
-        <div class="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="small-btn logout-btn" onclick="logout()">Déconnexion</button>
-          <button class="small-btn danger-btn" data-admin-only hidden onclick="resetWifi()">Reset Wi-Fi</button>
-        </div>
-      </div>
-      <nav class="nav">
-        <a href="/" data-path="/">Home</a>
-        <a href="/config" data-path="/config" data-admin-only hidden>Configuration</a>
-        <a href="/logs" data-path="/logs" data-admin-only hidden>Logs</a>
-        <a href="/postes" data-path="/postes" data-admin-only hidden>Gestion des postes</a>
-        <a href="/users" data-path="/users" data-admin-only hidden>Utilisateurs</a>
-        <a href="/security" data-path="/security" data-admin-only hidden>Mot de passe / Token</a>
-      </nav>
-    </div>
-
-    <section class="view" id="view-home">
-      <h2 class="page-title">Vue des postes</h2>
-      <div class="stats" id="stats"></div>
-      <h2 class="posts-list-title">Liste des postes</h2>
-      <div id="posts" class="posts-grid"></div>
-    </section>
-
-    <section class="view" id="view-config">
-      <h2 class="page-title">Configuration et import/export</h2>
-      <div class="page-grid">
-        <div class="panel">
-          <h2>Configuration générale</h2>
-          <div class="form-group">
-            <label for="coinDurationMinutes">Durée par coin (minutes)</label>
-            <input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par coin (min)" />
-          </div>
-          <div class="form-group">
-            <label for="pulsesPerCoin">Impulsions par coin</label>
-            <input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" />
-          </div>
-          <div class="form-group">
-            <label for="availableCoins">Coins disponibles</label>
-            <input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" />
-          </div>
-          <button class="action primary" onclick="saveConfig()">Enregistrer</button>
-          <div class="message" id="configMessage"></div>
-        </div>
-
-        <div class="panel">
-          <h2>Export / Import</h2>
-          <div class="actions">
-            <button class="action primary" onclick="exportConfig()">Exporter JSON</button>
-            <button class="action secondary" onclick="importConfig()">Importer JSON</button>
-          </div>
-          <div class="form-group" style="margin-top:12px;">
-            <textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea>
-          </div>
-          <div class="message" id="importExportMessage"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-logs">
-      <h2 class="page-title">Logs</h2>
-      <div class="panel">
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-          <h2 style="margin:0;">Journal d'événements</h2>
-          <div class="actions">
-            <button class="action primary" onclick="loadLogs()">Actualiser</button>
-            <button class="action danger" onclick="clearLogs()">Vider</button>
-          </div>
-        </div>
-        <div id="logs" class="logs"></div>
-      </div>
-    </section>
-
-    <section class="view" id="view-postes">
-      <h2 class="page-title">Gestion des postes</h2>
-      <div class="page-grid">
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-            <h2 style="margin:0;">Postes configurés</h2>
-            <button class="action primary" onclick="load()">Actualiser</button>
-          </div>
-          <div id="managedPosts" class="pending-list"></div>
-          <div class="message" id="managedMessage"></div>
-        </div>
-
-        <div class="panel">
-          <h2>Postes découverts</h2>
-          <div id="pendingPosts" class="pending-list"></div>
-          <div class="message" id="pendingMessage"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-users">
-      <h2 class="page-title">Gestion des utilisateurs</h2>
-      <div class="page-grid">
-        <div class="panel">
-          <h2>Ajouter un utilisateur</h2>
-          <div class="form-group">
-            <label for="createUsername">Nom d'utilisateur</label>
-            <input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" />
-          </div>
-          <div class="form-group">
-            <label for="createFirstName">Prénom</label>
-            <input id="createFirstName" maxlength="64" placeholder="Prénom" />
-          </div>
-          <div class="form-group">
-            <label for="createLastName">Nom</label>
-            <input id="createLastName" maxlength="64" placeholder="Nom" />
-          </div>
-          <div class="form-group">
-            <label for="createPassword">Mot de passe</label>
-            <input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" />
-          </div>
-          <div class="form-group">
-            <label for="createRole">Rôle</label>
-            <select id="createRole">
-              <option value="user">Utilisateur simple</option>
-              <option value="admin">Administrateur</option>
-            </select>
-          </div>
-          <button class="action primary" onclick="createUser()">Ajouter</button>
-          <div class="message" id="createUserMessage"></div>
-        </div>
-
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-            <h2 style="margin:0;">Comptes existants</h2>
-            <button class="action primary" onclick="loadUsers()">Actualiser</button>
-          </div>
-          <div id="usersList" class="pending-list"></div>
-          <div class="message" id="usersMessage"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-security">
-      <h2 class="page-title">Mot de passe et API token</h2>
-      <div class="page-grid">
-        <div class="panel">
-          <h2>Votre mot de passe administrateur</h2>
-          <div class="form-group">
-            <input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" />
-          </div>
-          <button class="action primary" onclick="changePassword()">Changer mot de passe</button>
-          <div class="message" id="authMessage"></div>
-        </div>
-
-        <div class="panel">
-          <h2>Token API</h2>
-          <div id="authInfo" style="font-size:14px;color:#475569;"></div>
-          <button class="action warn" style="margin-top:14px;" onclick="regenerateToken()">Régénérer token API</button>
-          <div class="message" id="tokenMessage"></div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <script>
-    const viewsByPath = {
-      '/':'view-home',
-      '/config':'view-config',
-      '/logs':'view-logs',
-      '/discover':'view-postes',
-      '/postes':'view-postes',
-      '/users':'view-users',
-      '/security':'view-security'
-    };
-    let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
-    let refreshTimer = null;
-    let logsTimer = null;
-    let currentRole = 'user';
-    let currentUsername = '';
-    let postNames = {};
-    let testCoinDurationSeconds = 1800;
-    const showTestPosts = true;
-    const testPosts = [
-      {chipId:'test-recovery-1',id:'__test_recovery_1',name:'Poste coupure 1',ip:'192.168.1.201',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:15*60},
-      {chipId:'test-recovery-2',id:'__test_recovery_2',name:'Poste coupure 2',ip:'192.168.1.202',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:7*60+30},
-      {chipId:'test-active-1',id:'__test_active_1',name:'Poste actif 1',ip:'192.168.1.203',status:'active',relay:true,remaining:24*60+20,recoveryPending:false,recoveryRemaining:0},
-      {chipId:'test-active-2',id:'__test_active_2',name:'Poste actif 2',ip:'192.168.1.204',status:'active',relay:true,remaining:9*60+45,recoveryPending:false,recoveryRemaining:0},
-      {chipId:'test-offline-1',id:'__test_offline_1',name:'Poste hors ligne 1',ip:'192.168.1.205',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-      {chipId:'test-offline-2',id:'__test_offline_2',name:'Poste hors ligne 2',ip:'192.168.1.206',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-      {chipId:'test-idle-1',id:'__test_idle_1',name:'Poste inactif 1',ip:'192.168.1.207',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-      {chipId:'test-idle-2',id:'__test_idle_2',name:'Poste inactif 2',ip:'192.168.1.208',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0}
-    ];
-
-    function findTestPost(postId) {
-      return testPosts.find(post => post.id === postId);
-    }
-
-    function applyPermissions(data) {
-      currentRole = data.accessRole || 'user';
-      currentUsername = data.currentUser?.username || '';
-      const isAdmin = currentRole === 'admin';
-      document.querySelectorAll('[data-admin-only]').forEach(el => { el.hidden = !isAdmin; });
-
-      const identity = data.currentUser;
-      document.getElementById('currentUserLabel').textContent = identity
-        ? `${identity.firstName} ${identity.lastName} — ${identity.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}`
-        : 'Accès API';
-
-      if (!isAdmin && currentPath !== '/') {
-        startPage('/');
-      }
-    }
-
-    function activateView() {
-      const navPath = currentPath === '/discover' ? '/postes' : currentPath;
-      document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-      document.getElementById(viewsByPath[currentPath]).classList.add('active');
-      document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === navPath));
-    }
-
-    function stopRefreshTimers() {
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-      }
-      if (logsTimer) {
-        clearInterval(logsTimer);
-        logsTimer = null;
-      }
-    }
-
-    function startPage(path, pushState = true) {
-      currentPath = viewsByPath[path] ? path : '/';
-      if (pushState && window.location.pathname !== currentPath) {
-        history.pushState({ path: currentPath }, '', currentPath);
-      }
-
-      activateView();
-      stopRefreshTimers();
-
-      if (currentPath === '/') {
-        load();
-        refreshTimer = setInterval(load, 3000);
-      } else if (currentPath === '/logs') {
-        loadLogs();
-        logsTimer = setInterval(loadLogs, 5000);
-      } else if (currentPath === '/postes' || currentPath === '/discover') {
-        load();
-      } else if (currentPath === '/users') {
-        load();
-        loadUsers();
-      } else {
-        load();
-      }
-    }
-
-    function setupNavigation() {
-      document.querySelectorAll('.nav a').forEach(link => {
-        link.addEventListener('click', event => {
-          event.preventDefault();
-          startPage(link.dataset.path || '/');
-        });
-      });
-
-      window.addEventListener('popstate', () => {
-        startPage(window.location.pathname, false);
-      });
-    }
-
-    function formatTime(totalSeconds) {
-      totalSeconds = Math.max(0, Number(totalSeconds || 0));
-      const h = Math.floor(totalSeconds / 3600);
-      const m = Math.floor((totalSeconds % 3600) / 60);
-      const s = totalSeconds % 60;
-      if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    }
-
-    function badgeClass(status) {
-      const value = (status || 'unknown').toLowerCase();
-      if (['active','idle','offline','error','recovery_pending'].includes(value)) return value;
-      return 'unknown';
-    }
-
-    function statusLabel(status) {
-      return ({
-        active: 'Actif',
-        idle: 'Inactif',
-        offline: 'Hors ligne',
-        error: 'Erreur',
-        recovery_pending: 'Reprise en attente'
-      })[(status || '').toLowerCase()] || status || 'Inconnu';
-    }
-
-    function setMessage(id, text, isError = false) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = text;
-      el.style.color = isError ? '#b91c1c' : '#64748b';
-    }
-
-    function friendlyError(message) {
-      return ({
-        'invalid username': "Nom d'utilisateur invalide (3 à 32 caractères : lettres, chiffres, point, tiret ou underscore).",
-        'invalid name': 'Nom et prénom obligatoires.',
-        'password too short': 'Le mot de passe doit contenir au moins 6 caractères.',
-        'invalid role': 'Rôle invalide.',
-        'username already exists': "Ce nom d'utilisateur existe déjà.",
-        'user limit reached': "La limite d'utilisateurs est atteinte.",
-        'user not found': 'Utilisateur introuvable.',
-        'cannot delete own account': 'Vous ne pouvez pas supprimer votre propre compte.',
-        'cannot change own role': 'Vous ne pouvez pas modifier votre propre rôle.',
-        'last admin required': 'Au moins un administrateur doit être conservé.',
-        'use password settings': 'Utilisez la page Sécurité pour modifier votre propre mot de passe.',
-        'admin required': 'Cette action est réservée aux administrateurs.',
-        'recovery pending': "Décidez d'abord de relancer ou d'annuler la session interrompue.",
-        'no recovery pending': "Il n'y a plus de session interrompue à traiter."
-      })[message] || message;
-    }
-
-    function esc(value) {
-      return String(value ?? '').replace(/[&<>"']/g, ch => ({
-        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-      })[ch]);
-    }
-
-    async function api(url, options = {}) {
-      const res = await fetch(url, options);
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        window.location.href = '/login';
-        throw new Error('unauthorized');
-      }
-      if (!res.ok) throw new Error(data.error || 'Erreur réseau');
-      return data;
-    }
-
-    function toggleEdit(id) {
-      const el = document.getElementById(`editor-${id}`);
-      el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function postLabel(postId) {
-      return postNames[postId] || 'ce poste';
-    }
-
-    async function load() {
-      const data = await api('/posts');
-      applyPermissions(data);
-      const realPosts = data.posts || [];
-      const posts = showTestPosts ? [...realPosts, ...testPosts] : realPosts;
-      testCoinDurationSeconds = Number(data.coinDurationSeconds || 1800);
-      postNames = Object.fromEntries(posts.map(post => [post.id, post.name]));
-      const activeCount = posts.filter(p => p.status === 'active').length;
-      const offlineCount = posts.filter(p => p.status === 'offline').length;
-      const recoveryCount = posts.filter(p => p.recoveryPending).length;
-
-      document.getElementById('stats').innerHTML = `
-        <div class="stat-card">
-          <div>Coins disponibles</div>
-          <div style="font-size:28px;font-weight:700;">${data.availableCoins}</div>
-          ${currentRole === 'admin' ? '<button class="action primary" style="margin-top:10px;" onclick="simulateCoin()">+1 coin</button>' : ''}
-        </div>
-        <div class="stat-card"><div>Durée par coin</div><div style="font-size:28px;font-weight:700;">${formatTime(data.coinDurationSeconds)}</div></div>
-        <div class="stat-card"><div>Postes actifs</div><div style="font-size:28px;font-weight:700;">${activeCount}</div></div>
-        <div class="stat-card"><div>Postes hors ligne</div><div style="font-size:28px;font-weight:700;">${offlineCount}</div></div>
-        <div class="stat-card"><div>Reprises en attente</div><div style="font-size:28px;font-weight:700;">${recoveryCount}</div></div>
-      `;
-
-      document.getElementById('coinDurationMinutes').value = Number(data.coinDurationSeconds || 1800) / 60;
-      document.getElementById('pulsesPerCoin').value = data.pulsesPerCoin || 1;
-      document.getElementById('availableCoins').value = data.availableCoins || 0;
-      document.getElementById('authInfo').innerHTML = `
-        <b>Token API :</b> <code>${data.apiTokenMasked || ''}</code><br>
-        <span style="font-size:12px;color:#64748b;">Header: Authorization: Bearer TON_TOKEN</span>
-      `;
-
-      const pendingPosts = data.pendingPosts || [];
-      document.getElementById('pendingMessage').textContent = pendingPosts.length
-        ? `${pendingPosts.length} poste(s) en attente de configuration.`
-        : 'Aucun nouveau poste détecté.';
-      document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendingPosts.map(p => `
-        <div class="pending-item">
-          <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
-          <button class="action primary" style="margin-top:8px;" onclick="configurePending('${esc(p.chipId)}')">Ajouter</button>
-        </div>
-      `).join('') : '<div class="empty">Aucun poste en attente.</div>';
-
-      document.getElementById('posts').innerHTML = posts.length ? posts.map(p => `
-        <div class="post-card ${badgeClass(p.status)}">
-          <div class="post-header">
-            <h3 class="post-title">${esc(p.name)}</h3>
-            <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
-          </div>
-          <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
-          <div class="timer">
-            <div class="timer-label">${p.recoveryPending ? 'Temps sauvegardé' : 'Temps restant'}</div>
-            <div class="timer-value">${formatTime(p.recoveryPending ? p.recoveryRemaining : p.remaining)}</div>
-          </div>
-          <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
-          ${p.recoveryPending ? `
-            <div class="recovery-box">
-              <div class="recovery-copy"><b>Coupure détectée.</b></div>
-              <div class="actions">
-                <button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
-                <button class="action danger" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
-              </div>
-            </div>
-          ` : `
-            <div class="actions">
-              <button class="action primary coin-action" title="Affecter 1 coin de plus pour ce poste" aria-label="Affecter 1 coin de plus pour ce poste" onclick="assign('${esc(p.id)}',1)">+1</button>
-              <button class="action primary coin-action" title="Affecter 2 coins de plus pour ce poste" aria-label="Affecter 2 coins de plus pour ce poste" onclick="assign('${esc(p.id)}',2)">+2</button>
-              <button class="action secondary" title="Arrêter ce poste" onclick="stopPost('${esc(p.id)}')">Arrêter</button>
-            </div>
-          `}
-        </div>
-      `).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
-
-      const managedPostsEl = document.getElementById('managedPosts');
-      if (managedPostsEl) {
-        managedPostsEl.innerHTML = realPosts.length ? realPosts.map(p => {
-          const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
-          return `
-            <div class="pending-item">
-              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                <div>
-                  <div style="font-size:16px;font-weight:700;">${esc(p.name)}</div>
-                  <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
-                  <div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
-                  ${p.recoveryPending ? `<div class="meta"><b>Temps récupérable :</b> ${formatTime(p.recoveryRemaining)}</div>` : ''}
-                </div>
-                <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
-              </div>
-              <div class="actions" style="margin-top:10px;">
-                <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
-                <button class="action warn" ${locked ? 'disabled' : ''} onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
-                <button class="action danger" ${locked ? 'disabled' : ''} onclick="deletePost('${esc(p.id)}')">Supprimer</button>
-              </div>
-              ${locked ? '<div class="message">Modification et suppression disponibles uniquement si le poste est inactif et le timer est à 0.</div>' : ''}
-              <div class="editor" id="editor-${esc(p.id)}">
-                <div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
-                <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
-              </div>
-            </div>
-          `;
-        }).join('') : '<div class="empty">Aucun poste configuré.</div>';
-      }
-    }
-
-    async function assign(postId, coins) {
-      const testPost = findTestPost(postId);
-      if (testPost) {
-        if (testPost.status === 'offline') {
-          alert('Ce poste de test est hors ligne.');
-          return;
-        }
-        if (testPost.recoveryPending) {
-          alert(friendlyError('recovery pending'));
-          return;
-        }
-        testPost.status = 'active';
-        testPost.relay = true;
-        testPost.remaining += coins * testCoinDurationSeconds;
-        load();
-        return;
-      }
-
-      try {
-        await api('/assign', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ post_id: postId, coins })
-        });
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
-    }
-
-    async function resumeRecovery(postId) {
-      if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
-
-      const testPost = findTestPost(postId);
-      if (testPost) {
-        testPost.status = 'active';
-        testPost.relay = true;
-        testPost.remaining = testPost.recoveryRemaining;
-        testPost.recoveryPending = false;
-        testPost.recoveryRemaining = 0;
-        load();
-        return;
-      }
-
-      try {
-        await api('/recovery/resume', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ post_id: postId })
-        });
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
-    }
-
-    async function cancelRecovery(postId) {
-      if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
-
-      const testPost = findTestPost(postId);
-      if (testPost) {
-        testPost.status = 'idle';
-        testPost.relay = false;
-        testPost.remaining = 0;
-        testPost.recoveryPending = false;
-        testPost.recoveryRemaining = 0;
-        load();
-        return;
-      }
-
-      try {
-        await api('/recovery/cancel', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ post_id: postId })
-        });
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
-    }
-
-    async function simulateCoin() {
-      try {
-        await api('/coins/simulate', { method:'POST' });
-        load();
-        loadLogs();
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
-    }
-
-    async function configurePending(chipId) {
-      const name = prompt('Nom affiché du poste, ex: Poste 1');
-      if (!name) return;
-
-      try {
-        await api('/poste/configure', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ chipId, name: name.trim() })
-        });
-        setMessage('pendingMessage', 'Poste configuré avec succès.');
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('pendingMessage', e.message, true); }
-    }
-
-    async function updatePost(id) {
-      const name = document.getElementById(`edit-name-${id}`).value.trim();
-
-      try {
-        await api('/post/update', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ id, name })
-        });
-        setMessage('managedMessage', 'Poste modifié avec succès.');
-        load();
-      } catch(e) {
-        if (e.message !== 'unauthorized') {
-          setMessage('managedMessage', e.message, true);
-          alert(e.message);
-        }
-      }
-    }
-
-    async function deletePost(id) {
-      const yes = confirm(`Supprimer ${postLabel(id)} ?`);
-      if (!yes) return;
-
-      try {
-        await api('/post/delete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ id })
-        });
-        setMessage('managedMessage', 'Poste supprimé. Il réapparaîtra dans les postes découverts à sa prochaine annonce.');
-        load();
-      } catch(e) {
-        if (e.message !== 'unauthorized') {
-          setMessage('managedMessage', e.message, true);
-          alert(e.message);
-        }
-      }
-    }
-
-    async function pingPost(id) {
-      try {
-        const data = await api('/post/ping', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ id })
-        });
-        alert(data.ok ? 'Ping réussi' : 'Ping échoué');
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
-    }
-
-    async function saveConfig() {
-      const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
-      const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
-      const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
-      const availableCoins = Number(document.getElementById('availableCoins').value || 0);
-
-      try {
-        await api('/config', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ coinDurationSeconds, pulsesPerCoin, availableCoins })
-        });
-        setMessage('configMessage', 'Configuration enregistrée.');
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('configMessage', e.message, true); }
-    }
-
-    async function stopPost(postId) {
-      const testPost = findTestPost(postId);
-      if (testPost) {
-        if (testPost.status === 'offline') {
-          alert('Ce poste de test est hors ligne.');
-          return;
-        }
-        testPost.status = 'idle';
-        testPost.relay = false;
-        testPost.remaining = 0;
-        load();
-        return;
-      }
-
-      try {
-        await api('/stop', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ post_id: postId })
-        });
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
-    }
-
-    async function loadUsers() {
-      try {
-        const data = await api('/users/data');
-        currentUsername = data.currentUsername || currentUsername;
-        const users = data.users || [];
-        document.getElementById('usersList').innerHTML = users.length ? users.map(user => {
-          const isCurrent = user.username === currentUsername;
-          return `
-            <div class="pending-item">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
-                <div><b>${esc(user.username)}</b>${isCurrent ? ' (vous)' : ''}</div>
-                <span class="badge ${user.role === 'admin' ? 'active' : 'idle'}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
-              </div>
-              <div class="form-group">
-                <label for="user-first-${user.username}">Prénom</label>
-                <input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" />
-              </div>
-              <div class="form-group">
-                <label for="user-last-${user.username}">Nom</label>
-                <input id="user-last-${user.username}" maxlength="64" value="${esc(user.lastName)}" placeholder="Nom" />
-              </div>
-              <div class="form-group">
-                <label for="user-role-${user.username}">Rôle</label>
-                <select id="user-role-${user.username}" ${isCurrent ? 'disabled' : ''}>
-                  <option value="user" ${user.role === 'user' ? 'selected' : ''}>Utilisateur simple</option>
-                  <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrateur</option>
-                </select>
-              </div>
-              ${isCurrent ? '' : `
-                <div class="form-group">
-                  <label for="user-password-${user.username}">Nouveau mot de passe (facultatif)</label>
-                  <input id="user-password-${user.username}" type="password" minlength="6" placeholder="6 caractères minimum" />
-                </div>
-              `}
-              <div class="actions">
-                <button class="action primary" onclick="updateUser('${user.username}', ${isCurrent})">Enregistrer</button>
-                <button class="action danger" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">Supprimer</button>
-              </div>
-            </div>
-          `;
-        }).join('') : '<div class="empty">Aucun utilisateur.</div>';
-      } catch(e) {
-        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
-      }
-    }
-
-    async function createUser() {
-      const username = document.getElementById('createUsername').value.trim();
-      const firstName = document.getElementById('createFirstName').value.trim();
-      const lastName = document.getElementById('createLastName').value.trim();
-      const password = document.getElementById('createPassword').value;
-      const role = document.getElementById('createRole').value;
-
-      try {
-        await api('/users/create', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ username, firstName, lastName, password, role })
-        });
-        ['createUsername','createFirstName','createLastName','createPassword'].forEach(id => {
-          document.getElementById(id).value = '';
-        });
-        document.getElementById('createRole').value = 'user';
-        setMessage('createUserMessage', 'Utilisateur ajouté avec succès.');
-        loadUsers();
-      } catch(e) {
-        if (e.message !== 'unauthorized') setMessage('createUserMessage', friendlyError(e.message), true);
-      }
-    }
-
-    async function updateUser(username, isCurrent) {
-      const firstName = document.getElementById(`user-first-${username}`).value.trim();
-      const lastName = document.getElementById(`user-last-${username}`).value.trim();
-      const role = document.getElementById(`user-role-${username}`).value;
-      const passwordInput = isCurrent ? null : document.getElementById(`user-password-${username}`);
-      const password = passwordInput ? passwordInput.value : '';
-
-      try {
-        await api('/users/update', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ username, firstName, lastName, password, role })
-        });
-        setMessage('usersMessage', 'Utilisateur mis à jour.');
-        loadUsers();
-        load();
-      } catch(e) {
-        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
-      }
-    }
-
-    async function deleteUser(username) {
-      if (!confirm(`Supprimer l'utilisateur ${username} ?`)) return;
-
-      try {
-        await api('/users/delete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ username })
-        });
-        setMessage('usersMessage', 'Utilisateur supprimé.');
-        loadUsers();
-      } catch(e) {
-        if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
-      }
-    }
-
-    async function changePassword() {
-      const password = document.getElementById('newPassword').value.trim();
-      try {
-        const data = await api('/auth/password', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ password })
-        });
-        if (data.reauthenticate) {
-          alert('Mot de passe mis à jour. Veuillez vous reconnecter.');
-          window.location.href = '/login';
-          return;
-        }
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', friendlyError(e.message), true); }
-    }
-
-    async function regenerateToken() {
-      const yes = confirm("Régénérer le token API ? Les anciens clients devront être mis à jour.");
-      if (!yes) return;
-
-      try {
-        const data = await api('/auth/token/regenerate', { method:'POST' });
-        setMessage('tokenMessage', `Nouveau token: ${data.apiToken}`);
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('tokenMessage', e.message, true); }
-    }
-
-    async function exportConfig() {
-      try {
-        const data = await api('/config/export');
-        document.getElementById('configJson').value = data.configJson || '';
-        setMessage('importExportMessage', 'Configuration exportée.');
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
-    }
-
-    async function importConfig() {
-      const configJson = document.getElementById('configJson').value.trim();
-      if (!configJson) {
-        setMessage('importExportMessage', 'Le JSON est vide.', true);
-        return;
-      }
-
-      const yes = confirm("Importer cette configuration et écraser la configuration actuelle ?");
-      if (!yes) return;
-
-      try {
-        await api('/config/import', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ configJson })
-        });
-        setMessage('importExportMessage', 'Configuration importée avec succès.');
-        load();
-      } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
-    }
-
-    async function loadLogs() {
-      try {
-        const data = await api('/logs/data');
-        const html = (data.logs || []).map(log =>
-          `<div class="log-item">[${esc(log.level)}] t=${esc(log.ts)} - ${esc(log.message)}</div>`
-        ).join('');
-        document.getElementById('logs').innerHTML = html || 'Aucun log.';
-      } catch(e) {
-        if (e.message !== 'unauthorized') document.getElementById('logs').textContent = e.message;
-      }
-    }
-
-    async function clearLogs() {
-      await api('/logs/clear', { method:'POST' });
-      loadLogs();
-    }
-
-    async function logout() {
-      await fetch('/logout', { method:'POST' });
-      window.location.href = '/login';
-    }
-
-    async function resetWifi() {
-      const yes = confirm("Supprimer la configuration Wi-Fi et redémarrer ?");
-      if (!yes) return;
-      await fetch('/wifi/reset', { method:'POST' });
-      alert("Redémarrage en mode configuration Wi-Fi...");
-    }
-
-    setupNavigation();
-    startPage(currentPath, false);
-  </script>
-</body>
-</html>
+<!DOCTYPE html><html lang="fr"><head><meta name="viewport" content="width=device-width, initial-scale=1" /><meta charset="UTF-8" /><meta name="theme-color" content="#020817" /><title>GAME ROOM — Central monnayeur</title><style>:root{color-scheme:dark;--bg:#020817;--sidebar:#020b1a;--surface:#071426;--surface-2:#0a192c;--surface-3:#0c1e33;--text:#f5f8ff;--muted:#8fa3bd;--border:#20364e;--border-bright:#34536f;--cyan:#00d9ff;--blue:#0877ff;--green:#20e3a2;--amber:#ffb31f;--red:#ff5563;--slate:#9ab2cc;--shadow:0 24px 60px rgba(0,0,0,.28);--radius:14px;}*{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);background:radial-gradient(circle at 75% 0%,rgba(8,119,255,.09),transparent 35%),linear-gradient(145deg,#020817 0%,#041022 58%,#020817 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;}body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.14;background-image:linear-gradient(rgba(45,91,139,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(45,91,139,.07) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(90deg,transparent 15%,#000 62%,transparent 100%);}button,input,textarea,select{font:inherit}button,a{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}[hidden]{display:none!important}.app-shell{display:grid;grid-template-columns:238px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;z-index:30;display:flex;flex-direction:column;width:238px;height:100vh;padding:24px 14px 18px;overflow-y:auto;border-right:1px solid rgba(53,83,113,.64);background:radial-gradient(circle at 40% 9%,rgba(0,217,255,.07),transparent 21%),linear-gradient(180deg,rgba(2,11,26,.98),rgba(3,16,34,.98));box-shadow:18px 0 50px rgba(0,0,0,.2);}.brand-wrap{padding:2px 11px 26px;border-bottom:1px solid rgba(42,68,95,.55)}.brand-logo{display:block;width:100%;max-width:176px;height:auto;mix-blend-mode:screen;user-select:none;-webkit-user-drag:none}.brand-caption{margin:9px 0 0;color:#7189a4;font-size:10px;font-weight:700;letter-spacing:.19em;text-transform:uppercase}.nav{display:flex;flex:1;flex-direction:column;gap:6px;margin-top:22px}.nav-label{margin:0 12px 9px;color:#617994;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.nav a{position:relative;display:flex;align-items:center;gap:12px;min-height:48px;padding:0 13px;overflow:hidden;border:1px solid transparent;border-radius:9px;color:#aebdd0;text-decoration:none;font-size:14px;font-weight:650;transition:color .18s ease,border-color .18s ease,background .18s ease,transform .18s ease;}.nav a::before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:2px;border-radius:2px;background:transparent;box-shadow:none}.nav a:hover{color:#eaf6ff;border-color:rgba(33,80,119,.55);background:rgba(5,34,60,.62);transform:translateX(2px)}.nav a.active{color:#fff;border-color:#16476b;background:linear-gradient(90deg,rgba(2,55,91,.94),rgba(4,31,55,.82));box-shadow:inset 0 0 20px rgba(0,181,255,.04)}.nav a.active::before{background:var(--cyan);box-shadow:0 0 13px rgba(0,217,255,.8)}.nav-icon{flex:0 0 auto;width:21px;height:21px;color:#8fa5bf}.nav a.active .nav-icon{color:var(--cyan);filter:drop-shadow(0 0 6px rgba(0,217,255,.48))}.sidebar-footer{display:grid;gap:10px;margin-top:22px;padding-top:16px;border-top:1px solid rgba(42,68,95,.55)}.user-panel{display:flex;align-items:center;gap:10px;min-width:0;padding:9px;border:1px solid rgba(41,69,98,.58);border-radius:10px;background:rgba(8,24,43,.68)}.user-avatar{display:grid;place-items:center;flex:0 0 auto;width:35px;height:35px;border:1px solid rgba(0,217,255,.34);border-radius:50%;color:#dffaff;background:linear-gradient(145deg,rgba(8,119,255,.36),rgba(145,56,244,.26));font-size:12px;font-weight:800;box-shadow:0 0 18px rgba(8,119,255,.12)}.user-copy{min-width:0;line-height:1.25}.user-name{overflow:hidden;color:#eef7ff;font-size:12px;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.user-role{margin-top:3px;color:#7891ad;font-size:10px}.sidebar-action{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:39px;padding:8px 10px;border:1px solid #284059;border-radius:8px;color:#b7c6d8;background:#09182a;font-size:12px;font-weight:700;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease}.sidebar-action:hover{color:#fff;border-color:#3b6689;background:#0c2036}.sidebar-action.danger-btn{color:#ff9ba4;border-color:rgba(255,85,99,.25);background:rgba(87,16,28,.2)}.sidebar-action.danger-btn:hover{color:#ffd9dc;border-color:rgba(255,85,99,.5);background:rgba(109,18,32,.36)}.sidebar-action svg{width:16px;height:16px}.workspace{min-width:0}.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:22px;min-height:82px;padding:14px clamp(22px,3vw,42px);border-bottom:1px solid rgba(42,67,92,.7);background:rgba(2,8,23,.84);box-shadow:0 14px 38px rgba(0,0,0,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}.topbar-title{min-width:0}.topbar-title h1{margin:2px 0 0;color:#f7f9ff;font-size:clamp(22px,2vw,29px);line-height:1.15;letter-spacing:-.02em}.eyebrow{color:#6e87a2;font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.topbar-meta{display:flex;align-items:center;gap:16px;color:#9eb0c4}.live-pill,.clock{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border:1px solid rgba(43,71,99,.62);border-radius:8px;background:rgba(7,21,39,.72);font-size:12px;font-variant-numeric:tabular-nums}.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(32,227,162,.75)}.clock svg{width:16px;height:16px;color:#8da4be}.mobile-menu{display:none;width:42px;height:42px;padding:0;border:1px solid #29445f;border-radius:9px;color:#d7e8f8;background:#08182a;cursor:pointer}.mobile-menu svg{width:21px;height:21px}.sidebar-overlay{position:fixed;inset:0;z-index:25;display:none;background:rgba(0,4,13,.7);backdrop-filter:blur(3px)}.content{width:100%;max-width:1700px;margin:0 auto;padding:clamp(24px,3vw,42px)}.view{display:none}.view.active{display:block}.page-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.section-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:38px 0 15px}.posts-list-title{margin:0;color:#f6f8fd;font-size:20px;line-height:1.2;letter-spacing:-.015em}.section-kicker{margin:5px 0 0;color:#7087a1;font-size:12px}.posts-empty{margin:0;color:#91a4ba;font-size:15px}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin:0}.stat-card{position:relative;min-height:127px;padding:17px;overflow:hidden;border:1px solid #20374f;border-radius:12px;color:var(--text);background:linear-gradient(145deg,rgba(8,24,43,.94),rgba(5,17,32,.94));box-shadow:0 14px 34px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.025);}.stat-card::after{content:"";position:absolute;right:-36px;bottom:-54px;width:120px;height:120px;border-radius:50%;background:var(--stat-color);opacity:.055;filter:blur(2px)}.stat-top{display:flex;align-items:center;gap:11px;color:#b7c5d6;font-size:12px;line-height:1.3}.stat-icon{display:grid;place-items:center;flex:0 0 auto;width:38px;height:38px;border:1px solid color-mix(in srgb,var(--stat-color) 66%,#1d354a);border-radius:10px;color:var(--stat-color);background:color-mix(in srgb,var(--stat-color) 7%,transparent);box-shadow:0 0 20px color-mix(in srgb,var(--stat-color) 9%,transparent)}.stat-icon svg{width:21px;height:21px}.stat-value{position:relative;z-index:1;margin:10px 0 0;color:var(--stat-color);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:31px;font-weight:800;line-height:1;letter-spacing:-.045em;text-shadow:0 0 18px color-mix(in srgb,var(--stat-color) 24%,transparent);font-variant-numeric:tabular-nums}.stat-card.coins{--stat-color:var(--amber)}.stat-card.duration{--stat-color:var(--cyan)}.stat-card.online{--stat-color:var(--green)}.stat-card.disconnected{--stat-color:var(--red)}.stat-card.recovery{--stat-color:var(--amber)}.stat-action{position:absolute;right:12px;bottom:12px;z-index:2;min-width:34px;min-height:30px;padding:4px 9px!important;border-color:rgba(255,179,31,.4)!important;color:#ffd77a!important;background:rgba(81,51,4,.44)!important;font-size:11px!important}.panel{padding:22px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text);background:linear-gradient(145deg,rgba(9,25,44,.96),rgba(5,17,32,.96));box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.025)}.panel h2{margin-top:0;font-size:18px;letter-spacing:-.01em}.page-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;align-items:start}.posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:15px;align-items:stretch}.post-card{--status:var(--slate);position:relative;display:flex;flex-direction:column;min-height:287px;padding:20px;overflow:hidden;border:1px solid color-mix(in srgb,var(--status) 47%,#20344a);border-top:3px solid var(--status);border-radius:11px;color:var(--text);background:linear-gradient(150deg,color-mix(in srgb,var(--status) 8%,#071426),#06111f 72%);box-shadow:0 18px 38px rgba(0,0,0,.24),0 0 28px color-mix(in srgb,var(--status) 5%,transparent),inset 0 1px 0 rgba(255,255,255,.025);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}.post-card::after{content:"";position:absolute;left:15%;right:15%;top:-5px;height:4px;border-radius:50%;background:var(--status);opacity:.3;filter:blur(8px)}.post-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--status) 66%,#243b51);box-shadow:0 22px 46px rgba(0,0,0,.3),0 0 34px color-mix(in srgb,var(--status) 7%,transparent)}.post-card.active{--status:var(--green)}.post-card.idle,.post-card.unknown{--status:var(--slate)}.post-card.offline{--status:var(--red)}.post-card.error{--status:#ff7d45}.post-card.recovery_pending{--status:var(--amber)}.post-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px;padding-bottom:12px;border-bottom:1px solid rgba(62,89,115,.38)}.post-title{min-width:0;margin:0;overflow-wrap:anywhere;color:#f7f9ff;font-size:18px;font-weight:750;line-height:1.22;letter-spacing:-.02em}.meta{margin:3px 0;color:#8197b0;font-size:11px;line-height:1.45;word-break:break-word}.badge{display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid color-mix(in srgb,var(--badge-color) 35%,#253b51);border-radius:999px;color:var(--badge-color);background:color-mix(in srgb,var(--badge-color) 8%,#081523);font-size:10px;font-weight:750;white-space:nowrap}.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}.badge.active{--badge-color:var(--green)}.badge.idle,.badge.unknown{--badge-color:var(--slate)}.badge.offline{--badge-color:var(--red)}.badge.error{--badge-color:#ff7d45}.badge.recovery_pending{--badge-color:var(--amber)}.session-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:13px;align-items:stretch;margin:9px 0 13px}.timer{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:10px 0}.timer-label{margin-bottom:7px;color:#91a4bb;font-size:11px}.timer-value{overflow:hidden;color:var(--status);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:clamp(31px,2.4vw,39px);font-weight:750;line-height:1;letter-spacing:-.07em;text-overflow:clip;text-shadow:0 0 15px color-mix(in srgb,var(--status) 34%,transparent);font-variant-numeric:tabular-nums;white-space:nowrap}.coin-controls{display:grid;grid-template-columns:repeat(2,39px);gap:6px;align-content:end;padding-left:12px;border-left:1px solid rgba(61,88,114,.45)}.coin-label{grid-column:1/-1;color:#7c91a9;font-size:9px;text-align:center;text-transform:uppercase;letter-spacing:.12em}.relay{margin:auto 0 10px;color:#8da1b8;font-size:11px;font-weight:700}.relay.on{color:var(--green)}.relay.off{color:var(--red)}.recovery-box{display:flex;flex:1;flex-direction:column;justify-content:center;margin:8px 0 14px;padding:14px;border:1px solid rgba(255,179,31,.18);border-radius:9px;color:#ffd276;background:rgba(73,47,5,.18)}.recovery-copy{display:flex;align-items:center;gap:11px;font-size:13px;line-height:1.35}.recovery-copy svg{flex:0 0 auto;width:34px;height:34px;color:var(--amber);filter:drop-shadow(0 0 7px rgba(255,179,31,.3))}.recovery-time{margin-top:9px;color:#f5b93d;font-family:"SFMono-Regular",Consolas,monospace;font-size:25px;font-weight:750;font-variant-numeric:tabular-nums}.offline-state{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:115px;color:var(--red)}.offline-state svg{width:45px;height:45px;filter:drop-shadow(0 0 9px rgba(255,85,99,.27))}.offline-state span{font-size:12px;font-weight:700}.post-card .actions{gap:7px;margin-top:auto}.post-card button.action{min-height:39px;padding:8px 12px;border-radius:7px;font-size:11px}.post-card .coin-action{min-width:39px;min-height:37px;padding:7px;border-color:rgba(0,217,255,.42);color:#dffaff;background:rgba(0,111,150,.18)}.actions{display:flex;gap:8px;flex-wrap:wrap}button.action{min-height:41px;padding:9px 14px;border:1px solid transparent;border-radius:8px;font-size:12px;font-weight:750;cursor:pointer;transition:filter .16s ease,transform .16s ease,background .16s ease,border-color .16s ease}button.action:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px)}button.action:disabled{opacity:.32;cursor:not-allowed;filter:saturate(.35)}.primary{color:#e8fbff;background:linear-gradient(135deg,#0877ff,#075fcf);box-shadow:0 8px 20px rgba(8,119,255,.16)}.secondary{color:#d5e7f7;border-color:#365470!important;background:#0d2136}.warn{color:#ffe2a4;border-color:rgba(255,179,31,.42)!important;background:rgba(105,65,4,.42)}.danger{color:#ffe7e9;border-color:rgba(255,85,99,.48)!important;background:rgba(135,24,39,.55)}.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.form-group label{color:#aebed0;font-size:12px;font-weight:650}input,textarea,select{width:100%;padding:11px 12px;border:1px solid #294159;border-radius:8px;color:#eef6ff;background:#071628;font-size:13px;transition:border-color .16s ease,box-shadow .16s ease}input:focus,textarea:focus,select:focus{border-color:#1575b2;box-shadow:0 0 0 3px rgba(0,161,255,.1)}input::placeholder,textarea::placeholder{color:#5f748c}textarea{min-height:220px;resize:vertical;font-family:monospace}.message{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}.pending-list{display:grid;gap:10px}.pending-item{padding:14px;border:1px solid #243b51;border-radius:10px;background:rgba(7,22,39,.82)}.editor{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #263e55}.logs{height:62vh;min-height:360px;padding:14px;overflow:auto;border:1px solid #1c354d;border-radius:10px;color:#a9c7df;background:#020b16;font-family:"SFMono-Regular",Consolas,monospace;font-size:11px}.log-item{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)}.empty{padding:20px;border:1px dashed #31506b;border-radius:10px;color:#7890a9;background:rgba(5,21,37,.56)}code{color:#7deaff}@media (max-width:1260px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (max-width:980px){.app-shell{display:block}.sidebar{position:fixed;left:0;top:0;width:min(82vw,280px);transform:translateX(-102%);transition:transform .22s ease}body.sidebar-open .sidebar{transform:translateX(0)}body.sidebar-open .sidebar-overlay{display:block}.mobile-menu{display:grid;place-items:center;flex:0 0 auto}.topbar-title{margin-right:auto}.content{padding:24px}}@media (max-width:680px){.topbar{min-height:72px;padding:11px 14px;gap:11px}.eyebrow,.live-pill{display:none}.topbar-title h1{font-size:20px}.clock{padding:0 9px}.content{padding:20px 14px 30px}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{min-height:113px;padding:13px}.stat-top{gap:8px;font-size:10px}.stat-icon{width:32px;height:32px}.stat-icon svg{width:18px;height:18px}.stat-value{font-size:26px}.stat-card.duration{grid-column:span 2}.section-heading{margin-top:29px}.posts-grid,.page-grid{grid-template-columns:1fr}.post-card{min-height:275px;padding:17px}.panel{padding:17px}}@media (max-width:390px){.clock{display:none}.stats{grid-template-columns:1fr}.stat-card.duration{grid-column:auto}.stat-card{min-height:104px}.posts-list-title{font-size:19px}}</style></head><body><div class="app-shell"><aside class="sidebar" id="appSidebar"><div class="brand-wrap"><img class="brand-logo" src="/assets/game-room-logo-v2.jpg" alt="GAME ROOM" /><p class="brand-caption">Central monnayeur</p></div><nav class="nav" aria-label="Navigation principale"><p class="nav-label">Console</p><a href="/" data-path="/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Vue des postes</span></a><a href="/config" data-path="/config" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.09A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14H3v-4h.09A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.09V3h4v.09A1.7 1.7 0 0 0 15.06 4.6a1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06A1.7 1.7 0 0 0 19.43 9 1.7 1.7 0 0 0 20.91 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg><span>Configuration</span></a><a href="/logs" data-path="/logs" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Journal</span></a><a href="/postes" data-path="/postes" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Gestion des postes</span></a><a href="/users" data-path="/users" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Utilisateurs</span></a><a href="/security" data-path="/security" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Sécurité</span></a></nav><div class="sidebar-footer"><div class="user-panel"><div class="user-avatar" id="currentUserAvatar">GR</div><div class="user-copy"><div class="user-name" id="currentUserLabel">Compte local</div><div class="user-role" id="currentUserRole">Connexion sécurisée</div></div></div><button class="sidebar-action danger-btn" data-admin-only hidden onclick="resetWifi()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01M2 3l20 18"/></svg>
+Réinitialiser le Wi-Fi
+</button><button class="sidebar-action" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+Déconnexion
+</button></div></aside><div class="workspace"><header class="topbar"><button class="mobile-menu" type="button" aria-label="Ouvrir le menu" aria-controls="appSidebar" aria-expanded="false" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="topbar-title"><div class="eyebrow">Console centrale</div><h1 id="pageHeading">Vue des postes</h1></div><div class="topbar-meta"><div class="live-pill"><span class="live-dot"></span>En ligne</div><div class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="currentClock">--:--:--</span></div></div></header><main class="content"><section class="view" id="view-home"><h2 class="page-title">Vue des postes</h2><div class="stats" id="stats"></div><div class="section-heading"><div><h2 class="posts-list-title">Liste des postes</h2><p class="section-kicker">État et contrôle des stations en temps réel</p></div></div><div id="posts" class="posts-grid"></div></section><section class="view" id="view-config"><h2 class="page-title">Configuration et import/export</h2><div class="page-grid"><div class="panel"><h2>Configuration générale</h2><div class="form-group"><label for="coinDurationMinutes">Durée par coin (minutes)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par coin (min)" /></div><div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" /></div><div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" /></div><button class="action primary" onclick="saveConfig()">Enregistrer</button><div class="message" id="configMessage"></div></div><div class="panel"><h2>Export / Import</h2><div class="actions"><button class="action primary" onclick="exportConfig()">Exporter JSON</button><button class="action secondary" onclick="importConfig()">Importer JSON</button></div><div class="form-group" style="margin-top:12px;"><textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea></div><div class="message" id="importExportMessage"></div></div></div></section><section class="view" id="view-logs"><h2 class="page-title">Logs</h2><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Journal d'événements</h2><div class="actions"><button class="action primary" onclick="loadLogs()">Actualiser</button><button class="action danger" onclick="clearLogs()">Vider</button></div></div><div id="logs" class="logs"></div></div></section><section class="view" id="view-postes"><h2 class="page-title">Gestion des postes</h2><div class="page-grid"><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Postes configurés</h2><button class="action primary" onclick="load()">Actualiser</button></div><div id="managedPosts" class="pending-list"></div><div class="message" id="managedMessage"></div></div><div class="panel"><h2>Postes découverts</h2><div id="pendingPosts" class="pending-list"></div><div class="message" id="pendingMessage"></div></div></div></section><section class="view" id="view-users"><h2 class="page-title">Gestion des utilisateurs</h2><div class="page-grid"><div class="panel"><h2>Ajouter un utilisateur</h2><div class="form-group"><label for="createUsername">Nom d'utilisateur</label><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div><div class="form-group"><label for="createFirstName">Prénom</label><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div><div class="form-group"><label for="createLastName">Nom</label><input id="createLastName" maxlength="64" placeholder="Nom" /></div><div class="form-group"><label for="createPassword">Mot de passe</label><input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" /></div><div class="form-group"><label for="createRole">Rôle</label><select id="createRole"><option value="user">Utilisateur simple</option><option value="admin">Administrateur</option></select></div><button class="action primary" onclick="createUser()">Ajouter</button><div class="message" id="createUserMessage"></div></div><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Comptes existants</h2><button class="action primary" onclick="loadUsers()">Actualiser</button></div><div id="usersList" class="pending-list"></div><div class="message" id="usersMessage"></div></div></div></section><section class="view" id="view-security"><h2 class="page-title">Mot de passe et API token</h2><div class="page-grid"><div class="panel"><h2>Votre mot de passe administrateur</h2><div class="form-group"><input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" /></div><button class="action primary" onclick="changePassword()">Changer mot de passe</button><div class="message" id="authMessage"></div></div><div class="panel"><h2>Token API</h2><div id="authInfo" style="font-size:13px;color:#8fa3bd;"></div><button class="action warn" style="margin-top:14px;" onclick="regenerateToken()">Régénérer token API</button><div class="message" id="tokenMessage"></div></div></div></section></main></div></div><div class="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
+
+<script>
+const viewsByPath = {
+'/':'view-home',
+'/config':'view-config',
+'/logs':'view-logs',
+'/discover':'view-postes',
+'/postes':'view-postes',
+'/users':'view-users',
+'/security':'view-security'
+};
+const pageTitles = {
+'/':'Vue des postes',
+'/config':'Configuration',
+'/logs':'Journal d’événements',
+'/discover':'Gestion des postes',
+'/postes':'Gestion des postes',
+'/users':'Gestion des utilisateurs',
+'/security':'Sécurité et accès API'
+};
+let currentPath = viewsByPath[window.location.pathname] ? window.location.pathname : '/';
+let refreshTimer = null;
+let logsTimer = null;
+let currentRole = 'user';
+let currentUsername = '';
+let postNames = {};
+let testCoinDurationSeconds = 1800;
+const showTestPosts = true;
+const testPosts = [
+{chipId:'test-recovery-1',id:'__test_recovery_1',name:'Poste coupure 1',ip:'192.168.1.201',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:15*60},
+{chipId:'test-recovery-2',id:'__test_recovery_2',name:'Poste coupure 2',ip:'192.168.1.202',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:7*60+30},
+{chipId:'test-active-1',id:'__test_active_1',name:'Poste actif 1',ip:'192.168.1.203',status:'active',relay:true,remaining:24*60+20,recoveryPending:false,recoveryRemaining:0},
+{chipId:'test-active-2',id:'__test_active_2',name:'Poste actif 2',ip:'192.168.1.204',status:'active',relay:true,remaining:9*60+45,recoveryPending:false,recoveryRemaining:0},
+{chipId:'test-offline-1',id:'__test_offline_1',name:'Poste hors ligne 1',ip:'192.168.1.205',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+{chipId:'test-offline-2',id:'__test_offline_2',name:'Poste hors ligne 2',ip:'192.168.1.206',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+{chipId:'test-idle-1',id:'__test_idle_1',name:'Poste inactif 1',ip:'192.168.1.207',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
+{chipId:'test-idle-2',id:'__test_idle_2',name:'Poste inactif 2',ip:'192.168.1.208',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0}
+];
+function findTestPost(postId) {
+return testPosts.find(post => post.id === postId);
+}
+function applyPermissions(data) {
+currentRole = data.accessRole || 'user';
+currentUsername = data.currentUser?.username || '';
+const isAdmin = currentRole === 'admin';
+document.querySelectorAll('[data-admin-only]').forEach(el => { el.hidden = !isAdmin; });
+const identity = data.currentUser;
+const fullName = identity ? `${identity.firstName || ''} ${identity.lastName || ''}`.trim() : '';
+document.getElementById('currentUserLabel').textContent = fullName || identity?.username || 'Accès API';
+document.getElementById('currentUserRole').textContent = identity?.role === 'admin' ? 'Administrateur' : 'Utilisateur simple';
+document.getElementById('currentUserAvatar').textContent = identity
+? `${identity.firstName?.[0] || identity.username?.[0] || ''}${identity.lastName?.[0] || ''}`.toUpperCase()
+: 'API';
+if (!isAdmin && currentPath !== '/') {
+startPage('/');
+}
+}
+function activateView() {
+const navPath = currentPath === '/discover' ? '/postes' : currentPath;
+document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+document.getElementById(viewsByPath[currentPath]).classList.add('active');
+document.querySelectorAll('.nav a').forEach(link => link.classList.toggle('active', link.dataset.path === navPath));
+document.getElementById('pageHeading').textContent = pageTitles[currentPath] || 'Central monnayeur';
+}
+function stopRefreshTimers() {
+if (refreshTimer) {
+clearInterval(refreshTimer);
+refreshTimer = null;
+}
+if (logsTimer) {
+clearInterval(logsTimer);
+logsTimer = null;
+}
+}
+function startPage(path, pushState = true) {
+currentPath = viewsByPath[path] ? path : '/';
+if (pushState && window.location.pathname !== currentPath) {
+history.pushState({ path: currentPath }, '', currentPath);
+}
+activateView();
+stopRefreshTimers();
+if (currentPath === '/') {
+load();
+refreshTimer = setInterval(load, 3000);
+} else if (currentPath === '/logs') {
+loadLogs();
+logsTimer = setInterval(loadLogs, 5000);
+} else if (currentPath === '/postes' || currentPath === '/discover') {
+load();
+} else if (currentPath === '/users') {
+load();
+loadUsers();
+} else {
+load();
+}
+}
+function setupNavigation() {
+document.querySelectorAll('.nav a').forEach(link => {
+link.addEventListener('click', event => {
+event.preventDefault();
+startPage(link.dataset.path || '/');
+closeSidebar();
+});
+});
+window.addEventListener('popstate', () => {
+startPage(window.location.pathname, false);
+});
+}
+function toggleSidebar() {
+const open = document.body.classList.toggle('sidebar-open');
+document.querySelector('.mobile-menu')?.setAttribute('aria-expanded', String(open));
+}
+function closeSidebar() {
+document.body.classList.remove('sidebar-open');
+document.querySelector('.mobile-menu')?.setAttribute('aria-expanded', 'false');
+}
+function updateClock() {
+const clock = document.getElementById('currentClock');
+if (clock) clock.textContent = new Date().toLocaleTimeString('fr-FR', { hour12:false });
+}
+function formatTime(totalSeconds) {
+totalSeconds = Math.max(0, Number(totalSeconds || 0));
+const h = Math.floor(totalSeconds / 3600);
+const m = Math.floor((totalSeconds % 3600) / 60);
+const s = totalSeconds % 60;
+if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function badgeClass(status) {
+const value = (status || 'unknown').toLowerCase();
+if (['active','idle','offline','error','recovery_pending'].includes(value)) return value;
+return 'unknown';
+}
+function statusLabel(status) {
+return ({
+active: 'Actif',
+idle: 'Inactif',
+offline: 'Hors ligne',
+error: 'Erreur',
+recovery_pending: 'Reprise en attente'
+})[(status || '').toLowerCase()] || status || 'Inconnu';
+}
+function setMessage(id, text, isError = false) {
+const el = document.getElementById(id);
+if (!el) return;
+el.textContent = text;
+el.style.color = isError ? '#ff7a86' : '#8fa3bd';
+}
+function friendlyError(message) {
+return ({
+'invalid username': "Nom d'utilisateur invalide (3 à 32 caractères : lettres, chiffres, point, tiret ou underscore).",
+'invalid name': 'Nom et prénom obligatoires.',
+'password too short': 'Le mot de passe doit contenir au moins 6 caractères.',
+'invalid role': 'Rôle invalide.',
+'username already exists': "Ce nom d'utilisateur existe déjà.",
+'user limit reached': "La limite d'utilisateurs est atteinte.",
+'user not found': 'Utilisateur introuvable.',
+'cannot delete own account': 'Vous ne pouvez pas supprimer votre propre compte.',
+'cannot change own role': 'Vous ne pouvez pas modifier votre propre rôle.',
+'last admin required': 'Au moins un administrateur doit être conservé.',
+'use password settings': 'Utilisez la page Sécurité pour modifier votre propre mot de passe.',
+'admin required': 'Cette action est réservée aux administrateurs.',
+'recovery pending': "Décidez d'abord de relancer ou d'annuler la session interrompue.",
+'no recovery pending': "Il n'y a plus de session interrompue à traiter."
+})[message] || message;
+}
+function esc(value) {
+return String(value ?? '').replace(/[&<>"']/g, ch => ({
+'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+})[ch]);
+}
+async function api(url, options = {}) {
+const res = await fetch(url, options);
+const data = await res.json().catch(() => ({}));
+if (res.status === 401) {
+window.location.href = '/login';
+throw new Error('unauthorized');
+}
+if (!res.ok) throw new Error(data.error || 'Erreur réseau');
+return data;
+}
+function toggleEdit(id) {
+const el = document.getElementById(`editor-${id}`);
+el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+function postLabel(postId) {
+return postNames[postId] || 'ce poste';
+}
+async function load() {
+const data = await api('/posts');
+applyPermissions(data);
+const realPosts = data.posts || [];
+const posts = showTestPosts ? [...realPosts, ...testPosts] : realPosts;
+testCoinDurationSeconds = Number(data.coinDurationSeconds || 1800);
+postNames = Object.fromEntries(posts.map(post => [post.id, post.name]));
+const activeCount = posts.filter(p => p.status === 'active').length;
+const offlineCount = posts.filter(p => p.status === 'offline').length;
+const recoveryCount = posts.filter(p => p.recoveryPending).length;
+document.getElementById('stats').innerHTML = `
+<div class="stat-card coins">
+<div class="stat-top">
+<span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v5c0 1.66 3.13 3 7 3s7-1.34 7-3V6M5 11v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5"/></svg></span>
+<span>Coins disponibles</span>
+</div>
+<div class="stat-value">${data.availableCoins}</div>
+${currentRole === 'admin' ? '<button class="action stat-action" title="Simuler un coin" aria-label="Simuler un coin" onclick="simulateCoin()">+1</button>' : ''}
+</div>
+<div class="stat-card duration">
+<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></span><span>Durée par coin</span></div>
+<div class="stat-value">${formatTime(data.coinDurationSeconds)}</div>
+</div>
+<div class="stat-card online">
+<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M16 19v-1.5A3.5 3.5 0 0 0 12.5 14h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="7.5" r="3.5"/><path d="m17 10 2 2 3-4"/></svg></span><span>Postes actifs</span></div>
+<div class="stat-value">${activeCount}</div>
+</div>
+<div class="stat-card disconnected">
+<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2v10M6.34 5.34a8 8 0 1 0 11.32 0"/></svg></span><span>Postes hors ligne</span></div>
+<div class="stat-value">${offlineCount}</div>
+</div>
+<div class="stat-card recovery">
+<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7v5h5M20 17v-5h-5"/><path d="M6.1 16A7 7 0 0 0 18 18M17.9 8A7 7 0 0 0 6 6"/></svg></span><span>Reprises en attente</span></div>
+<div class="stat-value">${recoveryCount}</div>
+</div>
+`;
+document.getElementById('coinDurationMinutes').value = Number(data.coinDurationSeconds || 1800) / 60;
+document.getElementById('pulsesPerCoin').value = data.pulsesPerCoin || 1;
+document.getElementById('availableCoins').value = data.availableCoins || 0;
+document.getElementById('authInfo').innerHTML = `
+<b>Token API :</b> <code>${data.apiTokenMasked || ''}</code><br>
+<span style="font-size:11px;color:#7087a1;">Header: Authorization: Bearer TON_TOKEN</span>
+`;
+const pendingPosts = data.pendingPosts || [];
+document.getElementById('pendingMessage').textContent = pendingPosts.length
+? `${pendingPosts.length} poste(s) en attente de configuration.`
+: 'Aucun nouveau poste détecté.';
+document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendingPosts.map(p => `
+<div class="pending-item">
+<div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+<button class="action primary" style="margin-top:8px;" onclick="configurePending('${esc(p.chipId)}')">Ajouter</button>
+</div>
+`).join('') : '<div class="empty">Aucun poste en attente.</div>';
+document.getElementById('posts').innerHTML = posts.length ? posts.map(p => `
+<div class="post-card ${badgeClass(p.status)}">
+<div class="post-header">
+<h3 class="post-title">${esc(p.name)}</h3>
+<span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
+</div>
+<div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+${p.recoveryPending ? `
+<div class="recovery-box">
+<div class="recovery-copy">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7v5h5M20 17v-5h-5"/><path d="M6.1 16A7 7 0 0 0 18 18M17.9 8A7 7 0 0 0 6 6"/></svg>
+<b>Coupure détectée</b>
+</div>
+<div class="recovery-time">${formatTime(p.recoveryRemaining)}</div>
+</div>
+<div class="relay off">Relais : OFF</div>
+<div class="actions">
+<button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
+<button class="action warn" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
+</div>
+` : p.status === 'offline' ? `
+<div class="offline-state">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" aria-hidden="true"><path d="M12 2v10M6.34 5.34a8 8 0 1 0 11.32 0"/></svg>
+<span>Poste indisponible</span>
+</div>
+<div class="relay off">Relais : OFF</div>
+<div class="actions">
+<button class="action secondary" disabled>Arrêter</button>
+</div>
+` : `
+<div class="session-row" style="grid-template-columns:minmax(0,1fr);">
+<div class="timer">
+<div class="timer-label">Temps restant</div>
+<div class="timer-value">${formatTime(p.remaining)}</div>
+</div>
+</div>
+<div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
+<div class="actions">
+<button class="action danger" title="Arrêter ce poste" ${(p.status !== 'active' && Number(p.remaining || 0) <= 0) ? 'disabled' : ''} onclick="stopPost('${esc(p.id)}')">Arrêter la session</button>
+<div class="coin-controls" style="margin-left:auto;">
+<div class="coin-label">Coins</div>
+<button class="action coin-action" title="Affecter 1 coin de plus pour ce poste" aria-label="Affecter 1 coin de plus pour ce poste" onclick="assign('${esc(p.id)}',1)">+1</button>
+<button class="action coin-action" title="Affecter 2 coins de plus pour ce poste" aria-label="Affecter 2 coins de plus pour ce poste" onclick="assign('${esc(p.id)}',2)">+2</button>
+</div>
+</div>
+`}
+</div>
+`).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
+const managedPostsEl = document.getElementById('managedPosts');
+if (managedPostsEl) {
+managedPostsEl.innerHTML = realPosts.length ? realPosts.map(p => {
+const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
+return `
+<div class="pending-item">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+<div>
+<div style="font-size:16px;font-weight:700;">${esc(p.name)}</div>
+<div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+<div class="meta"><b>Temps restant :</b> ${formatTime(p.remaining)}</div>
+${p.recoveryPending ? `<div class="meta"><b>Temps récupérable :</b> ${formatTime(p.recoveryRemaining)}</div>` : ''}
+</div>
+<span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
+</div>
+<div class="actions" style="margin-top:10px;">
+<button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
+<button class="action warn" ${locked ? 'disabled' : ''} onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
+<button class="action danger" ${locked ? 'disabled' : ''} onclick="deletePost('${esc(p.id)}')">Supprimer</button>
+</div>
+${locked ? '<div class="message">Modification et suppression disponibles uniquement si le poste est inactif et le timer est à 0.</div>' : ''}
+<div class="editor" id="editor-${esc(p.id)}">
+<div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
+<button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
+</div>
+</div>
+`;
+}).join('') : '<div class="empty">Aucun poste configuré.</div>';
+}
+}
+async function assign(postId, coins) {
+const testPost = findTestPost(postId);
+if (testPost) {
+if (testPost.status === 'offline') {
+alert('Ce poste de test est hors ligne.');
+return;
+}
+if (testPost.recoveryPending) {
+alert(friendlyError('recovery pending'));
+return;
+}
+testPost.status = 'active';
+testPost.relay = true;
+testPost.remaining += coins * testCoinDurationSeconds;
+load();
+return;
+}
+try {
+await api('/assign', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ post_id: postId, coins })
+});
+load();
+} catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+}
+async function resumeRecovery(postId) {
+if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
+const testPost = findTestPost(postId);
+if (testPost) {
+testPost.status = 'active';
+testPost.relay = true;
+testPost.remaining = testPost.recoveryRemaining;
+testPost.recoveryPending = false;
+testPost.recoveryRemaining = 0;
+load();
+return;
+}
+try {
+await api('/recovery/resume', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ post_id: postId })
+});
+load();
+} catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+}
+async function cancelRecovery(postId) {
+if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
+const testPost = findTestPost(postId);
+if (testPost) {
+testPost.status = 'idle';
+testPost.relay = false;
+testPost.remaining = 0;
+testPost.recoveryPending = false;
+testPost.recoveryRemaining = 0;
+load();
+return;
+}
+try {
+await api('/recovery/cancel', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ post_id: postId })
+});
+load();
+} catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+}
+async function simulateCoin() {
+try {
+await api('/coins/simulate', { method:'POST' });
+load();
+loadLogs();
+} catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+}
+async function configurePending(chipId) {
+const name = prompt('Nom affiché du poste, ex: Poste 1');
+if (!name) return;
+try {
+await api('/poste/configure', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ chipId, name: name.trim() })
+});
+setMessage('pendingMessage', 'Poste configuré avec succès.');
+load();
+} catch(e) { if (e.message !== 'unauthorized') setMessage('pendingMessage', e.message, true); }
+}
+async function updatePost(id) {
+const name = document.getElementById(`edit-name-${id}`).value.trim();
+try {
+await api('/post/update', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ id, name })
+});
+setMessage('managedMessage', 'Poste modifié avec succès.');
+load();
+} catch(e) {
+if (e.message !== 'unauthorized') {
+setMessage('managedMessage', e.message, true);
+alert(e.message);
+}
+}
+}
+async function deletePost(id) {
+const yes = confirm(`Supprimer ${postLabel(id)} ?`);
+if (!yes) return;
+try {
+await api('/post/delete', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ id })
+});
+setMessage('managedMessage', 'Poste supprimé. Il réapparaîtra dans les postes découverts à sa prochaine annonce.');
+load();
+} catch(e) {
+if (e.message !== 'unauthorized') {
+setMessage('managedMessage', e.message, true);
+alert(e.message);
+}
+}
+}
+async function pingPost(id) {
+try {
+const data = await api('/post/ping', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ id })
+});
+alert(data.ok ? 'Ping réussi' : 'Ping échoué');
+} catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+}
+async function saveConfig() {
+const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
+const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
+const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
+const availableCoins = Number(document.getElementById('availableCoins').value || 0);
+try {
+await api('/config', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ coinDurationSeconds, pulsesPerCoin, availableCoins })
+});
+setMessage('configMessage', 'Configuration enregistrée.');
+load();
+} catch(e) { if (e.message !== 'unauthorized') setMessage('configMessage', e.message, true); }
+}
+async function stopPost(postId) {
+const yes = confirm(`Arrêter la session de ${postLabel(postId)} ?\nLe temps restant sera définitivement perdu.`);
+if (!yes) return;
+const testPost = findTestPost(postId);
+if (testPost) {
+if (testPost.status === 'offline') {
+alert('Ce poste de test est hors ligne.');
+return;
+}
+testPost.status = 'idle';
+testPost.relay = false;
+testPost.remaining = 0;
+load();
+return;
+}
+try {
+await api('/stop', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ post_id: postId })
+});
+load();
+} catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
+}
+async function loadUsers() {
+try {
+const data = await api('/users/data');
+currentUsername = data.currentUsername || currentUsername;
+const users = data.users || [];
+document.getElementById('usersList').innerHTML = users.length ? users.map(user => {
+const isCurrent = user.username === currentUsername;
+return `
+<div class="pending-item">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+<div><b>${esc(user.username)}</b>${isCurrent ? ' (vous)' : ''}</div>
+<span class="badge ${user.role === 'admin' ? 'active' : 'idle'}">${user.role === 'admin' ? 'Administrateur' : 'Utilisateur simple'}</span>
+</div>
+<div class="form-group">
+<label for="user-first-${user.username}">Prénom</label>
+<input id="user-first-${user.username}" maxlength="64" value="${esc(user.firstName)}" placeholder="Prénom" />
+</div>
+<div class="form-group">
+<label for="user-last-${user.username}">Nom</label>
+<input id="user-last-${user.username}" maxlength="64" value="${esc(user.lastName)}" placeholder="Nom" />
+</div>
+<div class="form-group">
+<label for="user-role-${user.username}">Rôle</label>
+<select id="user-role-${user.username}" ${isCurrent ? 'disabled' : ''}>
+<option value="user" ${user.role === 'user' ? 'selected' : ''}>Utilisateur simple</option>
+<option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrateur</option>
+</select>
+</div>
+${isCurrent ? '' : `
+<div class="form-group">
+<label for="user-password-${user.username}">Nouveau mot de passe (facultatif)</label>
+<input id="user-password-${user.username}" type="password" minlength="6" placeholder="6 caractères minimum" />
+</div>
+`}
+<div class="actions">
+<button class="action primary" onclick="updateUser('${user.username}', ${isCurrent})">Enregistrer</button>
+<button class="action danger" ${isCurrent ? 'disabled' : ''} onclick="deleteUser('${user.username}')">Supprimer</button>
+</div>
+</div>
+`;
+}).join('') : '<div class="empty">Aucun utilisateur.</div>';
+} catch(e) {
+if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+}
+}
+async function createUser() {
+const username = document.getElementById('createUsername').value.trim();
+const firstName = document.getElementById('createFirstName').value.trim();
+const lastName = document.getElementById('createLastName').value.trim();
+const password = document.getElementById('createPassword').value;
+const role = document.getElementById('createRole').value;
+try {
+await api('/users/create', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ username, firstName, lastName, password, role })
+});
+['createUsername','createFirstName','createLastName','createPassword'].forEach(id => {
+document.getElementById(id).value = '';
+});
+document.getElementById('createRole').value = 'user';
+setMessage('createUserMessage', 'Utilisateur ajouté avec succès.');
+loadUsers();
+} catch(e) {
+if (e.message !== 'unauthorized') setMessage('createUserMessage', friendlyError(e.message), true);
+}
+}
+async function updateUser(username, isCurrent) {
+const firstName = document.getElementById(`user-first-${username}`).value.trim();
+const lastName = document.getElementById(`user-last-${username}`).value.trim();
+const role = document.getElementById(`user-role-${username}`).value;
+const passwordInput = isCurrent ? null : document.getElementById(`user-password-${username}`);
+const password = passwordInput ? passwordInput.value : '';
+try {
+await api('/users/update', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ username, firstName, lastName, password, role })
+});
+setMessage('usersMessage', 'Utilisateur mis à jour.');
+loadUsers();
+load();
+} catch(e) {
+if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+}
+}
+async function deleteUser(username) {
+if (!confirm(`Supprimer l'utilisateur ${username} ?`)) return;
+try {
+await api('/users/delete', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ username })
+});
+setMessage('usersMessage', 'Utilisateur supprimé.');
+loadUsers();
+} catch(e) {
+if (e.message !== 'unauthorized') setMessage('usersMessage', friendlyError(e.message), true);
+}
+}
+async function changePassword() {
+const password = document.getElementById('newPassword').value.trim();
+try {
+const data = await api('/auth/password', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ password })
+});
+if (data.reauthenticate) {
+alert('Mot de passe mis à jour. Veuillez vous reconnecter.');
+window.location.href = '/login';
+return;
+}
+} catch(e) { if (e.message !== 'unauthorized') setMessage('authMessage', friendlyError(e.message), true); }
+}
+async function regenerateToken() {
+const yes = confirm("Régénérer le token API ? Les anciens clients devront être mis à jour.");
+if (!yes) return;
+try {
+const data = await api('/auth/token/regenerate', { method:'POST' });
+setMessage('tokenMessage', `Nouveau token: ${data.apiToken}`);
+load();
+} catch(e) { if (e.message !== 'unauthorized') setMessage('tokenMessage', e.message, true); }
+}
+async function exportConfig() {
+try {
+const data = await api('/config/export');
+document.getElementById('configJson').value = data.configJson || '';
+setMessage('importExportMessage', 'Configuration exportée.');
+} catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
+}
+async function importConfig() {
+const configJson = document.getElementById('configJson').value.trim();
+if (!configJson) {
+setMessage('importExportMessage', 'Le JSON est vide.', true);
+return;
+}
+const yes = confirm("Importer cette configuration et écraser la configuration actuelle ?");
+if (!yes) return;
+try {
+await api('/config/import', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ configJson })
+});
+setMessage('importExportMessage', 'Configuration importée avec succès.');
+load();
+} catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
+}
+async function loadLogs() {
+try {
+const data = await api('/logs/data');
+const html = (data.logs || []).map(log =>
+`<div class="log-item">[${esc(log.level)}] t=${esc(log.ts)} - ${esc(log.message)}</div>`
+).join('');
+document.getElementById('logs').innerHTML = html || 'Aucun log.';
+} catch(e) {
+if (e.message !== 'unauthorized') document.getElementById('logs').textContent = e.message;
+}
+}
+async function clearLogs() {
+await api('/logs/clear', { method:'POST' });
+loadLogs();
+}
+async function logout() {
+await fetch('/logout', { method:'POST' });
+window.location.href = '/login';
+}
+async function resetWifi() {
+const yes = confirm("Supprimer la configuration Wi-Fi et redémarrer ?");
+if (!yes) return;
+await fetch('/wifi/reset', { method:'POST' });
+alert("Redémarrage en mode configuration Wi-Fi...");
+}
+updateClock();
+setInterval(updateClock, 1000);
+window.addEventListener('resize', () => { if (window.innerWidth > 980) closeSidebar(); });
+setupNavigation();
+startPage(currentPath, false);
+</script>
+</body></html>
 )rawliteral";
   }
 }
