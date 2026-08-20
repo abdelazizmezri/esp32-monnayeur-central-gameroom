@@ -554,6 +554,9 @@ Déconnexion
 <style>
 #view-postes>.page-grid{grid-template-columns:minmax(0,2.15fr) minmax(270px,.72fr);gap:16px}#view-postes .panel{padding:20px;overflow:hidden}#view-postes .panel:first-child{background:linear-gradient(145deg,rgba(8,25,45,.98),rgba(4,15,29,.98))}#view-postes .panel:last-child{background:radial-gradient(circle at 50% 15%,rgba(112,54,255,.1),transparent 34%),linear-gradient(160deg,#09172d,#050f20)}#view-postes .panel:first-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:14px;border-bottom:1px solid rgba(54,81,108,.55)}#view-postes .panel h2{font-size:17px}#managedPosts{gap:0}.managed-post{display:grid;grid-template-columns:minmax(175px,1fr) minmax(110px,.7fr) 92px auto auto;gap:14px;align-items:center;padding:15px 5px;border-bottom:1px solid rgba(47,73,99,.5);transition:background .16s ease}.managed-post:hover{background:rgba(8,51,76,.22)}.managed-main{display:flex;align-items:center;gap:11px;min-width:0}.managed-device{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;border:1px solid #205b9b;border-radius:9px;color:#64bdff;background:#092343}.managed-device svg{width:22px;height:22px}.managed-name{display:block;overflow:hidden;color:#f5f8ff;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.managed-id{margin-top:3px;color:#68809b;font-size:9px}.managed-fact{min-width:0}.managed-fact small{display:block;margin-bottom:4px;color:#6e85a0;font-size:9px;text-transform:uppercase;letter-spacing:.09em}.managed-fact span,.managed-fact strong{display:block;overflow:hidden;color:#d7e4f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.managed-fact strong{color:var(--cyan);font-family:"SFMono-Regular",Consolas,monospace;font-size:14px}.managed-actions{display:flex;gap:5px}.managed-actions .action{min-height:34px;padding:7px 9px;font-size:10px}.managed-post>.editor,.managed-lock{grid-column:1/-1}.managed-lock{margin:0;color:#71869e;font-size:10px}.managed-post .editor{margin:0;padding:13px;border:1px solid #28435e;border-radius:8px;background:#061427}#pendingPosts{display:grid;gap:12px;margin-top:15px}.discovered-card{position:relative;padding:15px;overflow:hidden;border:1px solid #6843c9;border-radius:12px;text-align:center;background:radial-gradient(circle at 50% 40%,rgba(31,105,197,.18),transparent 42%),linear-gradient(160deg,#0b1630,#0b0d24);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 28px rgba(0,0,0,.22)}.discovered-card:before{content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:12px;box-shadow:inset 0 0 24px rgba(119,60,255,.09)}.discovered-tag{display:inline-flex;padding:5px 8px;border-radius:6px;color:#cfbaff;background:rgba(101,50,210,.28);font-size:9px;font-weight:750}.discovered-logo{display:block;width:96px;height:73px;margin:16px auto 10px;object-fit:contain;filter:drop-shadow(0 8px 13px rgba(0,0,0,.45))}.discovered-ip{color:#f2f7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;font-weight:700}.discovered-id{margin:5px 0 14px;color:#6e84a0;font-size:9px}.discover-add{position:relative;width:100%;min-height:42px;border:0!important;color:#fff!important;background:linear-gradient(105deg,#176eff,#7c38f1)!important;box-shadow:0 10px 22px rgba(59,63,240,.25)}#view-postes .panel:last-child>.message{margin:12px 0 0;color:#8194ae;font-size:10px;text-align:center}#pendingPosts>.empty{min-height:155px;display:grid;place-items:center;text-align:center}@media(max-width:1180px){#view-postes>.page-grid{grid-template-columns:1fr}#pendingPosts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}@media(max-width:760px){.managed-post{grid-template-columns:minmax(0,1fr) auto}.managed-main{grid-column:1/-1}.managed-actions{grid-column:1/-1}.managed-actions .action{flex:1}.managed-fact strong{font-size:13px}}
 </style>
+<style>
+.managed-post{grid-template-columns:27% 20% 13% 17% 23%;column-gap:0}.managed-main,.managed-fact,.managed-post>.badge{margin-right:24px}.managed-post>.badge{justify-self:start}.managed-actions{justify-content:flex-end;flex-wrap:wrap}@media(max-width:1300px){.managed-post{grid-template-columns:32% 24% 18% 26%}.managed-actions{grid-column:1/-1;margin-top:2px}}@media(max-width:760px){.managed-post{grid-template-columns:1fr 1fr}.managed-main{grid-column:1/-1}.managed-post>.badge{grid-column:2;justify-self:end;margin-right:0}.managed-actions{grid-column:1/-1}.managed-main,.managed-fact{margin-right:16px}}
+</style>
 <script>
 const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
 const primaryNavigation = document.querySelector('.nav');
@@ -597,6 +600,11 @@ const testPosts = [
 {chipId:'test-offline-2',id:'__test_offline_2',name:'Poste hors ligne 2',ip:'192.168.1.206',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
 {chipId:'test-idle-1',id:'__test_idle_1',name:'Poste inactif 1',ip:'192.168.1.207',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
 {chipId:'test-idle-2',id:'__test_idle_2',name:'Poste inactif 2',ip:'192.168.1.208',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0}
+];
+const managementTestIds = ['__test_recovery_1','__test_active_1','__test_offline_1','__test_idle_1'];
+const testPendingPosts = [
+{chipId:'test-new-1',ip:'192.168.1.231'},
+{chipId:'test-new-2',ip:'192.168.1.232'}
 ];
 function findTestPost(postId) {
 return testPosts.find(post => post.id === postId);
@@ -791,7 +799,8 @@ document.getElementById('authInfo').innerHTML = `
 <b>Token API :</b> <code>${data.apiTokenMasked || ''}</code><br>
 <span style="font-size:11px;color:#7087a1;">Header: Authorization: Bearer TON_TOKEN</span>
 `;
-const pendingPosts = data.pendingPosts || [];
+const realPendingPosts = data.pendingPosts || [];
+const pendingPosts = showTestPosts ? [...realPendingPosts, ...testPendingPosts] : realPendingPosts;
 document.getElementById('pendingMessage').textContent = pendingPosts.length
 ? `${pendingPosts.length} poste(s) en attente de configuration.`
 : 'Aucun nouveau poste détecté.';
@@ -854,7 +863,10 @@ ${p.recoveryPending ? `
 `).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
 const managedPostsEl = document.getElementById('managedPosts');
 if (managedPostsEl) {
-managedPostsEl.innerHTML = realPosts.length ? realPosts.map(p => {
+const managedPosts = showTestPosts
+? [...realPosts, ...testPosts.filter(p => managementTestIds.includes(p.id))]
+: realPosts;
+managedPostsEl.innerHTML = managedPosts.length ? managedPosts.map(p => {
 const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
 return `
 <article class="managed-post">
@@ -959,6 +971,16 @@ loadLogs();
 async function configurePending(chipId) {
 const name = prompt('Nom affiché du poste, ex: Poste 1');
 if (!name) return;
+const testIndex = testPendingPosts.findIndex(post => post.chipId === chipId);
+if (testIndex >= 0) {
+const pending = testPendingPosts.splice(testIndex, 1)[0];
+const id = `__${chipId}`;
+testPosts.push({chipId,id,name:name.trim(),ip:pending.ip,status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0});
+managementTestIds.push(id);
+setMessage('pendingMessage', 'Poste de test configuré avec succès.');
+load();
+return;
+}
 try {
 await api('/poste/configure', {
 method:'POST',
@@ -971,6 +993,13 @@ load();
 }
 async function updatePost(id) {
 const name = document.getElementById(`edit-name-${id}`).value.trim();
+const testPost = findTestPost(id);
+if (testPost) {
+testPost.name = name;
+setMessage('managedMessage', 'Poste de test modifié avec succès.');
+load();
+return;
+}
 try {
 await api('/post/update', {
 method:'POST',
@@ -989,6 +1018,15 @@ alert(e.message);
 async function deletePost(id) {
 const yes = confirm(`Supprimer ${postLabel(id)} ?`);
 if (!yes) return;
+const testPost = findTestPost(id);
+if (testPost) {
+testPosts.splice(testPosts.indexOf(testPost), 1);
+managementTestIds.splice(managementTestIds.indexOf(id), 1);
+testPendingPosts.push({chipId:testPost.chipId,ip:testPost.ip});
+setMessage('managedMessage', 'Poste de test déplacé vers les postes disponibles.');
+load();
+return;
+}
 try {
 await api('/post/delete', {
 method:'POST',
@@ -1005,6 +1043,10 @@ alert(e.message);
 }
 }
 async function pingPost(id) {
+if (findTestPost(id)) {
+alert('Ping simulé réussi');
+return;
+}
 try {
 const data = await api('/post/ping', {
 method:'POST',
