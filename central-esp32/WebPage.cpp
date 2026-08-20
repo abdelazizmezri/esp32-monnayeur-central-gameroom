@@ -557,13 +557,21 @@ Déconnexion
 <style>
 .managed-post{grid-template-columns:27% 20% 13% 17% 23%;column-gap:0}.managed-main,.managed-fact,.managed-post>.badge{margin-right:24px}.managed-post>.badge{justify-self:start}.managed-actions{justify-content:flex-end;flex-wrap:wrap}@media(max-width:1300px){.managed-post{grid-template-columns:32% 24% 18% 26%}.managed-actions{grid-column:1/-1;margin-top:2px}}@media(max-width:760px){.managed-post{grid-template-columns:1fr 1fr}.managed-main{grid-column:1/-1}.managed-post>.badge{grid-column:2;justify-self:end;margin-right:0}.managed-actions{grid-column:1/-1}.managed-main,.managed-fact{margin-right:16px}}
 </style>
+<style>
+#view-logs .panel{padding:22px;background:radial-gradient(circle at 85% 8%,rgba(38,80,160,.1),transparent 30%),linear-gradient(145deg,#09172b,#050f20)}#view-logs .panel>div:first-child{align-items:flex-start!important;margin-bottom:20px!important}#view-logs .panel>div:first-child h2{font-size:20px}#view-logs .panel>div:first-child h2:after{content:"Suivi en temps réel de l’activité de la Centrale et des postes";display:block;margin-top:7px;color:#8295b3;font-size:11px;font-weight:400}#view-logs .actions .primary{border:1px solid #176ecd;color:#79bfff;background:#071b35;box-shadow:none}#view-logs .actions .danger{color:#ff707b;border-color:#d93448!important;background:#190d19}.logs{height:62vh;min-height:360px;padding:0;overflow:auto;border:1px solid #263d58;border-radius:10px;color:#dbe6f3;background:#030c1b;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px}.log-table-head,.log-row{display:grid;grid-template-columns:110px 160px minmax(0,1fr);align-items:center}.log-table-head{position:sticky;top:0;z-index:2;min-height:46px;padding:0 18px;border-bottom:1px solid #263d58;color:#aab9cc;background:#0b172b;font-size:11px;font-weight:750}.log-row{min-height:50px;padding:8px 18px;border-bottom:1px solid rgba(43,65,90,.42);background:#040e1e}.log-row:nth-child(odd){background:#091528}.log-time{color:#e8eef7;font-family:"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}.log-level{justify-self:start;padding:5px 8px;border:1px solid;border-radius:6px;font-size:9px;font-weight:850}.log-level.info{color:#64b3ff;border-color:#145ca8;background:#082850}.log-level.warn{color:#ffc333;border-color:#8e6106;background:#392707}.log-level.error{color:#ff646d;border-color:#a9212a;background:#3d1218}.log-message{min-width:0;color:#d9e3f0;line-height:1.35;overflow-wrap:anywhere}.log-empty{grid-column:1/-1;padding:40px;text-align:center;color:#71859e}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes";display:block;margin:14px 8px 0;color:#7f91a9;font-size:10px}#view-logs .panel:after{color:#8295b3}#view-logs .panel:after::first-letter{color:var(--cyan)}@media(max-width:680px){#view-logs .panel{padding:15px}.log-table-head,.log-row{grid-template-columns:68px 100px minmax(0,1fr);padding-left:11px;padding-right:11px}.log-table-head{font-size:9px}.log-row{font-size:10px}.log-level{padding:4px 6px;font-size:8px}#view-logs .panel>div:first-child h2:after{max-width:230px}}
+</style>
+<style>.auth-pending .nav,.auth-pending .sidebar-footer{visibility:hidden}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes · mise à jour " attr(data-last-refresh)}</style>
 <script>
+document.body.classList.add('auth-pending');
 const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
 const primaryNavigation = document.querySelector('.nav');
 navigationOrder.forEach(path => {
   const link = primaryNavigation.querySelector(`[data-path="${path}"]`);
   if (link) primaryNavigation.appendChild(link);
 });
+const logActionButtons = document.querySelectorAll('#view-logs .actions button');
+if (logActionButtons[0]) logActionButtons[0].textContent = '↻ Actualiser';
+if (logActionButtons[1]) logActionButtons[1].textContent = 'Vider le journal';
 
 const viewsByPath = {
 '/':'view-home',
@@ -589,26 +597,6 @@ let logsTimer = null;
 let currentRole = 'user';
 let currentUsername = '';
 let postNames = {};
-let testCoinDurationSeconds = 1800;
-const showTestPosts = true;
-const testPosts = [
-{chipId:'test-recovery-1',id:'__test_recovery_1',name:'Poste coupure 1',ip:'192.168.1.201',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:15*60},
-{chipId:'test-recovery-2',id:'__test_recovery_2',name:'Poste coupure 2',ip:'192.168.1.202',status:'recovery_pending',relay:false,remaining:0,recoveryPending:true,recoveryRemaining:7*60+30},
-{chipId:'test-active-1',id:'__test_active_1',name:'Poste actif 1',ip:'192.168.1.203',status:'active',relay:true,remaining:24*60+20,recoveryPending:false,recoveryRemaining:0},
-{chipId:'test-active-2',id:'__test_active_2',name:'Poste actif 2',ip:'192.168.1.204',status:'active',relay:true,remaining:9*60+45,recoveryPending:false,recoveryRemaining:0},
-{chipId:'test-offline-1',id:'__test_offline_1',name:'Poste hors ligne 1',ip:'192.168.1.205',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-{chipId:'test-offline-2',id:'__test_offline_2',name:'Poste hors ligne 2',ip:'192.168.1.206',status:'offline',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-{chipId:'test-idle-1',id:'__test_idle_1',name:'Poste inactif 1',ip:'192.168.1.207',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0},
-{chipId:'test-idle-2',id:'__test_idle_2',name:'Poste inactif 2',ip:'192.168.1.208',status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0}
-];
-const managementTestIds = ['__test_recovery_1','__test_active_1','__test_offline_1','__test_idle_1'];
-const testPendingPosts = [
-{chipId:'test-new-1',ip:'192.168.1.231'},
-{chipId:'test-new-2',ip:'192.168.1.232'}
-];
-function findTestPost(postId) {
-return testPosts.find(post => post.id === postId);
-}
 function applyPermissions(data) {
 currentRole = data.accessRole || 'user';
 currentUsername = data.currentUser?.username || '';
@@ -621,6 +609,7 @@ document.getElementById('currentUserRole').textContent = identity?.role === 'adm
 document.getElementById('currentUserAvatar').textContent = identity
 ? `${identity.firstName?.[0] || identity.username?.[0] || ''}${identity.lastName?.[0] || ''}`.toUpperCase()
 : 'API';
+document.body.classList.remove('auth-pending');
 if (!isAdmin && currentPath !== '/') {
 startPage('/');
 }
@@ -653,6 +642,7 @@ if (currentPath === '/') {
 load();
 refreshTimer = setInterval(load, 3000);
 } else if (currentPath === '/logs') {
+load();
 loadLogs();
 logsTimer = setInterval(loadLogs, 5000);
 } else if (currentPath === '/postes' || currentPath === '/discover') {
@@ -760,8 +750,7 @@ async function load() {
 const data = await api('/posts');
 applyPermissions(data);
 const realPosts = data.posts || [];
-const posts = showTestPosts ? [...realPosts, ...testPosts] : realPosts;
-testCoinDurationSeconds = Number(data.coinDurationSeconds || 1800);
+const posts = realPosts;
 postNames = Object.fromEntries(posts.map(post => [post.id, post.name]));
 const activeCount = posts.filter(p => p.status === 'active').length;
 const offlineCount = posts.filter(p => p.status === 'offline').length;
@@ -800,7 +789,7 @@ document.getElementById('authInfo').innerHTML = `
 <span style="font-size:11px;color:#7087a1;">Header: Authorization: Bearer TON_TOKEN</span>
 `;
 const realPendingPosts = data.pendingPosts || [];
-const pendingPosts = showTestPosts ? [...realPendingPosts, ...testPendingPosts] : realPendingPosts;
+const pendingPosts = realPendingPosts;
 document.getElementById('pendingMessage').textContent = pendingPosts.length
 ? `${pendingPosts.length} poste(s) en attente de configuration.`
 : 'Aucun nouveau poste détecté.';
@@ -863,9 +852,7 @@ ${p.recoveryPending ? `
 `).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
 const managedPostsEl = document.getElementById('managedPosts');
 if (managedPostsEl) {
-const managedPosts = showTestPosts
-? [...realPosts, ...testPosts.filter(p => managementTestIds.includes(p.id))]
-: realPosts;
+const managedPosts = realPosts;
 managedPostsEl.innerHTML = managedPosts.length ? managedPosts.map(p => {
 const locked = p.status === 'active' || Number(p.remaining || 0) > 0 || p.recoveryPending;
 return `
@@ -894,22 +881,6 @@ ${locked ? '<p class="managed-lock">Modification et suppression disponibles lors
 }
 }
 async function assign(postId, coins) {
-const testPost = findTestPost(postId);
-if (testPost) {
-if (testPost.status === 'offline') {
-alert('Ce poste de test est hors ligne.');
-return;
-}
-if (testPost.recoveryPending) {
-alert(friendlyError('recovery pending'));
-return;
-}
-testPost.status = 'active';
-testPost.relay = true;
-testPost.remaining += coins * testCoinDurationSeconds;
-load();
-return;
-}
 try {
 await api('/assign', {
 method:'POST',
@@ -921,16 +892,6 @@ load();
 }
 async function resumeRecovery(postId) {
 if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
-const testPost = findTestPost(postId);
-if (testPost) {
-testPost.status = 'active';
-testPost.relay = true;
-testPost.remaining = testPost.recoveryRemaining;
-testPost.recoveryPending = false;
-testPost.recoveryRemaining = 0;
-load();
-return;
-}
 try {
 await api('/recovery/resume', {
 method:'POST',
@@ -942,16 +903,6 @@ load();
 }
 async function cancelRecovery(postId) {
 if (!confirm(`Annuler définitivement le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
-const testPost = findTestPost(postId);
-if (testPost) {
-testPost.status = 'idle';
-testPost.relay = false;
-testPost.remaining = 0;
-testPost.recoveryPending = false;
-testPost.recoveryRemaining = 0;
-load();
-return;
-}
 try {
 await api('/recovery/cancel', {
 method:'POST',
@@ -971,16 +922,6 @@ loadLogs();
 async function configurePending(chipId) {
 const name = prompt('Nom affiché du poste, ex: Poste 1');
 if (!name) return;
-const testIndex = testPendingPosts.findIndex(post => post.chipId === chipId);
-if (testIndex >= 0) {
-const pending = testPendingPosts.splice(testIndex, 1)[0];
-const id = `__${chipId}`;
-testPosts.push({chipId,id,name:name.trim(),ip:pending.ip,status:'idle',relay:false,remaining:0,recoveryPending:false,recoveryRemaining:0});
-managementTestIds.push(id);
-setMessage('pendingMessage', 'Poste de test configuré avec succès.');
-load();
-return;
-}
 try {
 await api('/poste/configure', {
 method:'POST',
@@ -993,13 +934,6 @@ load();
 }
 async function updatePost(id) {
 const name = document.getElementById(`edit-name-${id}`).value.trim();
-const testPost = findTestPost(id);
-if (testPost) {
-testPost.name = name;
-setMessage('managedMessage', 'Poste de test modifié avec succès.');
-load();
-return;
-}
 try {
 await api('/post/update', {
 method:'POST',
@@ -1018,15 +952,6 @@ alert(e.message);
 async function deletePost(id) {
 const yes = confirm(`Supprimer ${postLabel(id)} ?`);
 if (!yes) return;
-const testPost = findTestPost(id);
-if (testPost) {
-testPosts.splice(testPosts.indexOf(testPost), 1);
-managementTestIds.splice(managementTestIds.indexOf(id), 1);
-testPendingPosts.push({chipId:testPost.chipId,ip:testPost.ip});
-setMessage('managedMessage', 'Poste de test déplacé vers les postes disponibles.');
-load();
-return;
-}
 try {
 await api('/post/delete', {
 method:'POST',
@@ -1043,10 +968,6 @@ alert(e.message);
 }
 }
 async function pingPost(id) {
-if (findTestPost(id)) {
-alert('Ping simulé réussi');
-return;
-}
 try {
 const data = await api('/post/ping', {
 method:'POST',
@@ -1074,18 +995,6 @@ load();
 async function stopPost(postId) {
 const yes = confirm(`Arrêter la session de ${postLabel(postId)} ?\nLe temps restant sera définitivement perdu.`);
 if (!yes) return;
-const testPost = findTestPost(postId);
-if (testPost) {
-if (testPost.status === 'offline') {
-alert('Ce poste de test est hors ligne.');
-return;
-}
-testPost.status = 'idle';
-testPost.relay = false;
-testPost.remaining = 0;
-load();
-return;
-}
 try {
 await api('/stop', {
 method:'POST',
@@ -1244,18 +1153,36 @@ setMessage('importExportMessage', 'Configuration importée avec succès.');
 load();
 } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
 }
+function formatLogTime(milliseconds) {
+const total = Math.floor(Number(milliseconds || 0) / 1000);
+const hours = Math.floor(total / 3600);
+const minutes = Math.floor((total % 3600) / 60);
+const seconds = total % 60;
+return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+}
+function logLevelLabel(level) {
+return ({INFO:'INFO',WARN:'AVERTISSEMENT',ERROR:'ERREUR'})[level] || level;
+}
 async function loadLogs() {
+const refreshButton = logActionButtons[0];
+if (refreshButton) { refreshButton.disabled = true; refreshButton.textContent = 'Actualisation…'; }
 try {
 const data = await api('/logs/data');
-const html = (data.logs || []).map(log =>
-`<div class="log-item">[${esc(log.level)}] t=${esc(log.ts)} - ${esc(log.message)}</div>`
-).join('');
-document.getElementById('logs').innerHTML = html || 'Aucun log.';
+const rows = (data.logs || []).slice().reverse().map(log => {
+const level = String(log.level || 'INFO').toUpperCase();
+const levelClass = ['INFO','WARN','ERROR'].includes(level) ? level.toLowerCase() : 'info';
+return `<div class="log-row"><time class="log-time">${formatLogTime(log.ts)}</time><span class="log-level ${levelClass}">${esc(logLevelLabel(level))}</span><span class="log-message">${esc(log.message)}</span></div>`;
+}).join('');
+document.getElementById('logs').innerHTML = `<div class="log-table-head"><span>Heure</span><span>Niveau</span><span>Événement</span></div>${rows || '<div class="log-empty">Aucun événement enregistré.</div>'}`;
+document.querySelector('#view-logs .panel').dataset.lastRefresh = new Date().toLocaleTimeString('fr-FR', { hour12:false });
 } catch(e) {
 if (e.message !== 'unauthorized') document.getElementById('logs').textContent = e.message;
+} finally {
+if (refreshButton) { refreshButton.disabled = false; refreshButton.textContent = '↻ Actualiser'; }
 }
 }
 async function clearLogs() {
+if (!confirm('Vider définitivement tout le journal ?')) return;
 await api('/logs/clear', { method:'POST' });
 loadLogs();
 }
