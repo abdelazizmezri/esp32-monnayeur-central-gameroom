@@ -292,8 +292,14 @@ flash :
 |---|---|---|
 | Board | ESP32 Dev Module | ESP32 Dev Module |
 | Flash Size | 4MB | 4MB |
+| Partition Scheme | Default 4MB with spiffs | Default 4MB with spiffs |
 | Upload Speed | 460800, ou 115200 en cas d'échec | 460800, ou 115200 en cas d'échec |
 | Port | Port USB de la centrale | Port USB du poste concerné |
+
+Le projet utilise uniquement le partitionnement standard fourni avec la carte.
+Aucun fichier de partitions personnalisé n'est nécessaire. Les images intégrées
+au firmware sont allégées afin que la centrale reste compatible avec la
+partition d'application standard.
 
 ### 6. Préparer la configuration du projet
 
@@ -313,7 +319,7 @@ saisis plus tard dans les portails de configuration du central et des postes.
 ### 7. Compiler et téléverser la centrale
 
 1. Ouvrir [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
-2. Vérifier de nouveau la carte et le port USB.
+2. Vérifier de nouveau la carte, le port et le schéma de partitions par défaut.
 3. Cliquer sur **Verify** pour compiler.
 4. Cliquer sur **Upload** pour téléverser le firmware.
 5. Si Arduino reste sur `Connecting...`, maintenir le bouton **BOOT** de
@@ -328,7 +334,8 @@ La centrale démarre soit sur le réseau enregistré, soit avec le point d'accè
 
 1. Ouvrir [`poste-esp32/poste-esp32.ino`](poste-esp32/poste-esp32.ino) dans une
    autre fenêtre Arduino IDE.
-2. Sélectionner l'ESP32 du poste et son port USB.
+2. Sélectionner l'ESP32 du poste, son port USB et le schéma de partitions par
+   défaut.
 3. Cliquer sur **Verify**, puis **Upload**.
 4. Ouvrir le moniteur série à **115200 baud**.
 5. Répéter l'opération sur chaque poste. Tous utilisent le même firmware et le

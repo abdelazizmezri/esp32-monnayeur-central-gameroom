@@ -15,6 +15,14 @@ static WebServer* gServer = nullptr;
 static AppState* gState = nullptr;
 static const char* AUTH_HEADERS[] = {"Authorization", "Cookie"};
 
+static void sendHtmlPage(const char* page) {
+  // Les pages embarquées sont trop grandes pour être copiées dans un String.
+  // send_P les transmet directement depuis la mémoire flash, par petits blocs.
+  gServer->send_P(200,
+                  PSTR("text/html; charset=utf-8"),
+                  reinterpret_cast<PGM_P>(page));
+}
+
 static void sendJsonError(int code, const String& message) {
   DynamicJsonDocument doc(256);
   doc["error"] = message;
@@ -54,7 +62,7 @@ static void handleAppPage() {
     return;
   }
 
-  gServer->send(200, "text/html", WebPage::dashboardPage());
+  sendHtmlPage(WebPage::dashboardPage());
 }
 
 static void handleAdminPage() {
@@ -70,12 +78,12 @@ static void handleAdminPage() {
     return;
   }
 
-  gServer->send(200, "text/html", WebPage::dashboardPage());
+  sendHtmlPage(WebPage::dashboardPage());
 }
 
 static void handleLoginPage() {
   gServer->sendHeader("Cache-Control", "no-store");
-  gServer->send(200, "text/html", WebPage::loginPage());
+  sendHtmlPage(WebPage::loginPage());
 }
 
 static void handleLoginStationAsset() {

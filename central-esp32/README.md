@@ -292,9 +292,10 @@ Le projet a été vérifié avec le cœur ESP32 3.3.11 et la cible
 1. Ouvrir `central-esp32.ino`.
 2. Installer ArduinoJson depuis le gestionnaire de bibliothèques.
 3. Sélectionner une carte compatible, par exemple **ESP32 Dev Module**.
-4. Sélectionner le port série de la carte.
-5. Cliquer sur **Vérifier**, puis **Téléverser**.
-6. Ouvrir le moniteur série à 115200 bauds.
+4. Conserver le schéma de partitions **Default 4MB with spiffs**.
+5. Sélectionner le port série de la carte.
+6. Cliquer sur **Vérifier**, puis **Téléverser**.
+7. Ouvrir le moniteur série à 115200 bauds.
 
 ### Avec arduino-cli
 
@@ -571,7 +572,8 @@ déploiement.
 
 ## Limites connues
 
-- l’espace programme disponible reste limité lorsque les assets UI sont intégrés au firmware ;
+- le firmware occupe presque toute la partition programme standard ; les assets
+  UI intégrés doivent donc rester dans leurs versions allégées ;
 - les communications HTTP ne sont pas chiffrées ;
 - les logs sont perdus au redémarrage ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut
