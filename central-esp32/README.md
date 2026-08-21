@@ -265,6 +265,12 @@ rétrogradation du dernier administrateur.
 - `/login` : connexion ;
 - déconnexion depuis la barre supérieure.
 
+Le tableau de bord propose **Masquer les cartes** / **Afficher les cartes** pour
+replier ensemble les cinq indicateurs situés au-dessus de la liste des postes.
+La préférence est conservée dans le navigateur, y compris après une
+actualisation ou une reconnexion, tandis que les valeurs continuent d'être
+actualisées en arrière-plan.
+
 ### Pages réservées aux administrateurs
 
 - `/config` : durée d'un coin, impulsions par coin, solde et sauvegarde/restauration complète ;
@@ -401,6 +407,7 @@ sauvegarde complète. Le fichier contient :
 - tous les utilisateurs, leurs rôles et leurs identifiants chiffrés ;
 - tous les postes configurés ;
 - le réseau Wi-Fi enregistré et la configuration IP.
+- la préférence d'affichage des cartes d'indicateurs (`ui.statsHidden`).
 
 Pour restaurer ces données, sélectionner le fichier JSON puis cliquer sur
 **Restaurer la sauvegarde**. Les données persistantes courantes sont remplacées
@@ -408,7 +415,9 @@ et toutes les sessions web sont fermées. Il faut ensuite se reconnecter avec un
 compte contenu dans la sauvegarde. Les sessions de jeu en cours, les postes
 simplement découverts et le journal en RAM ne sont pas rejoués.
 Les réglages Wi-Fi restaurés sont appliqués au prochain redémarrage de la
-Centrale.
+Centrale. La préférence d'affichage est appliquée immédiatement au navigateur
+qui effectue la restauration. Une sauvegarde plus ancienne, sans bloc `ui`,
+reste compatible et conserve la préférence actuelle du navigateur.
 
 > Le fichier contient le token API, les identifiants Wi-Fi et les hashes des
 > mots de passe. Ne pas le partager et le stocker dans un emplacement protégé.

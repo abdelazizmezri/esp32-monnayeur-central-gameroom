@@ -188,15 +188,21 @@ La centrale fournit une interface web responsive sur son IP et sur
 | Modifier la configuration et le Wi-Fi | Oui | Non |
 | Gérer les comptes, les logs et le token API | Oui | Non |
 
+Dans **Vue des postes**, le bouton **Masquer les cartes** / **Afficher les cartes**
+permet de replier collectivement les cinq indicateurs supérieurs (coins, durée,
+postes actifs, postes hors ligne et reprises). Le choix est mémorisé dans le
+navigateur et ne suspend pas l'actualisation des données masquées.
+
 Au premier démarrage, le compte est `admin` avec le mot de passe `12345678`.
 Il doit être modifié immédiatement. Les mots de passe sont salés et hachés en
 SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
 La page **Configuration** permet aussi d'exporter et de restaurer une sauvegarde
 JSON complète : paramètres de coins, solde, token API, utilisateurs avec leurs
-identifiants chiffrés, postes configurés et réglages Wi-Fi/IP. Une restauration
-ferme les sessions web et demande une nouvelle connexion. Le fichier contient
-des données sensibles et doit être protégé.
+identifiants chiffrés, postes configurés, réglages Wi-Fi/IP et préférence
+d'affichage des cartes d'indicateurs. Une restauration ferme les sessions web,
+applique cette préférence dans le navigateur courant et demande une nouvelle
+connexion. Le fichier contient des données sensibles et doit être protégé.
 
 ## Matériel et câblage
 
