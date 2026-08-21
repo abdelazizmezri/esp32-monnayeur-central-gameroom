@@ -133,9 +133,9 @@ static bool applyNetworkConfig(const NetworkConfig& config) {
 static String buildAccessPointSsid() {
   uint64_t mac = ESP.getEfuseMac();
   char chipId[13];
-  snprintf(chipId, sizeof(chipId), "%04X%08X",
-           (uint16_t)(mac >> 32),
-           (uint32_t)mac);
+  snprintf(chipId, sizeof(chipId), "%04X%08lX",
+           (unsigned int)(mac >> 32),
+           (unsigned long)(uint32_t)mac);
   return String(AppConfig::AP_SSID_PREFIX) + "-" + chipId;
 }
 
@@ -284,21 +284,6 @@ namespace WifiProvisioning {
     }
 
     return tryConnectToWifi(ssid, password, localIp, false, networkConfig);
-  }
-
-  bool saveAndConnect(const String& ssid, const String& password, String& localIp) {
-    NetworkConfig networkConfig;
-
-    if (!tryConnectToWifi(ssid, password, localIp, provisioningMode, networkConfig)) {
-      return false;
-    }
-
-    prefs.begin("wifi", false);
-    prefs.putString("ssid", ssid);
-    prefs.putString("password", password);
-    saveNetworkConfig(networkConfig);
-    prefs.end();
-    return true;
   }
 
   void clearCredentials() {
