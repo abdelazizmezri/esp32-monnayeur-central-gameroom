@@ -4,7 +4,7 @@
 namespace LogService {
   static const size_t MAX_LOGS = 100;
 
-  void add(AppState& state, const String& level, const String& message) {
+  static void add(AppState& state, const String& level, const String& message) {
     EventLogEntry entry;
     entry.ts = millis();
     entry.level = level;
