@@ -6,7 +6,6 @@ namespace PostService {
   void begin(AppState& state);
 
   Post* findById(AppState& state, const String& id);
-  PendingPost* findPendingByChipId(AppState& state, const String& chipId);
 
   bool upsertDiscoveredPost(AppState& state, const Post& discovered, bool& added, String& error);
   bool handleAnnouncement(AppState& state, const String& chipId, const String& ip,
