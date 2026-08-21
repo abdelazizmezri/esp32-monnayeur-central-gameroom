@@ -55,10 +55,9 @@ flowchart LR
     Central --> NVS[(Mémoire NVS)]
 ```
 
-La centrale est le point de décision du système. Les postes doivent exécuter un
-firmware compatible fournissant les endpoints `/status`, `/command`,
-`/configure` et `/identity/clear`. Ce firmware de poste n'est pas inclus dans ce
-dossier.
+La centrale est le point de décision du système. Les postes doivent exécuter le
+firmware compatible du dossier voisin `../poste-esp32`, qui fournit les
+endpoints `/status`, `/command`, `/configure` et `/identity/clear`.
 
 ### Composants internes
 
@@ -99,7 +98,7 @@ Si aucun Wi-Fi valide n'est enregistré, la centrale crée ce point d'accès :
 | Paramètre | Valeur par défaut |
 |---|---|
 | SSID | `GAMEROOM-CENTRAL-<chipId>` |
-| Mot de passe | `12345678` |
+| Mot de passe | Aucun (réseau ouvert par défaut) |
 | Adresse du portail | `http://192.168.4.1` |
 
 Le portail scanne les réseaux disponibles et propose deux modes d'adressage :
@@ -535,14 +534,17 @@ réannonce après le redémarrage de la centrale.
 | `WebRoutes.cpp` | API HTTP, contrôles d'accès et réponses JSON. |
 | `WebPage.h` | Déclaration des pages HTML embarquées. |
 | `WebPage.cpp` | HTML, CSS et JavaScript de la connexion et du tableau de bord. |
-| `.DS_Store` | Métadonnées macOS sans rôle dans le firmware. |
+| `WebAssets.h` / `WebAssets.cpp` | Expose les images optimisées intégrées au firmware. |
+| `*Asset.inc` | Données binaires `PROGMEM` générées depuis les assets optimisés. |
+| `ui-assets/` | Sources graphiques maîtres et variantes allégées documentées. |
 
 ## Sécurité
 
 Avant une utilisation réelle :
 
-1. changer immédiatement le mot de passe `12345678` ;
-2. modifier `AP_PASSWORD` dans `AppConfig.h` ;
+1. changer immédiatement le mot de passe administrateur `12345678` ;
+2. définir `AP_PASSWORD` dans `AppConfig.h` si le portail Wi-Fi doit être
+   protégé ;
 3. remplacer `POSTE_COMMAND_TOKEN` sur la centrale et tous les postes ;
 4. régénérer le token API depuis l'interface ;
 5. utiliser un réseau local isolé et protégé ;
@@ -601,7 +603,8 @@ déploiement.
   sessions de jeu actives et postes découverts non configurés ;
 - les postes sont interrogés un par un : avec `N` postes, un cycle complet prend environ `N x 5` secondes ;
 - la liste des postes est réécrite en NVS lors de certaines annonces, ce qui peut augmenter l'usure de la flash si les annonces sont très fréquentes ;
-- le firmware compatible des postes doit être fourni séparément.
+- le firmware compatible des postes se trouve dans le dossier voisin
+  `../poste-esp32`.
 
 ## Valeurs configurables dans le code
 
