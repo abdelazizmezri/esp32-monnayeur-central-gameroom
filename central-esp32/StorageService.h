@@ -3,8 +3,6 @@
 #include "AppState.h"
 
 namespace StorageService {
-  void begin();
-
   void load(AppState& state);
 
   void saveConfig(const AppState& state);
