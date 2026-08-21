@@ -1,7 +1,7 @@
-# Poste ESP32 - Monnayeur Game Room
+# Poste — PS TIME MANAGER
 
-Firmware d'un poste de jeu piloté par la centrale du système **Monnayeur Game
-Room**. Chaque ESP32 de poste se connecte au réseau local, se fait découvrir par
+Firmware d'un poste de jeu piloté par la centrale **PS TIME MANAGER**. Chaque
+module de poste se connecte au réseau local, se fait découvrir par
 la centrale, reçoit des commandes de session par HTTP et active un relais pendant
 le temps de jeu attribué.
 
@@ -466,7 +466,6 @@ décision de reprise de la centrale au lieu de revenir directement à `idle`.
 | `PosteWebServer.cpp` | Implémente `/status`, `/configure`, `/identity/clear`, `/command`, les réponses JSON et la validation du token Bearer. |
 | `WiFiConfigService.h` | Déclare l'initialisation et le suivi de la connexion Wi-Fi. |
 | `WiFiConfigService.cpp` | Charge et sauvegarde les identifiants Wi-Fi, tente la connexion, crée le point d'accès, sert le portail captif et traite son DNS. |
-| `.DS_Store` | Métadonnées créées par macOS ; aucun rôle dans le firmware et peut être ignoré par Git. |
 
 Les fichiers `.h` exposent les interfaces et structures ; les fichiers `.cpp`
 contiennent leur implémentation. Cette séparation permet au fichier `.ino` de
