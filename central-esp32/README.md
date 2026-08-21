@@ -117,7 +117,7 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-![Câblage du monnayeur JY-133B sur le GPIO 13 de l'ESP32](docs/images/cablage-jy-133b-esp32-gpio13.png)
+![Câblage du monnayeur JY-133B sur le GPIO 13 de l'ESP32](docs/images/cablage-jy-133b-esp32-gpio13.webp)
 
 Le fil de signal du monnayeur est relié au GPIO 13 configuré en `INPUT`.
 La masse du monnayeur et celle de l'ESP32 doivent être communes. Le firmware ne

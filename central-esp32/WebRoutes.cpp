@@ -89,9 +89,9 @@ static void handleLoginPage() {
 static void handleLoginStationAsset() {
   gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
   gServer->send_P(200,
-                  "image/jpeg",
-                  reinterpret_cast<PGM_P>(WebAssets::LOGIN_STATION_JPG),
-                  WebAssets::LOGIN_STATION_JPG_LENGTH);
+                  "image/webp",
+                  reinterpret_cast<PGM_P>(WebAssets::LOGIN_STATION_WEBP),
+                  WebAssets::LOGIN_STATION_WEBP_LENGTH);
 }
 
 static void handleGameRoomLogoAsset() {
@@ -105,9 +105,9 @@ static void handleGameRoomLogoAsset() {
 static void handlePlayStationMarkAsset() {
   gServer->sendHeader("Cache-Control", "public, max-age=31536000, immutable");
   gServer->send_P(200,
-                  "image/png",
-                  reinterpret_cast<PGM_P>(WebAssets::PLAYSTATION_MARK_PNG),
-                  WebAssets::PLAYSTATION_MARK_PNG_LENGTH);
+                  "image/webp",
+                  reinterpret_cast<PGM_P>(WebAssets::PLAYSTATION_MARK_WEBP),
+                  WebAssets::PLAYSTATION_MARK_WEBP_LENGTH);
 }
 
 static void handleLogin() {
@@ -678,9 +678,9 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/security", HTTP_GET, handleAdminPage);
   server.on("/users", HTTP_GET, handleAdminPage);
   server.on("/login", HTTP_GET, handleLoginPage);
-  server.on("/assets/login-station-v2.jpg", HTTP_GET, handleLoginStationAsset);
+  server.on("/assets/login-station-v3.webp", HTTP_GET, handleLoginStationAsset);
   server.on("/assets/game-room-logo-v4.webp", HTTP_GET, handleGameRoomLogoAsset);
-  server.on("/assets/playstation-mark.png", HTTP_GET, handlePlayStationMarkAsset);
+  server.on("/assets/playstation-mark.webp", HTTP_GET, handlePlayStationMarkAsset);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
 
