@@ -12,8 +12,44 @@ static volatile int gCoinCurrentLevel = HIGH;
 static volatile unsigned long gCoinLevelStartedAt = 0;
 static volatile unsigned long gLastAcceptedPulseAt = 0;
 
-void IRAM_ATTR coinInterruptHandler() {
-  CoinService::onInterrupt();
+static void IRAM_ATTR coinInterruptHandler() {
+  if (!gCoinState) {
+    return;
+  }
+
+  unsigned long now = millis();
+  int newLevel = digitalRead(AppConfig::COIN_PIN);
+
+  if (newLevel == gCoinCurrentLevel) {
+    return;
+  }
+
+  int previousLevel = gCoinCurrentLevel;
+  unsigned long levelDuration = now - gCoinLevelStartedAt;
+  gCoinCurrentLevel = newLevel;
+  gCoinLevelStartedAt = now;
+
+  // Le niveau qui reste présent plus longtemps qu'une impulsion est le niveau
+  // de repos. Cela permet de prendre en charge automatiquement les sorties
+  // normalement ouvertes (impulsion LOW) et normalement fermées (impulsion HIGH).
+  if (levelDuration > AppConfig::COIN_MAX_PULSE_MS) {
+    gCoinIdleLevel = previousLevel;
+    return;
+  }
+
+  if (previousLevel == gCoinIdleLevel ||
+      levelDuration < AppConfig::COIN_MIN_PULSE_MS) {
+    return;
+  }
+
+  if (gHasAcceptedPulse &&
+      now - gLastAcceptedPulseAt < AppConfig::COIN_DEBOUNCE_MS) {
+    return;
+  }
+
+  gCoinState->pulseCount = gCoinState->pulseCount + 1;
+  gLastAcceptedPulseAt = now;
+  gHasAcceptedPulse = true;
 }
 
 namespace CoinService {
@@ -28,47 +64,6 @@ namespace CoinService {
     gCoinIdleLevel = gCoinCurrentLevel;
     gCoinLevelStartedAt = millis();
     attachInterrupt(digitalPinToInterrupt(AppConfig::COIN_PIN), coinInterruptHandler, CHANGE);
-  }
-
-  void IRAM_ATTR onInterrupt() {
-    if (!gCoinState) {
-      return;
-    }
-
-    unsigned long now = millis();
-    int newLevel = digitalRead(AppConfig::COIN_PIN);
-
-    if (newLevel == gCoinCurrentLevel) {
-      return;
-    }
-
-    int previousLevel = gCoinCurrentLevel;
-    unsigned long levelDuration = now - gCoinLevelStartedAt;
-    gCoinCurrentLevel = newLevel;
-    gCoinLevelStartedAt = now;
-
-    // Le niveau qui reste présent plus longtemps qu'une impulsion est le niveau
-    // de repos. Cela permet de prendre en charge automatiquement les sorties
-    // normalement ouvertes (impulsion LOW) et normalement fermées (impulsion HIGH).
-    if (levelDuration > AppConfig::COIN_MAX_PULSE_MS) {
-      gCoinIdleLevel = previousLevel;
-      return;
-    }
-
-    if (previousLevel == gCoinIdleLevel ||
-        levelDuration < AppConfig::COIN_MIN_PULSE_MS) {
-      return;
-    }
-
-    if (gHasAcceptedPulse &&
-        now - gLastAcceptedPulseAt < AppConfig::COIN_DEBOUNCE_MS) {
-      return;
-    }
-
-    gCoinState->pulseCount++;
-    gCoinState->lastInterruptTime = now;
-    gLastAcceptedPulseAt = now;
-    gHasAcceptedPulse = true;
   }
 
   void update(AppState& state) {
