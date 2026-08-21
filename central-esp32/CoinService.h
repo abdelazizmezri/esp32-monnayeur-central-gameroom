@@ -5,5 +5,4 @@
 namespace CoinService {
   void begin(AppState& state);
   void update(AppState& state);
-  void IRAM_ATTR onInterrupt();
 }
