@@ -51,7 +51,29 @@ namespace StorageService {
     }
   }
 
-  static void loadPostsFromArray(AppState& state, JsonArray arr) {
+  static void buildUsersArray(JsonArray arr, const AppState& state) {
+    for (const auto& user : state.users) {
+      JsonObject obj = arr.createNestedObject();
+      obj["username"] = user.username;
+      obj["firstName"] = user.firstName;
+      obj["lastName"] = user.lastName;
+      obj["role"] = user.role;
+      obj["passwordSalt"] = user.passwordSalt;
+      obj["passwordHash"] = user.passwordHash;
+    }
+  }
+
+  static bool validUsername(const String& username) {
+    if (username.length() < 3 || username.length() > 32) return false;
+    for (size_t i = 0; i < username.length(); i++) {
+      char c = username.charAt(i);
+      if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+            c == '.' || c == '_' || c == '-')) return false;
+    }
+    return true;
+  }
+
+  static bool loadPostsFromArray(AppState& state, JsonArray arr) {
     state.posts.clear();
 
     for (JsonObject obj : arr) {
@@ -65,31 +87,35 @@ namespace StorageService {
       p.remaining = 0;
       p.lastSeen = 0;
 
-      if (!p.id.isEmpty() && !p.ip.isEmpty()) {
-        state.posts.push_back(p);
+      bool duplicate = false;
+      for (const auto& existing : state.posts) {
+        if (existing.id == p.id || existing.ip == p.ip ||
+            (!p.chipId.isEmpty() && existing.chipId == p.chipId)) {
+          duplicate = true;
+          break;
+        }
       }
+
+      if (duplicate || p.id.isEmpty() || p.name.isEmpty() || p.ip.isEmpty()) return false;
+      state.posts.push_back(p);
     }
+    return true;
   }
 
-  static void loadUsersFromJson(AppState& state, const String& usersJson) {
+  static bool loadUsersFromArray(AppState& state, JsonArray arr) {
     state.users.clear();
-    if (usersJson.isEmpty()) {
-      return;
-    }
+    if (arr.size() == 0 || arr.size() > 10) return false;
+    bool hasAdmin = false;
 
-    DynamicJsonDocument doc(8192);
-    DeserializationError err = deserializeJson(doc, usersJson);
-    if (err || !doc["users"].is<JsonArray>()) {
-      return;
-    }
-
-    for (JsonObject obj : doc["users"].as<JsonArray>()) {
+    for (JsonObject obj : arr) {
       UserAccount user;
       user.username = obj["username"] | "";
       user.username.trim();
       user.username.toLowerCase();
       user.firstName = obj["firstName"] | "";
+      user.firstName.trim();
       user.lastName = obj["lastName"] | "";
+      user.lastName.trim();
       user.role = obj["role"] | "user";
       user.passwordSalt = obj["passwordSalt"] | "";
       user.passwordHash = obj["passwordHash"] | "";
@@ -102,13 +128,24 @@ namespace StorageService {
         }
       }
 
-      if (!duplicate && !user.username.isEmpty() && !user.firstName.isEmpty() &&
-          !user.lastName.isEmpty() &&
-          (user.role == "admin" || user.role == "user") &&
-          !user.passwordSalt.isEmpty() && user.passwordHash.length() == 64) {
-        state.users.push_back(user);
-      }
+      if (duplicate || !validUsername(user.username) || user.firstName.isEmpty() ||
+          user.lastName.isEmpty() || user.firstName.length() > 64 ||
+          user.lastName.length() > 64 ||
+          (user.role != "admin" && user.role != "user") ||
+          user.passwordSalt.isEmpty() || user.passwordHash.length() != 64) return false;
+
+      state.users.push_back(user);
+      hasAdmin |= user.role == "admin";
     }
+    return hasAdmin;
+  }
+
+  static void loadUsersFromJson(AppState& state, const String& usersJson) {
+    if (usersJson.isEmpty()) return;
+    DynamicJsonDocument doc(8192);
+    DeserializationError err = deserializeJson(doc, usersJson);
+    if (err || !doc["users"].is<JsonArray>() ||
+        !loadUsersFromArray(state, doc["users"].as<JsonArray>())) state.users.clear();
   }
 
   void load(AppState& state) {
@@ -191,16 +228,7 @@ namespace StorageService {
   void saveUsers(const AppState& state) {
     DynamicJsonDocument doc(8192);
     JsonArray users = doc.createNestedArray("users");
-
-    for (const auto& user : state.users) {
-      JsonObject obj = users.createNestedObject();
-      obj["username"] = user.username;
-      obj["firstName"] = user.firstName;
-      obj["lastName"] = user.lastName;
-      obj["role"] = user.role;
-      obj["passwordSalt"] = user.passwordSalt;
-      obj["passwordHash"] = user.passwordHash;
-    }
+    buildUsersArray(users, state);
 
     String json;
     serializeJson(doc, json);
@@ -214,65 +242,93 @@ namespace StorageService {
   }
 
   bool exportConfigJson(const AppState& state, String& outputJson) {
-    DynamicJsonDocument doc(6144);
+    DynamicJsonDocument doc(24576);
 
+    doc["format"] = "pstm-backup";
+    doc["version"] = 1;
     doc["coinDurationSeconds"] = state.coinDurationSeconds;
     doc["pulsesPerCoin"] = state.pulsesPerCoin;
     doc["availableCoins"] = state.availableCoins;
     doc["apiToken"] = state.apiToken;
+    buildUsersArray(doc.createNestedArray("users"), state);
+    buildPostsArray(doc.createNestedArray("posts"), state);
+
+    prefs.begin("wifi", true);
+    JsonObject wifi = doc.createNestedObject("wifi");
+    wifi["ssid"] = prefs.getString("ssid", "");
+    wifi["password"] = prefs.getString("password", "");
+    wifi["staticIp"] = prefs.getBool("staticIp", false);
+    wifi["localIp"] = prefs.getString("localIp", "");
+    wifi["gateway"] = prefs.getString("gateway", "");
+    wifi["subnet"] = prefs.getString("subnet", "");
+    wifi["dns1"] = prefs.getString("dns1", "");
+    wifi["dns2"] = prefs.getString("dns2", "");
+    prefs.end();
 
     outputJson = "";
-    serializeJsonPretty(doc, outputJson);
+    serializeJson(doc, outputJson);
     return true;
   }
 
   bool importConfigJson(AppState& state, const String& inputJson, String& error) {
-    DynamicJsonDocument doc(6144);
+    DynamicJsonDocument doc(24576);
     DeserializationError err = deserializeJson(doc, inputJson);
-    if (err) {
+    if (err || !doc.is<JsonObject>()) {
       error = "invalid json";
       return false;
     }
 
-    if (!doc["coinDurationSeconds"].isNull()) {
-      int value = doc["coinDurationSeconds"].as<int>();
-      if (value <= 0) {
-        error = "invalid coinDurationSeconds";
-        return false;
-      }
-      state.coinDurationSeconds = value;
+    if (String(doc["format"] | "") != "pstm-backup" || (doc["version"] | 0) != 1 ||
+        !doc["users"].is<JsonArray>() || !doc["posts"].is<JsonArray>()) {
+      error = "invalid backup";
+      return false;
     }
 
-    if (!doc["pulsesPerCoin"].isNull()) {
-      int value = doc["pulsesPerCoin"].as<int>();
-      if (value <= 0) {
-        error = "invalid pulsesPerCoin";
-        return false;
-      }
-      state.pulsesPerCoin = value;
+    AppState restored;
+    restored.coinDurationSeconds = doc["coinDurationSeconds"] | 0;
+    restored.pulsesPerCoin = doc["pulsesPerCoin"] | 0;
+    restored.availableCoins = doc["availableCoins"] | -1;
+    restored.apiToken = doc["apiToken"] | "";
+    if (restored.coinDurationSeconds <= 0 || restored.pulsesPerCoin <= 0 ||
+        restored.availableCoins < 0 || restored.apiToken.length() < 8) {
+      error = "invalid settings";
+      return false;
     }
 
-    if (!doc["availableCoins"].isNull()) {
-      int value = doc["availableCoins"].as<int>();
-      if (value < 0) {
-        error = "invalid availableCoins";
-        return false;
-      }
-      state.availableCoins = value;
+    if (!loadUsersFromArray(restored, doc["users"].as<JsonArray>())) {
+      error = "invalid users";
+      return false;
+    }
+    if (!loadPostsFromArray(restored, doc["posts"].as<JsonArray>())) {
+      error = "invalid posts";
+      return false;
     }
 
-    if (!doc["apiToken"].isNull()) {
-      String value = doc["apiToken"].as<String>();
-      if (value.length() < 8) {
-        error = "invalid apiToken";
-        return false;
-      }
-      state.apiToken = value;
-    }
+    state.coinDurationSeconds = restored.coinDurationSeconds;
+    state.pulsesPerCoin = restored.pulsesPerCoin;
+    state.availableCoins = restored.availableCoins;
+    state.apiToken = restored.apiToken;
+    state.users.swap(restored.users);
+    state.posts.swap(restored.posts);
+    state.pendingPosts.clear();
+    state.sessions.clear();
 
     saveConfig(state);
     saveCredits(state);
     saveAuth(state);
+    saveUsers(state);
+    savePosts(state);
+
+    if (doc["wifi"].is<JsonObject>()) {
+      JsonObject wifi = doc["wifi"].as<JsonObject>();
+      prefs.begin("wifi", false);
+      prefs.putString("ssid", wifi["ssid"] | "");
+      prefs.putString("password", wifi["password"] | "");
+      prefs.putBool("staticIp", wifi["staticIp"] | false);
+      const char* keys[] = {"localIp", "gateway", "subnet", "dns1", "dns2"};
+      for (const char* key : keys) prefs.putString(key, wifi[key] | "");
+      prefs.end();
+    }
     return true;
   }
 }

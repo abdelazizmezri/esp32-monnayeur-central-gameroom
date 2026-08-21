@@ -191,6 +191,12 @@ Au premier démarrage, le compte est `admin` avec le mot de passe `admin1234`.
 Il doit être modifié immédiatement. Les mots de passe sont salés et hachés en
 SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
+La page **Configuration** permet aussi d'exporter et de restaurer une sauvegarde
+JSON complète : paramètres de coins, solde, token API, utilisateurs avec leurs
+identifiants chiffrés, postes configurés et réglages Wi-Fi/IP. Une restauration
+ferme les sessions web et demande une nouvelle connexion. Le fichier contient
+des données sensibles et doit être protégé.
+
 ## Matériel et câblage
 
 Matériel minimal :
@@ -421,8 +427,8 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/PostService.cpp` | Gère découverte, configuration, crédits, arrêt, reprise après coupure, suppression et état hors ligne. |
 | `central-esp32/PosteClient.h` | Déclare le client HTTP utilisé pour joindre un poste. |
 | `central-esp32/PosteClient.cpp` | Envoie les commandes et configurations au poste, et décode la réponse de `/status`. |
-| `central-esp32/StorageService.h` | Déclare la persistance et l'import/export de configuration. |
-| `central-esp32/StorageService.cpp` | Lit et écrit les namespaces NVS avec `Preferences` et sérialise les données en JSON. |
+| `central-esp32/StorageService.h` | Déclare la persistance et la sauvegarde/restauration complète. |
+| `central-esp32/StorageService.cpp` | Lit et écrit les namespaces NVS et sérialise les données persistantes en JSON. |
 | `central-esp32/WifiService.h` | Déclare la connexion normale au réseau et le démarrage mDNS. |
 | `central-esp32/WifiService.cpp` | Utilise le Wi-Fi enregistré et publie le service HTTP `pstm.local`. |
 | `central-esp32/WifiProvisioning.h` | Déclare le mode de configuration Wi-Fi. |

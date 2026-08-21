@@ -431,37 +431,28 @@ static void handleExportConfig() {
 
   String configJson;
   StorageService::exportConfigJson(*gState, configJson);
-
-  DynamicJsonDocument doc(8192);
-  doc["ok"] = true;
-  doc["configJson"] = configJson;
-
-  String json;
-  serializeJson(doc, json);
-  gServer->send(200, "application/json", json);
+  gServer->sendHeader("Cache-Control", "no-store");
+  gServer->send(200, "application/json", configJson);
 }
 
 static void handleImportConfig() {
   if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
-  DynamicJsonDocument doc(8192);
-  if (!parseJsonBody(doc)) return;
-
-  String configJson = doc["configJson"] | "";
-  if (configJson.isEmpty()) {
-    sendJsonError(400, "missing configJson");
+  if (!gServer->hasArg("plain") || gServer->arg("plain").isEmpty()) {
+    sendJsonError(400, "missing backup");
     return;
   }
 
   String error;
-  bool ok = StorageService::importConfigJson(*gState, configJson, error);
+  bool ok = StorageService::importConfigJson(*gState, gServer->arg("plain"), error);
   if (!ok) {
     sendJsonError(400, error);
     return;
   }
 
-  LogService::warn(*gState, "Configuration importée.");
-  gServer->send(200, "application/json", "{\"ok\":true}");
+  LogService::warn(*gState, "Sauvegarde complète restaurée.");
+  gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
+  gServer->send(200, "application/json", "{\"ok\":true,\"reauthenticate\":true}");
 }
 
 static void handleLogs() {

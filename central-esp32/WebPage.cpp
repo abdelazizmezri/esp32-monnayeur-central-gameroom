@@ -658,12 +658,12 @@ configView.innerHTML = `
 <button class="action config-save" type="button" onclick="saveConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h12l2 2v16H5Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg>Enregistrer les modifications</button><div class="message" id="configMessage"></div>
 </section>
 <section class="panel config-backup-panel">
-<div class="panel-heading"><span class="panel-heading-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 13v7h14v-7"/></svg></span><div><h2>Sauvegarde et restauration</h2><p>Exportez ou restaurez la configuration de la Centrale.</p></div></div>
-<div class="backup-row"><strong>Exporter la configuration</strong><button class="action export-file" type="button" onclick="exportConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 17v4h14v-4"/></svg>Exporter JSON</button></div>
-<label class="import-label" for="configFile">Importer une configuration</label><input id="configFile" type="file" accept="application/json,.json" hidden onchange="selectConfigFile(this.files[0])" />
-<div class="file-drop" id="configDropzone" role="button" tabindex="0" onclick="document.getElementById('configFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('configFile').click()}" ondragover="handleConfigDrag(event,true)" ondragleave="handleConfigDrag(event,false)" ondrop="dropConfigFile(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg><p>Déposez ici un fichier JSON de configuration</p><button class="action file-picker" type="button" onclick="event.stopPropagation();document.getElementById('configFile').click()">Choisir un fichier</button><div class="selected-file" id="selectedConfigFile" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 2h9l5 5v15H6Z"/><path d="M14 2v6h6"/></svg><span></span></div></div>
-<div class="config-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 2 21h20Z"/><path d="M12 9v5M12 18h.01"/></svg>L’importation remplacera la configuration actuelle.</div>
-<button class="action config-import" id="importConfigButton" type="button" onclick="importConfig()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg>Importer la configuration</button><div class="message" id="importExportMessage"></div>
+<div class="panel-heading"><span class="panel-heading-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 13v7h14v-7"/></svg></span><div><h2>Sauvegarde et restauration</h2><p>Exportez ou restaurez toutes les données de la Centrale.</p></div></div>
+<div class="backup-row"><strong>Exporter la sauvegarde complète</strong><button class="action export-file" type="button" onclick="exportConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 17v4h14v-4"/></svg>Exporter JSON</button></div>
+<label class="import-label" for="configFile">Importer une sauvegarde</label><input id="configFile" type="file" accept="application/json,.json" hidden onchange="selectConfigFile(this.files[0])" />
+<div class="file-drop" id="configDropzone" role="button" tabindex="0" onclick="document.getElementById('configFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('configFile').click()}" ondragover="handleConfigDrag(event,true)" ondragleave="handleConfigDrag(event,false)" ondrop="dropConfigFile(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg><p>Déposez ici un fichier JSON de sauvegarde</p><button class="action file-picker" type="button" onclick="event.stopPropagation();document.getElementById('configFile').click()">Choisir un fichier</button><div class="selected-file" id="selectedConfigFile" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 2h9l5 5v15H6Z"/><path d="M14 2v6h6"/></svg><span></span></div></div>
+<div class="config-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 2 21h20Z"/><path d="M12 9v5M12 18h.01"/></svg>Ce fichier contient les comptes, le token API et le Wi-Fi. Conservez-le en lieu sûr.</div>
+<button class="action config-import" id="importConfigButton" type="button" onclick="importConfig()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg>Restaurer la sauvegarde</button><div class="message" id="importExportMessage"></div>
 </section>
 </div>`;
 const securityView = document.getElementById('view-security');
@@ -1150,9 +1150,9 @@ clearSelectedConfigFile();
 setMessage('importExportMessage', 'Sélectionnez un fichier avec l’extension .json.', true);
 return;
 }
-if (file.size > 1024 * 1024) {
+if (file.size > 24 * 1024) {
 clearSelectedConfigFile();
-setMessage('importExportMessage', 'Le fichier JSON dépasse la limite de 1 Mo.', true);
+setMessage('importExportMessage', 'Le fichier JSON dépasse la limite de 24 Ko.', true);
 return;
 }
 try {
@@ -1163,7 +1163,7 @@ const selected = document.getElementById('selectedConfigFile');
 selected.hidden = false;
 selected.querySelector('span').textContent = `${file.name} · ${Math.max(1, Math.round(file.size / 1024))} Ko`;
 document.getElementById('importConfigButton').disabled = false;
-setMessage('importExportMessage', 'Fichier JSON prêt à être importé.');
+setMessage('importExportMessage', 'Sauvegarde JSON prête à être restaurée.');
 } catch(e) {
 clearSelectedConfigFile();
 setMessage('importExportMessage', 'Le fichier sélectionné ne contient pas un JSON valide.', true);
@@ -1399,18 +1399,17 @@ setMessage('tokenMessage', 'Nouveau token généré. Copiez-le maintenant : il s
 async function exportConfig() {
 try {
 const data = await api('/config/export');
-const configJson = typeof data.configJson === 'string' ? data.configJson : JSON.stringify(data.configJson || {}, null, 2);
-JSON.parse(configJson);
+const configJson = JSON.stringify(data, null, 2);
 const blob = new Blob([configJson], { type:'application/json;charset=utf-8' });
 const url = URL.createObjectURL(blob);
 const link = document.createElement('a');
 link.href = url;
-link.download = `ps-time-manager-config-${new Date().toISOString().slice(0,10)}.json`;
+link.download = `ps-time-manager-backup-${new Date().toISOString().slice(0,10)}.json`;
 document.body.appendChild(link);
 link.click();
 link.remove();
 setTimeout(() => URL.revokeObjectURL(url), 1000);
-setMessage('importExportMessage', 'Le fichier de configuration a été téléchargé.');
+setMessage('importExportMessage', 'La sauvegarde complète a été téléchargée.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
 }
 async function importConfig() {
@@ -1418,17 +1417,20 @@ if (!selectedConfigJson) {
 setMessage('importExportMessage', 'Choisissez d’abord un fichier JSON valide.', true);
 return;
 }
-const yes = confirm("Importer ce fichier et remplacer la configuration actuelle ?");
+const yes = confirm("Restaurer cette sauvegarde ? Les réglages, comptes, postes et données réseau actuels seront remplacés.");
 if (!yes) return;
 try {
-await api('/config/import', {
+const data = await api('/config/import', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ configJson:selectedConfigJson })
+body:selectedConfigJson
 });
-setMessage('importExportMessage', 'Configuration importée avec succès.');
-clearSelectedConfigFile();
-load();
+if (data.reauthenticate) {
+alert('Sauvegarde restaurée. Veuillez vous reconnecter avec un compte de la sauvegarde.');
+window.location.href = '/login';
+return;
+}
+setMessage('importExportMessage', 'Sauvegarde restaurée avec succès.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('importExportMessage', e.message, true); }
 }
 function formatLogTime(milliseconds) {

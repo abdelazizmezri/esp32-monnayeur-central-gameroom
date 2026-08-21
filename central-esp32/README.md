@@ -38,7 +38,7 @@ jeu depuis une interface web locale.
 - interface web responsive embarquée dans le firmware ;
 - comptes multiples avec rôles `admin` et `user` ;
 - journal des 100 derniers événements ;
-- import et export de la configuration générale ;
+- sauvegarde et restauration complètes des réglages et données persistantes ;
 - API HTTP protégée par session ou token Bearer.
 
 ## Architecture
@@ -233,7 +233,10 @@ Un utilisateur possède :
 - un rôle `admin` ou `user`.
 
 Les mots de passe sont sauvegardés sous forme de hash SHA-256 avec un sel aléatoire.
-Ils ne sont jamais renvoyés par l'API ni inclus dans l'export de configuration.
+Ils ne sont jamais renvoyés par les routes ordinaires. La sauvegarde complète
+contient toutefois les hashes et les sels afin que les comptes puissent être
+restaurés avec leurs mots de passe actuels ; le fichier exporté doit donc être
+conservé dans un emplacement sûr.
 
 ### Permissions
 
@@ -265,7 +268,7 @@ rétrogradation du dernier administrateur.
 
 ### Pages réservées aux administrateurs
 
-- `/config` : durée d'un coin, impulsions par coin, solde, import et export ;
+- `/config` : durée d'un coin, impulsions par coin, solde et sauvegarde/restauration complète ;
 - `/logs` : journal des événements ;
 - `/postes` : postes configurés et postes découverts ;
 - `/users` : création et administration des comptes ;
@@ -389,11 +392,27 @@ Dans **Configuration** :
 
 Cliquer sur **Enregistrer** après modification.
 
-### 10. Sauvegarder la configuration
+### 10. Sauvegarder ou restaurer la Centrale
 
-Dans **Configuration**, cliquer sur **Exporter JSON** puis copier le contenu.
-L'export contient les paramètres des coins, le solde et le token API. Il ne
-contient pas les comptes, les mots de passe, les postes ni les identifiants Wi-Fi.
+Dans **Configuration**, cliquer sur **Exporter JSON** pour télécharger une
+sauvegarde complète. Le fichier contient :
+
+- la durée par coin, les impulsions et le solde disponible ;
+- le token API ;
+- tous les utilisateurs, leurs rôles et leurs identifiants chiffrés ;
+- tous les postes configurés ;
+- le réseau Wi-Fi enregistré et la configuration IP.
+
+Pour restaurer ces données, sélectionner le fichier JSON puis cliquer sur
+**Restaurer la sauvegarde**. Les données persistantes courantes sont remplacées
+et toutes les sessions web sont fermées. Il faut ensuite se reconnecter avec un
+compte contenu dans la sauvegarde. Les sessions de jeu en cours, les postes
+simplement découverts et le journal en RAM ne sont pas rejoués.
+Les réglages Wi-Fi restaurés sont appliqués au prochain redémarrage de la
+Centrale.
+
+> Le fichier contient le token API, les identifiants Wi-Fi et les hashes des
+> mots de passe. Ne pas le partager et le stocker dans un emplacement protégé.
 
 ### 11. Réinitialiser le Wi-Fi
 
@@ -430,8 +449,8 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 |---|---|---|
 | POST | `/coins/simulate` | Ajoute un coin de test. |
 | POST | `/config` | Modifie la configuration générale. |
-| GET | `/config/export` | Exporte la configuration JSON. |
-| POST | `/config/import` | Importe une configuration JSON. |
+| GET | `/config/export` | Télécharge la sauvegarde JSON complète. |
+| POST | `/config/import` | Restaure directement une sauvegarde JSON complète. |
 | POST | `/post/update` | Renomme un poste inactif. |
 | POST | `/post/delete` | Supprime et déconfigure un poste inactif. |
 | POST | `/post/ping` | Teste manuellement un poste. |
@@ -578,7 +597,8 @@ déploiement.
 - les logs sont perdus au redémarrage ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut
   être supérieur au temps réel d'environ 60 secondes avec la configuration par défaut ;
-- l'export ne contient pas une sauvegarde complète des comptes, postes et du Wi-Fi ;
+- la sauvegarde ne rejoue pas les données temporaires : journal RAM, sessions web,
+  sessions de jeu actives et postes découverts non configurés ;
 - les postes sont interrogés un par un : avec `N` postes, un cycle complet prend environ `N x 5` secondes ;
 - la liste des postes est réécrite en NVS lors de certaines annonces, ce qui peut augmenter l'usure de la flash si les annonces sont très fréquentes ;
 - le firmware compatible des postes doit être fourni séparément.
