@@ -141,9 +141,6 @@ namespace WiFiConfigService {
   static void updateConnectionState(PosteState& state) {
     state.wifiConnected = WiFi.status() == WL_CONNECTED;
     state.wifiIp = state.wifiConnected ? WiFi.localIP().toString() : "";
-    if (state.wifiConnected) {
-      state.wifiSsid = WiFi.SSID();
-    }
   }
 
   static String buildApSsid();
@@ -226,16 +223,6 @@ namespace WiFiConfigService {
 
   static String buildApSsid() {
     String chipId = gState->chipId;
-
-    if (chipId.isEmpty()) {
-      uint64_t mac = ESP.getEfuseMac();
-      char buffer[13];
-      snprintf(buffer, sizeof(buffer), "%04X%08X",
-               (uint16_t)(mac >> 32),
-               (uint32_t)mac);
-      chipId = buffer;
-    }
-
     chipId.toUpperCase();
     return String(PosteConfig::WIFI_SETUP_AP_SSID_PREFIX) + "-" + chipId;
   }
@@ -464,7 +451,4 @@ function toggleNetworkFields(){var m=document.querySelector('input[name="network
     }
   }
 
-  bool isConnected(const PosteState& state) {
-    return state.wifiConnected;
-  }
 }
