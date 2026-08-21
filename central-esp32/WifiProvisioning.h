@@ -9,6 +9,5 @@ namespace WifiProvisioning {
 
   bool hasSavedCredentials();
   bool connectWithSavedCredentials(String& localIp);
-  bool saveAndConnect(const String& ssid, const String& password, String& localIp);
   void clearCredentials();
 }
