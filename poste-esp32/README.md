@@ -285,7 +285,8 @@ sous Windows.
 7. Attendre le message de connexion et noter l'adresse IP affichée.
 8. Dans l'interface de la centrale, ouvrir **Gestion des postes**.
 9. Attendre l'apparition du nouveau `chipId` dans les postes découverts.
-10. Attribuer un identifiant et un nom au poste.
+10. Attribuer uniquement un nom visible au poste. La centrale dérive
+    automatiquement l'identifiant technique depuis le `chipId`.
 11. Affecter du temps et vérifier le passage à `active`, l'activation du relais
     et le décompte du temps restant.
 

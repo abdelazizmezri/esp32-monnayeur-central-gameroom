@@ -323,7 +323,8 @@ Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou
 
 1. Alimenter la centrale et ouvrir le moniteur série.
 2. Se connecter au Wi-Fi `GAMEROOM-CENTRAL-<chipId>` affiché dans le moniteur série.
-3. Utiliser le mot de passe `12345678`.
+3. Le point d'accès est ouvert par défaut. Si `AP_PASSWORD` a été défini avant
+   compilation, utiliser ce mot de passe.
 4. Ouvrir `http://192.168.4.1` si le portail ne s'affiche pas automatiquement.
 5. Sélectionner le réseau local partagé par la centrale et les postes.
 6. Saisir son mot de passe et valider.
@@ -359,7 +360,8 @@ maintenance importante.
 2. Ouvrir **Gestion des postes**.
 3. Attendre son apparition dans **Postes découverts**.
 4. Cliquer sur **Ajouter**.
-5. Saisir un identifiant et un nom.
+5. Saisir uniquement un nom visible. L'identifiant technique est dérivé
+   automatiquement du `chipId` matériel.
 6. Vérifier que le poste apparaît dans la liste configurée.
 
 ### 6. Affecter des coins
