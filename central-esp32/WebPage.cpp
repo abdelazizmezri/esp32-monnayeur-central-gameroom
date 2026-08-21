@@ -572,10 +572,11 @@ Déconnexion
 #view-users .panel:first-child>.primary svg{width:20px;height:20px;margin-right:8px;vertical-align:middle}
 #view-users .panel:last-child{display:flex;flex-direction:column}
 #view-users .panel:last-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:8px}
-.user-refresh{color:#d8eaff!important;border-color:#1774ff!important;background:#07162b!important;box-shadow:none!important}
-.user-refresh svg{width:18px;height:18px;margin-right:7px;vertical-align:middle}
-.user-refresh.loading svg{animation:user-spin .7s linear infinite}
-@keyframes user-spin{to{transform:rotate(360deg)}}
+.refresh-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;color:#79bfff!important;border-color:#176ecd!important;background:#071b35!important;box-shadow:none!important}
+.refresh-action svg{width:18px;height:18px;transform-origin:center}
+.refresh-action.loading svg{animation:refresh-spin .7s linear infinite}
+.refresh-action:disabled{opacity:.7!important;cursor:wait!important}
+@keyframes refresh-spin{to{transform:rotate(360deg)}}
 #usersList{display:flex;flex:1;flex-direction:column;gap:0}
 .users-head,.user-row{display:grid;grid-template-columns:1fr 1.25fr 1.3fr 110px;gap:14px;align-items:center}
 .users-head{min-height:54px;padding:20px 0 12px;border-bottom:1px solid #263a55;color:#a9b6cc;font-size:11px}
@@ -616,12 +617,18 @@ navigationOrder.forEach(path => {
   const link = primaryNavigation.querySelector(`[data-path="${path}"]`);
   if (link) primaryNavigation.appendChild(link);
 });
+const refreshIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>';
+function setupRefreshButton(button, handler) {
+  if (!button) return;
+  button.classList.add('refresh-action');
+  button.innerHTML = refreshIcon + '<span>Actualiser</span>';
+  button.onclick = () => handler(button);
+}
 const logActionButtons = document.querySelectorAll('#view-logs .actions button');
-if (logActionButtons[0]) logActionButtons[0].textContent = '↻ Actualiser';
+setupRefreshButton(logActionButtons[0], loadLogs);
 if (logActionButtons[1]) logActionButtons[1].textContent = 'Vider le journal';
 const postsRefreshButton = document.querySelector('#view-postes .panel:first-child .action.primary');
-postsRefreshButton.textContent = '↻ Actualiser';
-postsRefreshButton.onclick = () => refreshPosts(postsRefreshButton);
+setupRefreshButton(postsRefreshButton, refreshPosts);
 const userPanels = document.querySelectorAll('#view-users .panel');
 const createUserButton = userPanels[0]?.querySelector(':scope > .action.primary');
 if (createUserButton) {
@@ -629,9 +636,7 @@ if (createUserButton) {
 }
 const usersRefreshButton = userPanels[1]?.querySelector('.action.primary');
 if (usersRefreshButton) {
-  usersRefreshButton.classList.add('user-refresh');
-  usersRefreshButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>Actualiser';
-  usersRefreshButton.onclick = () => refreshUsers(usersRefreshButton);
+  setupRefreshButton(usersRefreshButton, refreshUsers);
 }
 const createPasswordInput = document.getElementById('createPassword');
 if (createPasswordInput) {
@@ -867,9 +872,9 @@ return postNames[postId] || 'ce poste';
 }
 async function refreshPosts(button) {
 button.disabled = true;
-button.textContent = 'Actualisation…';
+button.classList.add('loading');
 try { await load(); }
-finally { button.disabled = false; button.textContent = '↻ Actualiser'; }
+finally { button.disabled = false; button.classList.remove('loading'); }
 }
 async function load() {
 const data = await api('/posts');
@@ -1436,7 +1441,7 @@ return ({INFO:'INFO',WARN:'AVERTISSEMENT',ERROR:'ERREUR'})[level] || level;
 }
 async function loadLogs() {
 const refreshButton = logActionButtons[0];
-if (refreshButton) { refreshButton.disabled = true; refreshButton.textContent = 'Actualisation…'; }
+if (refreshButton) { refreshButton.disabled = true; refreshButton.classList.add('loading'); }
 try {
 const data = await api('/logs/data');
 const rows = (data.logs || []).slice().reverse().map(log => {
@@ -1449,7 +1454,7 @@ document.querySelector('#view-logs .panel').dataset.lastRefresh = new Date().toL
 } catch(e) {
 if (e.message !== 'unauthorized') document.getElementById('logs').textContent = e.message;
 } finally {
-if (refreshButton) { refreshButton.disabled = false; refreshButton.textContent = '↻ Actualiser'; }
+if (refreshButton) { refreshButton.disabled = false; refreshButton.classList.remove('loading'); }
 }
 }
 async function clearLogs() {
