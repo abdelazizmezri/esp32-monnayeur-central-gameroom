@@ -20,7 +20,7 @@ namespace PostService {
     return nullptr;
   }
 
-  PendingPost* findPendingByChipId(AppState& state, const String& chipId) {
+  static PendingPost* findPendingByChipId(AppState& state, const String& chipId) {
     for (auto& pending : state.pendingPosts) {
       if (pending.chipId == chipId) {
         return &pending;
