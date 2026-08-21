@@ -81,10 +81,11 @@ disparaître un poste non encore configuré de la liste d'attente.
 
 ### 4. Réception d'une pièce
 
-Le monnayeur est lu sur le GPIO 13 de la centrale, en `INPUT_PULLUP`, sur front
-descendant. L'interruption applique un anti-rebond de 80 ms. Le nombre
-d'impulsions requis par coin est configurable ; chaque groupe complet augmente
-le solde central persistant.
+Le monnayeur est lu sur le GPIO 13 de la centrale, en entrée simple, sur chaque
+changement d'état. Le firmware détecte automatiquement la polarité au repos
+(contact NO ou NC), applique un anti-rebond de 80 ms et ne compte que les
+impulsions complètes. Le nombre d'impulsions requis par coin est configurable ;
+chaque groupe complet augmente le solde central persistant.
 
 Valeurs par défaut :
 
@@ -187,7 +188,7 @@ La centrale fournit une interface web responsive sur son IP et sur
 | Modifier la configuration et le Wi-Fi | Oui | Non |
 | Gérer les comptes, les logs et le token API | Oui | Non |
 
-Au premier démarrage, le compte est `admin` avec le mot de passe `admin1234`.
+Au premier démarrage, le compte est `admin` avec le mot de passe `12345678`.
 Il doit être modifié immédiatement. Les mots de passe sont salés et hachés en
 SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
@@ -208,10 +209,10 @@ Matériel minimal :
 - un réseau Wi-Fi local ;
 - des alimentations adaptées et un câblage sécurisé.
 
-La centrale utilise par défaut le GPIO 27 pour le monnayeur. Le firmware du
-poste utilise `LED_BUILTIN`, ou le GPIO 2 comme repli, pour les tests ; avant de
-connecter une machine, il faut définir le vrai GPIO dans `PosteConfig.h` et adapter
-`RELAY_ACTIVE_HIGH` au module relais.
+La centrale utilise par défaut le GPIO 13 pour le monnayeur. Le firmware du
+poste utilise le GPIO 27 pour le relais ; avant de connecter une machine, il
+faut vérifier `RELAY_PIN` dans `PosteConfig.h` et adapter `RELAY_ACTIVE_HIGH` au
+module relais.
 
 > Un GPIO ESP32 n'accepte pas directement les tensions d'un monnayeur et ne doit
 > jamais alimenter une charge de puissance. Utiliser une interface 3,3 V,
@@ -378,9 +379,9 @@ Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
 ## Mise en service rapide
 
 1. Téléverser et démarrer la centrale.
-2. Se connecter à `GAMEROOM-CENTRAL-<chipId>` avec le mot de passe `12345678`.
+2. Se connecter au réseau ouvert `GAMEROOM-CENTRAL-<chipId>` (sans mot de passe).
 3. Ouvrir `http://192.168.4.1` et sélectionner le réseau local.
-4. Ouvrir `http://pstm.local`, se connecter avec `admin` / `admin1234`, puis
+4. Ouvrir `http://pstm.local`, se connecter avec `admin` / `12345678`, puis
    changer immédiatement le mot de passe.
 5. Téléverser et démarrer un poste configuré avec le même secret partagé.
 6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-<chipId>`, ouvrir
@@ -437,6 +438,9 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebRoutes.cpp` | Implémente les pages, l'API JSON, les autorisations et la réception des annonces. |
 | `central-esp32/WebPage.h` | Déclare les générateurs des pages web embarquées. |
 | `central-esp32/WebPage.cpp` | Contient le HTML, le CSS et le JavaScript de la connexion et de l'interface d'administration. |
+| `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images optimisées intégrées au firmware. |
+| `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les assets optimisés. |
+| `central-esp32/ui-assets/` | Regroupe les sources graphiques maîtres et les variantes allégées documentées. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 
 ### Firmware d'un poste
@@ -458,14 +462,6 @@ centrale pour une relance ou une annulation explicite.
 | `poste-esp32/WiFiConfigService.cpp` | Gère les identifiants Wi-Fi, la connexion, le point d'accès, le portail captif et son DNS. |
 | `poste-esp32/README.md` | Manuel détaillé du firmware de poste, de son câblage et de son API. |
 
-### Fichiers sans rôle fonctionnel
-
-| Élément | Rôle |
-|---|---|
-| `README.md` | Documentation générale du système complet. |
-| `.DS_Store`, `central-esp32/.DS_Store`, `poste-esp32/.DS_Store` | Métadonnées Finder de macOS ; elles ne participent ni à la compilation ni à l'exécution. |
-| `central-esp32/tmp/` | Répertoire local vide ; il ne fait pas partie du firmware suivi par Git. |
-
 Les fichiers `.h` définissent les structures et interfaces publiques. Les
 fichiers `.cpp` portent leur implémentation, tandis que chaque `.ino` orchestre
 le démarrage et la boucle principale de son ESP32.
@@ -474,8 +470,9 @@ le démarrage et la boucle principale de son ESP32.
 
 Modifier impérativement les valeurs de développement :
 
-- le mot de passe administrateur `admin1234` ;
-- le mot de passe du point d'accès central `12345678` ;
+- le mot de passe administrateur `12345678` ;
+- si le portail de configuration doit être protégé, `AP_PASSWORD`, vide par
+  défaut sur la centrale et le poste ;
 - le secret partagé `POSTE_COMMAND_TOKEN` / `COMMAND_TOKEN` ;
 - le token API de la centrale, depuis l'interface ;
 - éventuellement le mot de passe du portail Wi-Fi des postes, ouvert par défaut.
