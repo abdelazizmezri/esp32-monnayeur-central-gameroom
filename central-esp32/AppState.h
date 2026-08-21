@@ -42,7 +42,6 @@ struct AppState {
   int availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
   int coinDurationSeconds = AppConfig::DEFAULT_COIN_DURATION_SECONDS;
 
-  volatile unsigned long lastInterruptTime = 0;
   volatile int pulseCount = 0;
 
   unsigned long lastPostsRefresh = 0;
