@@ -17,6 +17,5 @@ struct PosteState {
 
   bool wifiConnected = false;
   bool wifiConfigPortalActive = false;
-  String wifiSsid = "";
   String wifiIp = "";
 };
