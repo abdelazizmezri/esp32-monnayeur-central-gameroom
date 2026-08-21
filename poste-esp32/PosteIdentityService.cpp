@@ -10,10 +10,10 @@ namespace PosteIdentityService {
 
   static String buildChipId() {
     uint64_t mac = ESP.getEfuseMac();
-    char buffer[17];
-    snprintf(buffer, sizeof(buffer), "%04X%08X",
-             (uint16_t)(mac >> 32),
-             (uint32_t)mac);
+    char buffer[13];
+    snprintf(buffer, sizeof(buffer), "%04X%08lX",
+             (unsigned int)(mac >> 32),
+             (unsigned long)(uint32_t)mac);
     return String(buffer);
   }
 
