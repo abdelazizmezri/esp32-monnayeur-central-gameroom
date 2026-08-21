@@ -567,7 +567,7 @@ Déconnexion
 #view-users .panel h2{font-size:20px}
 #view-users .panel:first-child{display:flex;flex-direction:column}
 #view-users .panel:first-child .form-group{margin-bottom:14px}
-#view-users .panel:first-child input,#view-users .panel:first-child select{min-height:48px}
+#view-users input,#view-users select{height:48px;min-height:48px}
 #view-users .panel:first-child>.primary{width:100%;min-height:52px;margin-top:8px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 24px rgba(50,64,238,.23)}
 #view-users .panel:first-child>.primary svg{width:20px;height:20px;margin-right:8px;vertical-align:middle}
 #view-users .panel:last-child{display:flex;flex-direction:column}
