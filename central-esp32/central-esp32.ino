@@ -21,7 +21,6 @@ void setup() {
   Serial.begin(115200);
   delay(200);
 
-  StorageService::begin();
   StorageService::load(appState);
   AuthService::begin(appState);
 
