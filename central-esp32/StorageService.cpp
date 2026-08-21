@@ -8,10 +8,6 @@
 static Preferences prefs;
 
 namespace StorageService {
-
-  void begin() {
-  }
-
   static bool sanitizeRuntimeConfig(AppState& state) {
     bool changed = false;
 
