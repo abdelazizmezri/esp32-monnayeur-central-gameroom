@@ -678,9 +678,9 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/security", HTTP_GET, handleAdminPage);
   server.on("/users", HTTP_GET, handleAdminPage);
   server.on("/login", HTTP_GET, handleLoginPage);
-  server.on("/assets/login-station-v3.webp", HTTP_GET, handleLoginStationAsset);
-  server.on("/assets/game-room-logo-v4.webp", HTTP_GET, handleGameRoomLogoAsset);
-  server.on("/assets/playstation-mark.webp", HTTP_GET, handlePlayStationMarkAsset);
+  server.on("/assets/login-station-v4.webp", HTTP_GET, handleLoginStationAsset);
+  server.on("/assets/game-room-logo-v5.webp", HTTP_GET, handleGameRoomLogoAsset);
+  server.on("/assets/playstation-mark-v2.webp", HTTP_GET, handlePlayStationMarkAsset);
   server.on("/login", HTTP_POST, handleLogin);
   server.on("/logout", HTTP_POST, handleLogout);
 

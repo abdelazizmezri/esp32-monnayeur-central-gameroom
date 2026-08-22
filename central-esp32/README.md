@@ -259,6 +259,13 @@ rétrogradation du dernier administrateur.
 
 ## Interface web
 
+La page `/login` reprend la mise en page en deux panneaux de la maquette : la
+photographie HD de la salle à gauche, le logo PS TIME MANAGER HD et le formulaire
+sécurisé à droite. Le fond 1123 × 1401 px, le logo 720 × 240 px et le
+pictogramme PlayStation 128 × 97 px sont embarqués en WebP. Les icônes de
+navigation, d'état et d'action restent des SVG intégrés, donc indépendants de la
+résolution de l'écran.
+
 ### Pages accessibles à tous les comptes connectés
 
 - `/` : tableau de bord, état des postes, coins disponibles et commandes autorisées ;
@@ -300,18 +307,24 @@ Le projet a été vérifié avec le cœur ESP32 3.3.11 et la cible
 1. Ouvrir `central-esp32.ino`.
 2. Installer ArduinoJson depuis le gestionnaire de bibliothèques.
 3. Sélectionner une carte compatible, par exemple **ESP32 Dev Module**.
-4. Conserver le schéma de partitions **Default 4MB with spiffs**.
+4. Sélectionner le schéma
+   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
 5. Sélectionner le port série de la carte.
 6. Cliquer sur **Vérifier**, puis **Téléverser**.
 7. Ouvrir le moniteur série à 115200 bauds.
+
+Le fichier `partitions.csv` du sketch décrit le même découpage et garantit deux
+partitions OTA de 1,9 Mo. Après un changement de schéma, faire un téléversement
+complet par USB pour écrire la table de partitions. Éviter **Erase All Flash**
+si les paramètres NVS doivent être conservés.
 
 ### Avec arduino-cli
 
 ```bash
 arduino-cli core install esp32:esp32
 arduino-cli lib install ArduinoJson
-arduino-cli compile --fqbn esp32:esp32:esp32 .
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_SERIE .
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs .
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --port PORT_SERIE .
 ```
 
 Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou
@@ -545,9 +558,10 @@ réannonce après le redémarrage de la centrale.
 | `WebRoutes.cpp` | API HTTP, contrôles d'accès et réponses JSON. |
 | `WebPage.h` | Déclaration des pages HTML embarquées. |
 | `WebPage.cpp` | HTML, CSS et JavaScript de la connexion et du tableau de bord. |
-| `WebAssets.h` / `WebAssets.cpp` | Expose les images optimisées intégrées au firmware. |
-| `*Asset.inc` | Données binaires `PROGMEM` générées depuis les assets optimisés. |
-| `ui-assets/` | Sources graphiques maîtres et variantes allégées documentées. |
+| `WebAssets.h` / `WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
+| `*Asset.inc` | Données binaires `PROGMEM` générées depuis les WebP embarqués. |
+| `ui-assets/` | Logo maître, fond de connexion et variantes WebP HD documentées. |
+| `partitions.csv` | Deux partitions OTA de 1,9 Mo, 128 Ko de SPIFFS et NVS conservée. |
 
 ## Sécurité
 
@@ -604,8 +618,8 @@ déploiement.
 
 ## Limites connues
 
-- le firmware occupe presque toute la partition programme standard ; les assets
-  UI intégrés doivent donc rester dans leurs versions allégées ;
+- les assets HD augmentent la taille du firmware et imposent le schéma
+  **Minimal SPIFFS** documenté ci-dessus ;
 - les communications HTTP ne sont pas chiffrées ;
 - les logs sont perdus au redémarrage ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut

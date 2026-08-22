@@ -296,7 +296,7 @@ pilote correspondant au convertisseur USB-série de la carte, souvent CP210x ou
 CH340. La sélection correcte de la carte est détaillée dans le
 [guide Espressif du menu Tools](https://docs.espressif.com/projects/arduino-esp32/en/latest/guides/tools_menu.html).
 
-### 5. Régler la carte
+### 5. Régler la carte et les partitions
 
 Utiliser les réglages suivants pour une carte ESP32 classique avec 4 Mo de
 flash :
@@ -305,14 +305,20 @@ flash :
 |---|---|---|
 | Board | ESP32 Dev Module | ESP32 Dev Module |
 | Flash Size | 4MB | 4MB |
-| Partition Scheme | Default 4MB with spiffs | Default 4MB with spiffs |
+| Partition Scheme | **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)** | Default 4MB with spiffs |
 | Upload Speed | 460800, ou 115200 en cas d'échec | 460800, ou 115200 en cas d'échec |
 | Port | Port USB de la centrale | Port USB du poste concerné |
 
-Le projet utilise uniquement le partitionnement standard fourni avec la carte.
-Aucun fichier de partitions personnalisé n'est nécessaire. Les images intégrées
-au firmware sont allégées afin que la centrale reste compatible avec la
-partition d'application standard.
+La centrale embarque désormais le fond de connexion et les logos en WebP haute
+qualité. Le fichier [`central-esp32/partitions.csv`](central-esp32/partitions.csv)
+applique le découpage **Minimal SPIFFS** : deux applications OTA de 1,9 Mo,
+128 Ko de SPIFFS et la NVS conservée à son emplacement habituel. Le poste
+n'embarque pas ces images et reste sur le schéma 4 Mo par défaut.
+
+Après ce changement, effectuer un téléversement complet de la centrale par USB
+afin d'écrire la table de partitions. Ne pas activer **Erase All Flash** sauf
+nécessité : ce réglage efface aussi le Wi-Fi, les comptes et les postes stockés
+en NVS.
 
 ### 6. Préparer la configuration du projet
 
@@ -332,7 +338,8 @@ saisis plus tard dans les portails de configuration du central et des postes.
 ### 7. Compiler et téléverser la centrale
 
 1. Ouvrir [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
-2. Vérifier de nouveau la carte, le port et le schéma de partitions par défaut.
+2. Vérifier de nouveau la carte, le port et le schéma
+   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
 3. Cliquer sur **Verify** pour compiler.
 4. Cliquer sur **Upload** pour téléverser le firmware.
 5. Si Arduino reste sur `Connecting...`, maintenir le bouton **BOOT** de
@@ -367,15 +374,15 @@ arduino-cli board list
 Compiler et téléverser la centrale :
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 central-esp32
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_CENTRALE central-esp32
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs central-esp32
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --port PORT_CENTRALE central-esp32
 ```
 
 Compiler et téléverser un poste :
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 poste-esp32
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_POSTE poste-esp32
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=default poste-esp32
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=default --port PORT_POSTE poste-esp32
 ```
 
 Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
@@ -444,9 +451,10 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebRoutes.cpp` | Implémente les pages, l'API JSON, les autorisations et la réception des annonces. |
 | `central-esp32/WebPage.h` | Déclare les générateurs des pages web embarquées. |
 | `central-esp32/WebPage.cpp` | Contient le HTML, le CSS et le JavaScript de la connexion et de l'interface d'administration. |
-| `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images optimisées intégrées au firmware. |
-| `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les assets optimisés. |
-| `central-esp32/ui-assets/` | Regroupe les sources graphiques maîtres et les variantes allégées documentées. |
+| `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
+| `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les WebP embarqués. |
+| `central-esp32/ui-assets/` | Regroupe le logo maître et les variantes WebP HD documentées. |
+| `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,9 Mo pour le firmware central et 128 Ko de SPIFFS. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 
 ### Firmware d'un poste

@@ -255,18 +255,20 @@ fournis par le package Arduino pour ESP32.
 1. Ouvrir `poste-esp32.ino`.
 2. Installer **ArduinoJson** depuis le gestionnaire de bibliothèques.
 3. Sélectionner une carte compatible, par exemple **ESP32 Dev Module**.
-4. Adapter les constantes de `PosteConfig.h`.
-5. Sélectionner le port série de la carte.
-6. Cliquer sur **Vérifier**, puis **Téléverser**.
-7. Ouvrir le moniteur série à 115200 bauds.
+4. Conserver le schéma **Default 4MB with spiffs**. Le schéma
+   **Minimal SPIFFS** ne concerne que la centrale qui embarque les visuels HD.
+5. Adapter les constantes de `PosteConfig.h`.
+6. Sélectionner le port série de la carte.
+7. Cliquer sur **Vérifier**, puis **Téléverser**.
+8. Ouvrir le moniteur série à 115200 bauds.
 
 ### Avec arduino-cli
 
 ```bash
 arduino-cli core install esp32:esp32
 arduino-cli lib install ArduinoJson
-arduino-cli compile --fqbn esp32:esp32:esp32 .
-arduino-cli upload --fqbn esp32:esp32:esp32 --port PORT_SERIE .
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=default .
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=default --port PORT_SERIE .
 ```
 
 Adapter `PORT_SERIE`, par exemple `/dev/cu.usbserial-0001` sous macOS ou `COM3`
