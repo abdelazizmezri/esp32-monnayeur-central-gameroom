@@ -39,10 +39,16 @@ struct AppState {
   std::vector<UserSession> sessions;
 
   int pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
+  int pulseValueMillimes = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
   int availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
   int coinDurationSeconds = AppConfig::DEFAULT_COIN_DURATION_SECONDS;
 
   volatile int pulseCount = 0;
+  int pendingPulses = 0;
+
+  bool revenueStorageReady = false;
+  bool revenueTimeReady = false;
+  String revenueStorageError;
 
   unsigned long lastPostsRefresh = 0;
 

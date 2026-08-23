@@ -8,6 +8,7 @@
 #include "WifiProvisioning.h"
 #include "PosteClient.h"
 #include "LogService.h"
+#include "RevenueService.h"
 
 #include <ArduinoJson.h>
 
@@ -172,6 +173,8 @@ static void handleGetPosts() {
   doc["availableCoins"] = gState->availableCoins;
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
   doc["pulsesPerCoin"] = gState->pulsesPerCoin;
+  doc["pulseValueMillimes"] = gState->pulseValueMillimes;
+  doc["pendingPulses"] = gState->pendingPulses;
   doc["accessRole"] = adminAccess ? "admin" : "user";
 
   UserAccount* currentUser = AuthService::currentUser(*gServer, *gState);
@@ -184,6 +187,9 @@ static void handleGetPosts() {
   }
   if (adminAccess) {
     doc["apiTokenMasked"] = AuthService::getMaskedToken(*gState);
+    doc["revenueStorageReady"] = gState->revenueStorageReady;
+    doc["revenueTimeReady"] = gState->revenueTimeReady;
+    doc["revenueStorageError"] = gState->revenueStorageError;
   }
 
   String json;
@@ -288,7 +294,21 @@ static void handleConfig() {
       sendJsonError(400, "invalid pulsesPerCoin");
       return;
     }
-    gState->pulsesPerCoin = value;
+    if (gState->pulsesPerCoin != value) {
+      gState->pulsesPerCoin = value;
+      // Un groupe incomplet dépend de l'ancien réglage : il ne doit pas être
+      // converti rétroactivement avec le nouveau.
+      gState->pendingPulses = 0;
+    }
+  }
+
+  if (doc.containsKey("pulseValueMillimes")) {
+    int value = doc["pulseValueMillimes"];
+    if (value != 500 && value != 1000 && value != 2000 && value != 5000) {
+      sendJsonError(400, "invalid pulseValueMillimes");
+      return;
+    }
+    gState->pulseValueMillimes = value;
   }
 
   if (doc.containsKey("availableCoins")) {
@@ -302,6 +322,7 @@ static void handleConfig() {
   }
 
   StorageService::saveConfig(*gState);
+  StorageService::saveCredits(*gState);
   LogService::info(*gState, "Configuration mise à jour.");
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
@@ -453,6 +474,71 @@ static void handleImportConfig() {
   LogService::warn(*gState, "Sauvegarde complète restaurée.");
   gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
   gServer->send(200, "application/json", "{\"ok\":true,\"reauthenticate\":true}");
+}
+
+static bool buildRevenueReport(RevenueReport& report) {
+  String period = gServer->arg("period");
+  if (period.isEmpty()) period = "day";
+  String error;
+  if (!RevenueService::buildReport(*gState, period, gServer->arg("anchor"),
+                                   report, error)) {
+    sendJsonError(400, error);
+    return false;
+  }
+  return true;
+}
+
+static void handleRevenueData() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  RevenueReport report;
+  if (!buildRevenueReport(report)) return;
+
+  DynamicJsonDocument doc(16384);
+  doc["period"] = report.period;
+  doc["rangeLabel"] = report.rangeLabel;
+  doc["startDate"] = report.startDate;
+  doc["endDate"] = report.endDate;
+  doc["generatedAt"] = report.generatedAt;
+  doc["storageReady"] = report.storageReady;
+  doc["timeReady"] = report.timeReady;
+  doc["storageError"] = gState->revenueStorageError;
+  doc["fileBytes"] = report.fileBytes;
+  doc["storageUsedBytes"] = report.storageUsedBytes;
+  doc["storageTotalBytes"] = report.storageTotalBytes;
+  doc["totalMillimes"] = report.totalMillimes;
+  doc["undatedMillimes"] = report.undatedMillimes;
+  doc["pulses"] = report.pulses;
+  doc["credits"] = report.credits;
+  doc["events"] = report.events;
+  doc["undatedEvents"] = report.undatedEvents;
+  doc["corruptRecords"] = report.corruptRecords;
+  JsonArray items = doc.createNestedArray("items");
+  for (const auto& bucket : report.buckets) {
+    JsonObject item = items.createNestedObject();
+    item["key"] = bucket.key;
+    item["label"] = bucket.label;
+    item["amountMillimes"] = bucket.amountMillimes;
+    item["pulses"] = bucket.pulses;
+    item["credits"] = bucket.credits;
+    item["events"] = bucket.events;
+  }
+
+  String json;
+  serializeJson(doc, json);
+  gServer->sendHeader("Cache-Control", "no-store");
+  gServer->send(200, "application/json", json);
+}
+
+static void handleRevenueCsv() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+
+  RevenueReport report;
+  if (!buildRevenueReport(report)) return;
+  String filename = "recette-" + report.period + "-" + report.startDate + ".csv";
+  gServer->sendHeader("Cache-Control", "no-store");
+  gServer->sendHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+  gServer->send(200, "text/csv; charset=utf-8", RevenueService::buildCsv(report));
 }
 
 static void handleLogs() {
@@ -672,6 +758,7 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
 
   server.on("/", HTTP_GET, handleAppPage);
   server.on("/config", HTTP_GET, handleAdminPage);
+  server.on("/recette", HTTP_GET, handleAdminPage);
   server.on("/logs", HTTP_GET, handleAdminPage);
   server.on("/discover", HTTP_GET, handleAdminPage);
   server.on("/postes", HTTP_GET, handleAdminPage);
@@ -695,6 +782,8 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/config", HTTP_POST, handleConfig);
   server.on("/config/export", HTTP_GET, handleExportConfig);
   server.on("/config/import", HTTP_POST, handleImportConfig);
+  server.on("/revenue/data", HTTP_GET, handleRevenueData);
+  server.on("/revenue/export.csv", HTTP_GET, handleRevenueCsv);
   server.on("/stop", HTTP_POST, handleStop);
   server.on("/recovery/resume", HTTP_POST, handleRecoveryResume);
   server.on("/recovery/cancel", HTTP_POST, handleRecoveryCancel);

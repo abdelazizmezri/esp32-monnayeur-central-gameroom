@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="930" viewBox="0 0 1500 930" role="img" aria-labelledby="title desc">
+  <title id="title">Schéma de câblage du poste ESP32 avec relais et afficheur TM1637</title>
+  <desc id="desc">L'afficheur TM1637 est alimenté en 3,3 volts et relié aux GPIO 25 et 26. Le relais est commandé par le GPIO 27 et partage la masse avec l'ESP32.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="1" stop-color="#10253d"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#176b83"/>
+      <stop offset="1" stop-color="#0a4158"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.38"/>
+    </filter>
+    <style>
+      .title { font: 700 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f4f8ff; }
+      .subtitle { font: 400 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #a9bad0; }
+      .section { font: 700 23px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f6f9ff; }
+      .label { font: 600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #eaf2ff; }
+      .small { font: 500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c1cee0; }
+      .pin { font: 700 15px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #07111f; }
+      .wire-label { font: 700 14px ui-monospace, SFMono-Regular, Menlo, monospace; paint-order: stroke; stroke: #07111f; stroke-width: 6px; stroke-linejoin: round; }
+      .wire { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="930" rx="24" fill="url(#background)"/>
+  <path d="M0 118H1500" stroke="#29425f" stroke-width="2"/>
+  <text x="70" y="62" class="title">Câblage du poste — ESP32 + TM1637 + relais</text>
+  <text x="70" y="94" class="subtitle">Vue fonctionnelle · réglages par défaut de PosteConfig.h · alimentation de l’ESP32 par USB</text>
+
+  <!-- ESP32 -->
+  <g filter="url(#shadow)">
+    <rect x="105" y="170" width="510" height="600" rx="30" fill="#0a2032" stroke="#4a6f8b" stroke-width="3"/>
+    <rect x="170" y="215" width="380" height="500" rx="22" fill="url(#board)" stroke="#49abc5" stroke-width="3"/>
+    <rect x="280" y="235" width="160" height="105" rx="9" fill="#c7d0d8" stroke="#eef4f8" stroke-width="3"/>
+    <path d="M300 255h120M300 270h120M300 285h120M300 300h120" stroke="#6d7881" stroke-width="3"/>
+    <rect x="307" y="628" width="106" height="60" rx="7" fill="#1a2630" stroke="#9fb0bd" stroke-width="3"/>
+    <rect x="340" y="672" width="40" height="31" rx="4" fill="#cad2d8"/>
+    <text x="360" y="385" text-anchor="middle" class="section">ESP32</text>
+    <text x="360" y="414" text-anchor="middle" class="small">Dev Module</text>
+    <circle cx="258" cy="475" r="10" fill="#ffcf4a"/>
+    <circle cx="462" cy="475" r="10" fill="#ffcf4a"/>
+    <text x="360" y="515" text-anchor="middle" class="label">Firmware poste</text>
+    <text x="360" y="545" text-anchor="middle" class="small">relais + décompte local</text>
+  </g>
+
+  <!-- ESP pin labels -->
+  <g>
+    <rect x="545" y="230" width="92" height="38" rx="9" fill="#ff5b65"/><text x="591" y="255" text-anchor="middle" class="pin">3V3</text>
+    <rect x="545" y="286" width="92" height="38" rx="9" fill="#d5dde8"/><text x="591" y="311" text-anchor="middle" class="pin">GND</text>
+    <rect x="545" y="342" width="92" height="38" rx="9" fill="#43b9ff"/><text x="591" y="367" text-anchor="middle" class="pin">GPIO25</text>
+    <rect x="545" y="398" width="92" height="38" rx="9" fill="#c27aff"/><text x="591" y="423" text-anchor="middle" class="pin">GPIO26</text>
+    <rect x="545" y="574" width="92" height="38" rx="9" fill="#ffb020"/><text x="591" y="599" text-anchor="middle" class="pin">5V/VIN</text>
+    <rect x="545" y="630" width="92" height="38" rx="9" fill="#d5dde8"/><text x="591" y="655" text-anchor="middle" class="pin">GND</text>
+    <rect x="545" y="686" width="92" height="38" rx="9" fill="#49d69d"/><text x="591" y="711" text-anchor="middle" class="pin">GPIO27</text>
+  </g>
+
+  <!-- TM1637 display -->
+  <g filter="url(#shadow)">
+    <rect x="925" y="164" width="430" height="310" rx="26" fill="#102b22" stroke="#48c990" stroke-width="3"/>
+    <text x="1140" y="202" text-anchor="middle" class="section">Afficheur TM1637</text>
+    <rect x="1008" y="223" width="264" height="108" rx="12" fill="#111518" stroke="#41515c" stroke-width="4"/>
+    <text x="1140" y="303" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="76" font-weight="700" fill="#ff394f" letter-spacing="4">30:00</text>
+    <text x="1140" y="357" text-anchor="middle" class="small">4 chiffres · séparateur central</text>
+    <rect x="923" y="230" width="80" height="38" rx="9" fill="#ff5b65"/><text x="963" y="255" text-anchor="middle" class="pin">VCC</text>
+    <rect x="923" y="286" width="80" height="38" rx="9" fill="#d5dde8"/><text x="963" y="311" text-anchor="middle" class="pin">GND</text>
+    <rect x="923" y="342" width="80" height="38" rx="9" fill="#43b9ff"/><text x="963" y="367" text-anchor="middle" class="pin">CLK</text>
+    <rect x="923" y="398" width="80" height="38" rx="9" fill="#c27aff"/><text x="963" y="423" text-anchor="middle" class="pin">DIO</text>
+    <rect x="1042" y="390" width="196" height="54" rx="12" fill="#153f32" stroke="#2a8d68" stroke-width="2"/>
+    <text x="1140" y="413" text-anchor="middle" class="small">Alimenter en</text>
+    <text x="1140" y="434" text-anchor="middle" class="label">3,3 V uniquement</text>
+  </g>
+
+  <!-- Relay module -->
+  <g filter="url(#shadow)">
+    <rect x="925" y="525" width="430" height="255" rx="26" fill="#10233d" stroke="#4f9cff" stroke-width="3"/>
+    <text x="1140" y="566" text-anchor="middle" class="section">Module relais</text>
+    <rect x="1055" y="592" width="170" height="120" rx="15" fill="#1769aa" stroke="#71bcff" stroke-width="3"/>
+    <rect x="1088" y="617" width="104" height="70" rx="10" fill="#2184ca" stroke="#94d0ff" stroke-width="2"/>
+    <text x="1140" y="648" text-anchor="middle" class="label">RELAY</text>
+    <text x="1140" y="675" text-anchor="middle" class="small">entrée 3,3 V</text>
+    <rect x="923" y="574" width="80" height="38" rx="9" fill="#ffb020"/><text x="963" y="599" text-anchor="middle" class="pin">VCC</text>
+    <rect x="923" y="630" width="80" height="38" rx="9" fill="#d5dde8"/><text x="963" y="655" text-anchor="middle" class="pin">GND</text>
+    <rect x="923" y="686" width="80" height="38" rx="9" fill="#49d69d"/><text x="963" y="711" text-anchor="middle" class="pin">IN</text>
+    <circle cx="1288" cy="610" r="8" fill="#ffcf4a"/><circle cx="1288" cy="651" r="8" fill="#ffcf4a"/><circle cx="1288" cy="692" r="8" fill="#ffcf4a"/>
+    <text x="1310" y="615" class="small">NO</text><text x="1310" y="656" class="small">COM</text><text x="1310" y="697" class="small">NC</text>
+  </g>
+
+  <!-- Signal wires -->
+  <path d="M637 249H923" class="wire" stroke="#ff5b65"/>
+  <path d="M637 305H923" class="wire" stroke="#d5dde8"/>
+  <path d="M637 361H923" class="wire" stroke="#43b9ff"/>
+  <path d="M637 417H923" class="wire" stroke="#c27aff"/>
+  <path d="M637 593H923" class="wire" stroke="#ffb020"/>
+  <path d="M637 649H923" class="wire" stroke="#d5dde8"/>
+  <path d="M637 705H923" class="wire" stroke="#49d69d"/>
+  <text x="772" y="239" class="wire-label" fill="#ff7b83">3,3 V</text>
+  <text x="772" y="351" class="wire-label" fill="#65c7ff">CLK</text>
+  <text x="772" y="407" class="wire-label" fill="#d39aff">DIO</text>
+  <text x="772" y="583" class="wire-label" fill="#ffc15d">5 V*</text>
+  <text x="772" y="695" class="wire-label" fill="#6ce6b3">commande</text>
+
+  <!-- USB power -->
+  <g>
+    <rect x="18" y="642" width="120" height="75" rx="14" fill="#152a40" stroke="#7188a1" stroke-width="2"/>
+    <text x="78" y="673" text-anchor="middle" class="label">USB</text>
+    <text x="78" y="697" text-anchor="middle" class="small">5 V</text>
+    <path d="M138 680H170" class="wire" stroke="#8ea4bb"/>
+  </g>
+
+  <!-- Controlled circuit -->
+  <g>
+    <path d="M1296 610H1380V630" class="wire" stroke="#ffcf4a"/>
+    <path d="M1296 651H1380V690" class="wire" stroke="#ffcf4a"/>
+    <rect x="1360" y="610" width="122" height="105" rx="15" fill="#332c12" stroke="#ffcf4a" stroke-width="3"/>
+    <text x="1421" y="644" text-anchor="middle" class="label">Circuit</text>
+    <text x="1421" y="668" text-anchor="middle" class="small">à commander</text>
+    <text x="1421" y="692" text-anchor="middle" class="small">via COM + NO</text>
+  </g>
+
+  <!-- Notes -->
+  <g>
+    <rect x="70" y="812" width="1360" height="82" rx="18" fill="#15243a" stroke="#38526f" stroke-width="2"/>
+    <circle cx="102" cy="853" r="20" fill="#ffb020"/><text x="102" y="860" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="800" fill="#07111f">!</text>
+    <text x="138" y="841" class="label">* Le relais doit accepter une commande logique 3,3 V. Adapter VCC à son modèle (5 V/VIN représenté ici).</text>
+    <text x="138" y="869" class="small">Toutes les masses logiques sont communes. Ne jamais appliquer 5 V sur CLK/DIO. Ne pas câbler le secteur sans protections et qualification adaptées.</text>
+  </g>
+</svg>

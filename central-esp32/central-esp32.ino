@@ -11,6 +11,7 @@
 #include "AuthService.h"
 #include "WebRoutes.h"
 #include "LogService.h"
+#include "RevenueService.h"
 
 AppState appState;
 WebServer server(AppConfig::SERVER_PORT);
@@ -38,6 +39,12 @@ void setup() {
   LogService::info(appState, "Mode normal démarré. IP: " + localIp);
   WifiService::beginMdns(appState);
 
+  RevenueService::begin(appState);
+  if (appState.revenueStorageReady) {
+    LogService::info(appState, "Stockage LittleFS de recette prêt.");
+  } else {
+    LogService::warn(appState, appState.revenueStorageError);
+  }
   CoinService::begin(appState);
   PostService::begin(appState);
   WebRoutes::registerRoutes(server, appState);
@@ -54,5 +61,6 @@ void loop() {
 
   server.handleClient();
   CoinService::update(appState);
+  RevenueService::update(appState);
   PostService::refreshStatuses(appState);
 }

@@ -24,5 +24,12 @@ namespace PosteConfig {
 
   inline constexpr bool RELAY_ACTIVE_HIGH = true;
 
+  // Afficheur 4 chiffres TM1637 alimente en 3,3 V.
+  inline constexpr int TM1637_CLK_PIN = 25;
+  inline constexpr int TM1637_DIO_PIN = 26;
+  // Luminosite comprise entre 0 (minimum) et 7 (maximum).
+  inline constexpr int TM1637_BRIGHTNESS = 5;
+  inline constexpr unsigned long DISPLAY_UPDATE_INTERVAL_MS = 100;
+
   inline constexpr uint16_t HTTP_PORT = 80;
 }

@@ -11,6 +11,8 @@ jeu depuis une interface web locale.
 - [Architecture](#architecture)
 - [Démarrage du firmware](#démarrage-du-firmware)
 - [Gestion des coins](#gestion-des-coins)
+- [Recette dans LittleFS](#recette-dans-littlefs)
+- [Câblage final de la centrale](#câblage-final-de-la-centrale)
 - [Gestion des postes](#gestion-des-postes)
 - [Gestion des utilisateurs](#gestion-des-utilisateurs)
 - [Interface web](#interface-web)
@@ -29,7 +31,10 @@ jeu depuis une interface web locale.
 - accès local par adresse IP ou `http://pstm.local` ;
 - lecture du monnayeur sur le GPIO 13 ;
 - conversion configurable des impulsions en coins ;
+- valeur configurable de l'impulsion : 500, 1 000, 2 000 ou 5 000 millimes ;
 - crédit disponible sauvegardé en mémoire NVS ;
+- journal monétaire binaire compact dans LittleFS ;
+- recette par jour, semaine ou mois avec graphique, cartes, tableau et exports PDF/CSV ;
 - découverte automatique des ESP32 des postes ;
 - configuration, renommage et suppression des postes ;
 - démarrage, prolongation et arrêt des sessions ;
@@ -52,12 +57,16 @@ flowchart LR
     Central -->|Commandes HTTP| Post2[ESP32 Poste 2]
     Post1 -->|Annonce et statut| Central
     Post2 -->|Annonce et statut| Central
+    Post1 --> Display1[Afficheur TM1637]
+    Post2 --> Display2[Afficheur TM1637]
     Central --> NVS[(Mémoire NVS)]
+    Central --> LFS[(LittleFS interne\nrecettes)]
 ```
 
 La centrale est le point de décision du système. Les postes doivent exécuter le
 firmware compatible du dossier voisin `../poste-esp32`, qui fournit les
-endpoints `/status`, `/command`, `/configure` et `/identity/clear`.
+endpoints `/status`, `/command`, `/configure` et `/identity/clear`, commande le
+relais et affiche localement le temps restant sur un TM1637.
 
 ### Composants internes
 
@@ -69,7 +78,8 @@ endpoints `/status`, `/command`, `/configure` et `/identity/clear`.
 | Gestion des postes | Découverte, identité, sessions et surveillance. |
 | Client des postes | Échanges HTTP entre la centrale et chaque poste. |
 | Authentification | Comptes, mots de passe, sessions et permissions. |
-| Stockage | Persistance dans la mémoire NVS de l'ESP32. |
+| Stockage | Configuration et solde en NVS ; historique des recettes dans LittleFS. |
+| Recette | Horodatage NTP, journal des impulsions, agrégation et exports. |
 | Web | Pages HTML/CSS/JavaScript et routes de l'API. |
 | Logs | Journal en RAM et sortie série. |
 
@@ -82,12 +92,14 @@ La fonction `setup()` exécute les opérations suivantes :
 3. création ou migration du compte administrateur ;
 4. tentative de connexion au Wi-Fi enregistré pendant 15 secondes ;
 5. démarrage du portail Wi-Fi si la connexion échoue ;
-6. sinon, démarrage de mDNS, du monnayeur, des postes et du serveur web.
+6. sinon, démarrage de mDNS et de la synchronisation NTP ;
+7. montage de LittleFS, puis démarrage du monnayeur, des postes et du serveur web.
 
 En mode normal, `loop()` traite continuellement :
 
 - les requêtes HTTP ;
 - les impulsions reçues du monnayeur ;
+- l'état de l'horloge et les nouvelles tentatives de montage LittleFS ;
 - l'expiration des postes en attente ;
 - l'interrogation périodique des postes configurés.
 
@@ -117,43 +129,126 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-![Câblage du monnayeur JY-133B sur le GPIO 13 de l'ESP32](docs/images/cablage-jy-133b-esp32-gpio13.webp)
+Le signal du monnayeur arrive sur le GPIO 13 configuré en `INPUT`, exclusivement
+à travers une interface 3,3 V. Le schéma final utilise un PC817 avec une
+résistance d'entrée de 2,2 kΩ et une pull-up de 10 kΩ côté ESP32. Ne jamais
+relier directement la sortie 12 V `COIN` à l'ESP32.
 
-Le fil de signal du monnayeur est relié au GPIO 13 configuré en `INPUT`.
-La masse du monnayeur et celle de l'ESP32 doivent être communes. Le firmware ne
-compte une impulsion qu'après avoir observé un niveau bas complet entre 10 et
-250 ms, ou un niveau haut de même durée si le monnayeur est réglé en contact
-normalement fermé (`NC`). La polarité `NO`/`NC` est détectée automatiquement.
-Un délai anti-rebond de 80 ms élimine ensuite les impulsions parasites rapprochées.
+Le firmware ne compte une impulsion qu'après avoir observé un niveau complet
+entre 10 et 250 ms. La polarité `NO`/`NC` est détectée automatiquement et un
+anti-rebond de 80 ms élimine les fronts parasites rapprochés.
 
-Pour un JY-133B alimenté en 12 V, relier la sortie `COIN` au GPIO 13 et partager
-la masse avec l'ESP32. Une résistance pull-down externe de 4,7 kΩ doit relier
-le GPIO 13 au GND. Elle maintient un niveau bas stable lorsque la sortie du
-monnayeur est inactive. Vérifier au multimètre que le signal `COIN` ne dépasse
-jamais 3,3 V : ne jamais relier directement un signal 12 V au GPIO. Conserver
-le câble de signal court et éloigné des relais et des fils 12 V.
+Il faut distinguer trois notions :
+
+- une **impulsion** est le signal électrique validé et correspond à une valeur
+  monétaire configurée ;
+- un **coin** est un crédit de jeu créé après le nombre configuré d'impulsions ;
+- la **recette** compte l'argent encaissé à chaque impulsion, que le crédit soit
+  déjà complet ou non.
 
 ```text
-nouveaux coins = nouvelles impulsions / impulsions par coin
+recette ajoutée = impulsions validées × valeur d'une impulsion
+nouveaux coins = floor((reliquat + impulsions validées) / impulsions par coin)
 durée attribuée = nombre de coins x durée par coin
 ```
+
+Exemple demandé : avec une impulsion valant `1 000` millimes :
+
+| Impulsions par coin | Encaissement nécessaire | Crédit créé |
+|---:|---:|---:|
+| 1 | 1,000 TND | 1 coin |
+| 2 | 2,000 TND | 1 coin |
+
+Un monnayeur multi-pièces peut aussi être programmé avec une base de 500
+millimes : 500 millimes produit 1 impulsion, 1 TND en produit 2, 2 TND en
+produit 4 et 5 TND en produit 10. La centrale calcule alors correctement la
+recette de toutes ces pièces. La programmation physique du monnayeur doit rester
+cohérente avec la valeur d'impulsion choisie dans l'interface.
 
 Valeurs initiales :
 
 | Paramètre | Valeur |
 |---|---:|
 | Impulsions par coin | 1 |
+| Valeur d'une impulsion | 1 000 millimes (1 TND) |
 | Durée d'un coin | 1800 secondes (30 minutes) |
 | Coins disponibles | 0 |
 
-Le solde est sauvegardé après chaque détection ou attribution. Lors d'une
+Le solde et le reliquat d'impulsions sont sauvegardés après chaque détection ou
+attribution. Une coupure entre deux impulsions ne fait donc pas perdre la
+progression vers le prochain coin. Lors d'une
 affectation, les coins ne sont retirés qu'après une réponse HTTP réussie du
-poste.
+poste. Un changement de **Impulsions par coin** annule le reliquat incomplet
+pour éviter de le convertir rétroactivement avec une nouvelle règle. Les
+impulsions déjà encaissées restent dans la recette.
 
 > Attention : les GPIO de l'ESP32 fonctionnent en 3,3 V. Ne jamais injecter
-> directement une tension supérieure. Selon le monnayeur, utiliser un
-> optocoupleur, un transistor ou un circuit d'adaptation approprié et relier les
-> masses seulement si le schéma électrique le permet.
+> directement une tension supérieure. Mesurer la sortie réelle et confirmer le
+> brochage du modèle de monnayeur avant la mise sous tension.
+
+## Recette dans LittleFS
+
+La centrale synchronise son horloge par NTP avec le fuseau tunisien `CET-1`,
+puis ajoute chaque lot d'impulsions dans `/revenue.bin`, dans la partition
+LittleFS de la flash interne. Chaque enregistrement binaire compact occupe 16
+octets : epoch, montant en millimes, impulsions, coins créés et CRC16. Le CRC
+permet d'ignorer proprement une éventuelle écriture incomplète ou corrompue.
+
+La valeur monétaire est écrite au moment de l'encaissement. Une modification
+ultérieure du tarif ne change donc jamais l'historique. Les simulations de coin
+et les corrections administratives du solde ne sont pas comptabilisées comme
+recette.
+
+La page administrateur `/recette` propose :
+
+- une sélection **Jour**, **Semaine** ou **Mois**, avec date de référence ;
+- quatre cartes de synthèse : recette, impulsions, coins créés et écritures ;
+- un graphique en barres et un tableau détaillé ;
+- un export CSV agrégé côté ESP32 ;
+- un export PDF généré localement dans le navigateur.
+
+Si une pièce est introduite avant la synchronisation NTP, l'écriture reçoit un
+epoch nul. Elle apparaît comme non datée et n'est pas affectée arbitrairement à
+un jour. Si LittleFS devient indisponible, le crédit de jeu continue à
+fonctionner, mais l'interface et les logs signalent explicitement l'échec de
+stockage. La centrale retente le montage toutes les 30 secondes.
+
+Au tout premier démarrage avec la nouvelle partition, LittleFS est formaté puis
+marqué comme initialisé dans la NVS. Aux démarrages suivants, un échec de montage
+ne déclenche jamais un reformatage automatique : l'historique est protégé et
+l'administrateur reçoit une erreur explicite.
+
+La sauvegarde JSON contient la configuration monétaire, mais pas le journal de
+recette. LittleFS et la NVS ont des rôles séparés : NVS conserve les paramètres,
+le solde, les comptes et les postes ; LittleFS conserve les événements financiers.
+
+## Câblage final de la centrale
+
+![Schéma de câblage final de la centrale ESP32 sans module mémoire](docs/schema-cablage-central-final.svg)
+
+Le monnayeur reste alimenté en 12 V. L'ESP32 reçoit 5 V régulés depuis un
+convertisseur abaisseur ou une alimentation USB séparée. NVS et LittleFS sont
+des zones de la flash intégrée à l'ESP32 : aucune broche et aucun module mémoire
+externe ne sont nécessaires.
+
+Le schéma utilise des fils colorés et les noms sérigraphiés des broches, dans le
+style d'un montage physique. La position exacte des broches peut varier selon le
+fabricant du DevKit : toujours suivre les étiquettes `VIN/5V`, `GND`, `3V3` et
+`GPIO13` imprimées sur la carte, et non uniquement leur position dans le dessin.
+
+| Depuis | Vers | Rôle |
+|---|---|---|
+| Alimentation `+12 V` | Monnayeur rouge, buck `IN+` et entrée `R1 2,2 kΩ` | Alimentation 12 V |
+| Alimentation `GND` | Monnayeur noir et buck `IN−` | Masse primaire |
+| Monnayeur blanc `COIN` | Retour de la LED du PC817 | Impulsions brutes NPN |
+| Buck `OUT+` réglé à 5,0 V | ESP32 `VIN/5V` | Alimentation de la centrale |
+| Buck `OUT−` | ESP32 `GND` | Masse de la centrale |
+| ESP32 `3V3` | Pull-up `R2 10 kΩ` | Niveau logique 3,3 V |
+| Collecteur PC817 `OUT` | ESP32 `GPIO13` | Signal protégé du monnayeur |
+| Émetteur PC817 | ESP32 `GND` | Référence logique |
+
+Les broches SPI (`MOSI`, `MISO`, `SCK`, `CS`) restent libres : le journal de
+recette utilise LittleFS dans la flash interne et ne demande aucun câblage.
 
 ## Gestion des postes
 
@@ -189,7 +284,8 @@ proposition de reprise propre à ce poste. L'opérateur peut reprendre le temps
 sauvegardé ou l'annuler définitivement.
 
 Le relais du poste reste coupé tant qu'aucune décision n'a été envoyée. Les
-reprises de plusieurs postes sont affichées et traitées indépendamment.
+reprises de plusieurs postes sont affichées et traitées indépendamment. Sur le
+poste, le temps récupérable clignote sur le TM1637 jusqu'à cette décision.
 
 ### Surveillance
 
@@ -281,6 +377,7 @@ actualisées en arrière-plan.
 ### Pages réservées aux administrateurs
 
 - `/config` : durée d'un coin, impulsions par coin, solde et sauvegarde/restauration complète ;
+- `/recette` : recette du jour, de la semaine ou du mois et exports PDF/CSV ;
 - `/logs` : journal des événements ;
 - `/postes` : postes configurés et postes découverts ;
 - `/users` : création et administration des comptes ;
@@ -294,6 +391,7 @@ navigateur ne suffit donc pas à contourner les restrictions.
 ### Matériel et logiciels
 
 - carte ESP32 compatible avec le framework Arduino ;
+- optocoupleur PC817, résistance 2,2 kΩ et pull-up 10 kΩ pour le monnayeur ;
 - câble USB de données ;
 - Arduino IDE ou `arduino-cli` ;
 - package de cartes **esp32 by Espressif Systems** ;
@@ -304,19 +402,32 @@ Le projet a été vérifié avec le cœur ESP32 3.3.11 et la cible
 
 ### Avec Arduino IDE
 
-1. Ouvrir `central-esp32.ino`.
+1. Ouvrir `central-esp32.ino` directement depuis ce dossier. Conserver
+   `partitions.csv` dans le même dossier que le fichier `.ino`.
 2. Installer ArduinoJson depuis le gestionnaire de bibliothèques.
-3. Sélectionner une carte compatible, par exemple **ESP32 Dev Module**.
-4. Sélectionner le schéma
-   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
-5. Sélectionner le port série de la carte.
-6. Cliquer sur **Vérifier**, puis **Téléverser**.
-7. Ouvrir le moniteur série à 115200 bauds.
+3. Ouvrir **Tools/Outils → Board/Type de carte → esp32** et sélectionner une
+   carte compatible, par exemple **ESP32 Dev Module**.
+4. Régler **Tools/Outils → Flash Size → 4MB (32Mb)**.
+5. Ouvrir **Tools/Outils → Partition Scheme/Schéma de partition** et choisir
+   exactement **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+6. Régler **Erase All Flash Before Sketch Upload → Disabled**, sauf si
+   l'effacement volontaire de toute la NVS est souhaité.
+7. Sélectionner le port série de la centrale.
+8. Cliquer sur **Vérifier**, puis **Téléverser** afin d'écrire le firmware et la
+   nouvelle table de partitions par USB.
+9. Ouvrir le moniteur série à 115200 bauds.
 
-Le fichier `partitions.csv` du sketch décrit le même découpage et garantit deux
-partitions OTA de 1,9 Mo. Après un changement de schéma, faire un téléversement
-complet par USB pour écrire la table de partitions. Éviter **Erase All Flash**
-si les paramètres NVS doivent être conservés.
+Le nom du menu annonce 128 Kio de SPIFFS, mais il sert ici à fournir assez de
+place au compilateur pour l'application. Le fichier local `partitions.csv`
+remplace automatiquement le découpage standard par deux applications OTA de
+1,625 Mio et **640 Kio de LittleFS**. Ne pas choisir **Default**, et ne pas
+renommer, déplacer ou supprimer `partitions.csv`.
+
+Le fichier `partitions.csv` garantit deux partitions OTA de 1,625 Mio, une
+partition LittleFS de 640 Kio et la NVS à son emplacement actuel. Après cette
+mise à jour, faire un téléversement complet par USB pour écrire la table de
+partitions. Éviter **Erase All Flash** si les paramètres NVS doivent être
+conservés. La nouvelle table reformate LittleFS à sa première initialisation.
 
 ### Avec arduino-cli
 
@@ -382,7 +493,8 @@ maintenance importante.
 1. Vérifier le crédit disponible en haut du tableau de bord.
 2. Repérer le poste voulu.
 3. Cliquer sur **+1 coin** ou **+2 coins**.
-4. Vérifier le passage à l'état `active`, le relais `ON` et le temps restant.
+4. Vérifier le passage à l'état `active`, le relais `ON` et le décompte local sur
+   l'afficheur TM1637 du poste.
 
 Si le poste est déjà actif, le temps est ajouté à la session existante.
 
@@ -406,18 +518,26 @@ Après le redémarrage d'un poste qui était actif :
 
 Dans **Configuration** :
 
-- **Durée par coin** : nombre de secondes attribuées par coin ;
+- **Durée par coin** : nombre de minutes attribuées par coin ;
 - **Impulsions par coin** : impulsions électriques nécessaires pour un coin ;
+- **Valeur d'une impulsion** : 500, 1 000, 2 000 ou 5 000 millimes encaissés ;
 - **Crédit disponible** : correction administrative du solde.
 
 Cliquer sur **Enregistrer** après modification.
 
-### 10. Sauvegarder ou restaurer la Centrale
+### 10. Consulter et exporter la recette
+
+1. Ouvrir **Recette** avec un compte administrateur.
+2. Choisir **Jour**, **Semaine** ou **Mois**, puis une date de référence.
+3. Vérifier l'état vert de LittleFS et de l'horloge.
+4. Utiliser **CSV** pour les données agrégées ou **PDF** pour le rapport lisible.
+
+### 11. Sauvegarder ou restaurer la Centrale
 
 Dans **Configuration**, cliquer sur **Exporter JSON** pour télécharger une
 sauvegarde complète. Le fichier contient :
 
-- la durée par coin, les impulsions et le solde disponible ;
+- la durée par coin, les impulsions, leur valeur monétaire et le solde disponible ;
 - le token API ;
 - tous les utilisateurs, leurs rôles et leurs identifiants chiffrés ;
 - tous les postes configurés ;
@@ -436,8 +556,10 @@ reste compatible et conserve la préférence actuelle du navigateur.
 
 > Le fichier contient le token API, les identifiants Wi-Fi et les hashes des
 > mots de passe. Ne pas le partager et le stocker dans un emplacement protégé.
+> L'historique `/revenue.bin` de LittleFS n'est ni remplacé ni inclus par cette
+> sauvegarde JSON.
 
-### 11. Réinitialiser le Wi-Fi
+### 12. Réinitialiser le Wi-Fi
 
 Cliquer sur **Reset Wi-Fi** et confirmer. Les identifiants Wi-Fi sont supprimés,
 l'ESP32 redémarre et recrée le point d'accès de configuration.
@@ -474,6 +596,8 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 | POST | `/config` | Modifie la configuration générale. |
 | GET | `/config/export` | Télécharge la sauvegarde JSON complète. |
 | POST | `/config/import` | Restaure directement une sauvegarde JSON complète. |
+| GET | `/revenue/data?period=day|week|month&anchor=AAAA-MM-JJ` | Retourne la recette agrégée et l'état LittleFS/NTP. |
+| GET | `/revenue/export.csv?period=day|week|month&anchor=AAAA-MM-JJ` | Télécharge la recette agrégée en CSV. |
 | POST | `/post/update` | Renomme un poste inactif. |
 | POST | `/post/delete` | Supprime et déconfigure un poste inactif. |
 | POST | `/post/ping` | Teste manuellement un poste. |
@@ -521,14 +645,24 @@ La classe `Preferences` enregistre les données dans plusieurs espaces NVS :
 | Namespace | Données |
 |---|---|
 | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
-| `appcfg` | Durée d'un coin, impulsions par coin et solde. |
+| `appcfg` | Durée, impulsions par coin, valeur en millimes, solde et reliquat. |
 | `auth` | Token API et comptes avec hash des mots de passe. |
 | `posts` | Identité et adresse IP des postes configurés. |
+| `revenue` | Marqueur d'initialisation de la partition LittleFS. |
 
 Les statuts, sessions web, postes en attente et logs restent en RAM et sont
 réinitialisés au redémarrage. Les décisions de reprise ne dépendent cependant
 pas de la NVS centrale : chaque poste conserve son propre instantané et le
 réannonce après le redémarrage de la centrale.
+
+Le journal financier n'est pas en NVS. Il est conservé dans `/revenue.bin` sur
+LittleFS. Une écriture compacte de 16 octets est flushée après chaque lot
+d'impulsions accepté. La partition LittleFS fait 640 Kio ; l'interface expose
+son occupation afin que l'administrateur puisse la surveiller. À partir de 40 %
+d'occupation, une compaction sûre regroupe automatiquement les anciens
+événements par heure. Cette granularité conserve exactement les rapports jour,
+semaine et mois tout en prolongeant fortement la capacité. Un fichier temporaire
+et un fichier de secours rendent la compaction récupérable après une coupure.
 
 ## Rôle de chaque fichier
 
@@ -542,6 +676,8 @@ réannonce après le redémarrage de la centrale.
 | `AuthService.cpp` | Hash des mots de passe, connexion, sessions, rôles et CRUD utilisateurs. |
 | `CoinService.h` | Interface du gestionnaire de monnayeur. |
 | `CoinService.cpp` | Interruption GPIO, anti-rebond et conversion en coins. |
+| `RevenueService.h` | Structures et interface des rapports de recette. |
+| `RevenueService.cpp` | NTP, LittleFS, journal binaire CRC16, agrégations jour/semaine/mois et CSV. |
 | `LogService.h` | Interface du journal d'événements. |
 | `LogService.cpp` | Journal RAM limité à 100 événements et sortie série. |
 | `PostService.h` | Interface de la logique métier des postes. |
@@ -561,7 +697,8 @@ réannonce après le redémarrage de la centrale.
 | `WebAssets.h` / `WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `*Asset.inc` | Données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `ui-assets/` | Logo maître, fond de connexion et variantes WebP HD documentées. |
-| `partitions.csv` | Deux partitions OTA de 1,9 Mo, 128 Ko de SPIFFS et NVS conservée. |
+| `docs/schema-cablage-central-final.svg` | Schéma vectoriel final sans module mémoire : alimentation, PC817 et ESP32. |
+| `partitions.csv` | Deux partitions OTA de 1,625 Mio, 640 Kio de LittleFS et NVS conservée. |
 
 ## Sécurité
 
@@ -605,10 +742,17 @@ déploiement.
 
 ### Les coins ne sont pas détectés
 
-- contrôler le câblage du GPIO 13 et de la masse ;
+- contrôler le câblage du GPIO 13 et l'interface PC817 ;
 - vérifier le niveau électrique et le circuit d'adaptation ;
 - ajuster **Impulsions par coin** ;
 - utiliser **+1 coin** de simulation pour distinguer un problème matériel d'un problème logiciel.
+
+### La recette n'est pas enregistrée
+
+- faire un téléversement USB complet pour appliquer le nouveau `partitions.csv` ;
+- ouvrir **Recette** et lire l'état LittleFS/NTP affiché en haut de la page ;
+- vérifier que le Wi-Fi dispose d'un accès NTP pour obtenir les dates réelles ;
+- ne pas utiliser **+1 coin** comme test financier : la simulation est exclue de la recette.
 
 ### Connexion refusée après mise à jour
 
@@ -618,10 +762,12 @@ déploiement.
 
 ## Limites connues
 
-- les assets HD augmentent la taille du firmware et imposent le schéma
-  **Minimal SPIFFS** documenté ci-dessus ;
+- les assets HD imposent le fichier `partitions.csv` personnalisé documenté ci-dessus ;
 - les communications HTTP ne sont pas chiffrées ;
 - les logs sont perdus au redémarrage ;
+- les écritures effectuées avant NTP sont conservées mais restent non datées ;
+- si LittleFS est indisponible, le crédit continue mais la recette correspondante ne peut pas être récupérée après coup ;
+- la partition de 640 Kio est finie malgré la compaction horaire : surveiller son occupation dans **Recette** ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut
   être supérieur au temps réel d'environ 60 secondes avec la configuration par défaut ;
 - la sauvegarde ne rejoue pas les données temporaires : journal RAM, sessions web,
@@ -645,6 +791,9 @@ POSTE_COMMAND_TOKEN
 COIN_PIN
 DEFAULT_COIN_DURATION_SECONDS
 DEFAULT_PULSES_PER_COIN
+DEFAULT_PULSE_VALUE_MILLIMES
+REVENUE_FILE
+REVENUE_STORAGE_RETRY_INTERVAL_MS
 COIN_DEBOUNCE_MS
 POST_REFRESH_INTERVAL_MS
 POST_OFFLINE_TIMEOUT_MS

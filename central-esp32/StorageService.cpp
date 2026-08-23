@@ -21,8 +21,21 @@ namespace StorageService {
       changed = true;
     }
 
+    if (state.pulseValueMillimes != 500 &&
+        state.pulseValueMillimes != 1000 &&
+        state.pulseValueMillimes != 2000 &&
+        state.pulseValueMillimes != 5000) {
+      state.pulseValueMillimes = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+      changed = true;
+    }
+
     if (state.availableCoins < 0) {
       state.availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
+      changed = true;
+    }
+
+    if (state.pendingPulses < 0 || state.pendingPulses >= state.pulsesPerCoin) {
+      state.pendingPulses = 0;
       changed = true;
     }
 
@@ -148,7 +161,9 @@ namespace StorageService {
     prefs.begin("appcfg", true);
     state.coinDurationSeconds = prefs.getInt("coinDur", AppConfig::DEFAULT_COIN_DURATION_SECONDS);
     state.pulsesPerCoin = prefs.getInt("pulseCoin", AppConfig::DEFAULT_PULSES_PER_COIN);
+    state.pulseValueMillimes = prefs.getInt("pulseVal", AppConfig::DEFAULT_PULSE_VALUE_MILLIMES);
     state.availableCoins = prefs.getInt("availCoins", AppConfig::DEFAULT_AVAILABLE_COINS);
+    state.pendingPulses = prefs.getInt("pendingPulse", 0);
     prefs.end();
 
     prefs.begin("auth", true);
@@ -193,12 +208,14 @@ namespace StorageService {
     prefs.begin("appcfg", false);
     prefs.putInt("coinDur", state.coinDurationSeconds);
     prefs.putInt("pulseCoin", state.pulsesPerCoin);
+    prefs.putInt("pulseVal", state.pulseValueMillimes);
     prefs.end();
   }
 
   void saveCredits(const AppState& state) {
     prefs.begin("appcfg", false);
     prefs.putInt("availCoins", state.availableCoins);
+    prefs.putInt("pendingPulse", state.pendingPulses);
     prefs.end();
   }
 
@@ -241,10 +258,12 @@ namespace StorageService {
     DynamicJsonDocument doc(24576);
 
     doc["format"] = "pstm-backup";
-    doc["version"] = 1;
+    doc["version"] = 2;
     doc["coinDurationSeconds"] = state.coinDurationSeconds;
     doc["pulsesPerCoin"] = state.pulsesPerCoin;
+    doc["pulseValueMillimes"] = state.pulseValueMillimes;
     doc["availableCoins"] = state.availableCoins;
+    doc["pendingPulses"] = state.pendingPulses;
     doc["apiToken"] = state.apiToken;
     buildUsersArray(doc.createNestedArray("users"), state);
     buildPostsArray(doc.createNestedArray("posts"), state);
@@ -274,7 +293,9 @@ namespace StorageService {
       return false;
     }
 
-    if (String(doc["format"] | "") != "pstm-backup" || (doc["version"] | 0) != 1 ||
+    int backupVersion = doc["version"] | 0;
+    if (String(doc["format"] | "") != "pstm-backup" ||
+        (backupVersion != 1 && backupVersion != 2) ||
         !doc["users"].is<JsonArray>() || !doc["posts"].is<JsonArray>()) {
       error = "invalid backup";
       return false;
@@ -283,10 +304,21 @@ namespace StorageService {
     AppState restored;
     restored.coinDurationSeconds = doc["coinDurationSeconds"] | 0;
     restored.pulsesPerCoin = doc["pulsesPerCoin"] | 0;
+    restored.pulseValueMillimes = backupVersion >= 2
+                                     ? (doc["pulseValueMillimes"] | 0)
+                                     : AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
     restored.availableCoins = doc["availableCoins"] | -1;
+    restored.pendingPulses = backupVersion >= 2 ? (doc["pendingPulses"] | 0) : 0;
     restored.apiToken = doc["apiToken"] | "";
+    bool pulseValueValid = restored.pulseValueMillimes == 500 ||
+                           restored.pulseValueMillimes == 1000 ||
+                           restored.pulseValueMillimes == 2000 ||
+                           restored.pulseValueMillimes == 5000;
     if (restored.coinDurationSeconds <= 0 || restored.pulsesPerCoin <= 0 ||
-        restored.availableCoins < 0 || restored.apiToken.length() < 8) {
+        !pulseValueValid ||
+        restored.availableCoins < 0 || restored.pendingPulses < 0 ||
+        restored.pendingPulses >= restored.pulsesPerCoin ||
+        restored.apiToken.length() < 8) {
       error = "invalid settings";
       return false;
     }
@@ -302,7 +334,9 @@ namespace StorageService {
 
     state.coinDurationSeconds = restored.coinDurationSeconds;
     state.pulsesPerCoin = restored.pulsesPerCoin;
+    state.pulseValueMillimes = restored.pulseValueMillimes;
     state.availableCoins = restored.availableCoins;
+    state.pendingPulses = restored.pendingPulses;
     state.apiToken = restored.apiToken;
     state.users.swap(restored.users);
     state.posts.swap(restored.posts);

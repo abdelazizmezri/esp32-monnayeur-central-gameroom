@@ -4,9 +4,11 @@ Ce dépôt contient les deux firmwares Arduino qui composent un système local d
 gestion de postes de jeu à monnayeur :
 
 - **`central-esp32`** : la centrale reçoit les impulsions du monnayeur, conserve
-  le solde de coins et distribue du temps de jeu depuis une interface web ;
+  le solde de coins, journalise la recette dans LittleFS et distribue du temps de
+  jeu depuis une interface web ;
 - **`poste-esp32`** : le contrôleur installé sur chaque poste reçoit la durée de
-  jeu, commande un relais et renvoie son état à la centrale.
+  jeu, commande un relais, affiche le temps restant sur un TM1637 et renvoie son
+  état à la centrale.
 
 Chaque dossier est un sketch Arduino autonome à compiler et à téléverser sur un
 ESP32 différent. Une centrale peut piloter plusieurs postes qui exécutent tous
@@ -34,7 +36,9 @@ flowchart LR
     P1 --> R1["Relais poste 1"]
     P2 --> R2["Relais poste 2"]
     PN --> RN["Relais poste N"]
+    P1 --> D1["Afficheur TM1637"]
     C --> NC["NVS centrale"]
+    C --> LFS["LittleFS interne — recettes"]
     P1 --> NP["NVS du poste"]
 ```
 
@@ -61,8 +65,9 @@ elle ouvre un point d'accès `GAMEROOM-CENTRAL-<chipId>` et son portail captif.
 ### 2. Démarrage d'un poste
 
 Le poste calcule son `chipId` matériel, charge son identité et ses identifiants
-Wi-Fi depuis la NVS, puis force le relais à l'arrêt. En cas d'échec Wi-Fi, il
-ouvre un point d'accès `GAMEROOM-POSTE-<chipId>`.
+Wi-Fi depuis la NVS, force le relais à l'arrêt puis initialise son afficheur
+TM1637 à `00:00` ou avec le temps récupérable. En cas d'échec Wi-Fi, il ouvre un
+point d'accès `GAMEROOM-POSTE-<chipId>`.
 
 Une fois connecté, il publie son propre service mDNS, résout `pstm.local` et
 annonce son état à la centrale toutes les cinq secondes.
@@ -85,15 +90,30 @@ Le monnayeur est lu sur le GPIO 13 de la centrale, en entrée simple, sur chaque
 changement d'état. Le firmware détecte automatiquement la polarité au repos
 (contact NO ou NC), applique un anti-rebond de 80 ms et ne compte que les
 impulsions complètes. Le nombre d'impulsions requis par coin est configurable ;
-chaque groupe complet augmente le solde central persistant.
+chaque groupe complet augmente le solde central persistant. Chaque impulsion
+validée ajoute en parallèle sa valeur monétaire au journal LittleFS, sans attendre
+qu'un groupe de crédit soit complet.
 
 Valeurs par défaut :
 
 | Paramètre | Valeur |
 |---|---:|
 | Impulsions par coin | 1 |
+| Valeur d'une impulsion | 1 000 millimes (1 TND) |
 | Durée par coin | 1 800 s, soit 30 min |
 | Solde initial | 0 coin |
+
+La règle est donc :
+
+```text
+recette = impulsions validées × valeur d'une impulsion
+coins créés = floor((reliquat + impulsions validées) / impulsions par coin)
+```
+
+Avec une impulsion valant 1 TND, `Impulsions par coin = 1` crée un coin après
+1 TND, tandis que `Impulsions par coin = 2` crée un coin après 2 TND. Pour un
+monnayeur multi-pièces, une base de 500 millimes permet par exemple de programmer
+1, 2, 4 et 10 impulsions pour les pièces de 0,5, 1, 2 et 5 TND.
 
 ### 5. Affectation du temps à un poste
 
@@ -112,7 +132,8 @@ Elle envoie ensuite au poste :
 Les coins ne sont débités qu'après une réponse HTTP réussie du poste. Sur le
 poste, `START_SESSION` active le relais et fixe la date de fin ; `ADD_TIME`
 prolonge cette date. La boucle principale coupe automatiquement le relais quand
-le temps arrive à zéro.
+le temps arrive à zéro. Chaque poste affiche en parallèle son propre décompte en
+`MM:SS` sous une heure, puis en `HH:MM` jusqu'à `99:59`.
 
 ### 6. Supervision
 
@@ -121,7 +142,19 @@ secondes, à tour de rôle, avec `GET /status`. Elle affiche son état, son IP, 
 relais et le temps restant. Un poste sans réponse valide depuis plus de dix
 secondes passe à l'état `offline`.
 
-### 7. Reprise après une coupure électrique
+### 7. Recette administrateur
+
+Après synchronisation NTP, la centrale écrit chaque encaissement sous forme
+binaire compacte dans `/revenue.bin` sur LittleFS. La page admin **Recette**
+agrège ce journal par heure pour un jour, par jour pour une semaine ou par jour
+pour un mois. Elle combine cartes de synthèse, graphique en barres et tableau,
+puis exporte le résultat en CSV ou en véritable fichier PDF.
+
+La valeur est figée dans chaque écriture : changer le réglage de l'impulsion ne
+modifie jamais l'historique. Les crédits simulés et corrections manuelles du
+solde sont volontairement exclus de la recette.
+
+### 8. Reprise après une coupure électrique
 
 Pendant une session, chaque poste enregistre un instantané du temps restant dans
 sa NVS au démarrage de la session, après chaque ajout de temps, puis toutes les
@@ -186,6 +219,7 @@ La centrale fournit une interface web responsive sur son IP et sur
 | Simuler une pièce | Oui | Non |
 | Configurer ou supprimer les postes | Oui | Non |
 | Modifier la configuration et le Wi-Fi | Oui | Non |
+| Consulter et exporter la recette | Oui | Non |
 | Gérer les comptes, les logs et le token API | Oui | Non |
 
 Dans **Vue des postes**, le bouton **Masquer les cartes** / **Afficher les cartes**
@@ -198,7 +232,7 @@ Il doit être modifié immédiatement. Les mots de passe sont salés et hachés 
 SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
 La page **Configuration** permet aussi d'exporter et de restaurer une sauvegarde
-JSON complète : paramètres de coins, solde, token API, utilisateurs avec leurs
+JSON complète : paramètres de coins, valeur de l'impulsion, solde, token API, utilisateurs avec leurs
 identifiants chiffrés, postes configurés, réglages Wi-Fi/IP et préférence
 d'affichage des cartes d'indicateurs. Une restauration ferme les sessions web,
 applique cette préférence dans le navigateur courant et demande une nouvelle
@@ -211,17 +245,32 @@ Matériel minimal :
 - un ESP32 pour la centrale ;
 - un ESP32 par poste de jeu ;
 - un monnayeur à impulsions avec une adaptation électrique vers 3,3 V ;
+- un PC817, une résistance 2,2 kΩ et une pull-up 10 kΩ pour protéger le GPIO 13 ;
 - un module relais adapté à chaque charge ;
+- un afficheur quatre chiffres TM1637 à quatre broches pour chaque poste ;
 - un réseau Wi-Fi local ;
 - des alimentations adaptées et un câblage sécurisé.
 
-La centrale utilise par défaut le GPIO 13 pour le monnayeur. Le firmware du
-poste utilise le GPIO 27 pour le relais ; avant de connecter une machine, il
-faut vérifier `RELAY_PIN` dans `PosteConfig.h` et adapter `RELAY_ACTIVE_HIGH` au
-module relais.
+La centrale utilise le GPIO 13 pour le monnayeur. NVS et LittleFS utilisent la
+flash interne et n'ajoutent aucun câblage. Le schéma final est disponible ici :
 
-> Un GPIO ESP32 n'accepte pas directement les tensions d'un monnayeur et ne doit
-> jamais alimenter une charge de puissance. Utiliser une interface 3,3 V,
+![Schéma de câblage final de la centrale](central-esp32/docs/schema-cablage-central-final.svg)
+
+Le [tableau de raccordement broche par broche](central-esp32/README.md#câblage-final-de-la-centrale)
+complète le dessin et doit être vérifié avec les noms sérigraphiés sur le modèle
+réel de l'ESP32.
+
+Le firmware du poste utilise le GPIO 27 pour le relais, le GPIO 25 pour `CLK` et
+le GPIO 26 pour `DIO`. Le schéma complet de la partie poste est disponible ici :
+
+![Schéma de câblage du poste avec relais et afficheur TM1637](poste-esp32/docs/schema-cablage-poste-tm1637.svg)
+
+Avant de connecter une machine, il faut vérifier `RELAY_PIN`, adapter
+`RELAY_ACTIVE_HIGH` au module relais et alimenter le TM1637 en 3,3 V. Son pilote
+est inclus dans le firmware et ne nécessite aucune bibliothèque supplémentaire.
+
+> Un GPIO ESP32 n'accepte pas directement la sortie 12 V d'un monnayeur et ne doit
+> jamais alimenter une charge de puissance. Utiliser l'interface optocouplée 3,3 V,
 > l'isolation et les protections adaptées. Le câblage secteur doit être confié à
 > une personne qualifiée.
 
@@ -301,24 +350,44 @@ CH340. La sélection correcte de la carte est détaillée dans le
 Utiliser les réglages suivants pour une carte ESP32 classique avec 4 Mo de
 flash :
 
+Pour changer le schéma de la **centrale** dans Arduino IDE 2 :
+
+1. Ouvrir `central-esp32/central-esp32.ino` directement depuis le dossier du
+   projet. Le fichier `central-esp32/partitions.csv` doit rester à côté du
+   fichier `.ino`.
+2. Aller dans **Tools/Outils → Board/Type de carte → esp32 → ESP32 Dev Module**.
+3. Aller dans **Tools/Outils → Flash Size → 4MB (32Mb)**.
+4. Aller dans **Tools/Outils → Partition Scheme/Schéma de partition** et choisir
+   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+5. Régler **Erase All Flash Before Sketch Upload → Disabled** pour conserver la
+   configuration NVS existante.
+6. Choisir le port USB de la centrale, puis lancer **Verify/Vérifier** et
+   **Upload/Téléverser**.
+
+Le texte « 128KB SPIFFS » est seulement le nom du profil Arduino sélectionné.
+Lors de la compilation de ce sketch, le fichier local `partitions.csv` remplace
+ce découpage standard et réserve réellement **640 Kio à LittleFS**. Ne pas
+renommer, déplacer ou supprimer ce fichier. Ne pas choisir **Default** pour la
+centrale : sa limite d'application est trop petite pour le firmware actuel.
+
 | Réglage Arduino IDE | Centrale | Poste |
 |---|---|---|
 | Board | ESP32 Dev Module | ESP32 Dev Module |
 | Flash Size | 4MB | 4MB |
-| Partition Scheme | **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)** | Default 4MB with spiffs |
+| Partition Scheme | **Minimal SPIFFS** (remplacé par le `partitions.csv` local) | Default 4MB with spiffs |
 | Upload Speed | 460800, ou 115200 en cas d'échec | 460800, ou 115200 en cas d'échec |
 | Port | Port USB de la centrale | Port USB du poste concerné |
 
 La centrale embarque désormais le fond de connexion et les logos en WebP haute
 qualité. Le fichier [`central-esp32/partitions.csv`](central-esp32/partitions.csv)
-applique le découpage **Minimal SPIFFS** : deux applications OTA de 1,9 Mo,
-128 Ko de SPIFFS et la NVS conservée à son emplacement habituel. Le poste
+applique un découpage personnalisé : deux applications OTA de 1,625 Mio,
+640 Kio de LittleFS et la NVS conservée à son emplacement habituel. Le poste
 n'embarque pas ces images et reste sur le schéma 4 Mo par défaut.
 
 Après ce changement, effectuer un téléversement complet de la centrale par USB
-afin d'écrire la table de partitions. Ne pas activer **Erase All Flash** sauf
-nécessité : ce réglage efface aussi le Wi-Fi, les comptes et les postes stockés
-en NVS.
+afin d'écrire la table de partitions. LittleFS sera initialisé automatiquement.
+Ne pas activer **Erase All Flash** sauf nécessité : ce réglage efface aussi le
+Wi-Fi, les comptes et les postes stockés en NVS.
 
 ### 6. Préparer la configuration du projet
 
@@ -330,7 +399,8 @@ Avant de compiler :
 2. Dans [`poste-esp32/PosteConfig.h`](poste-esp32/PosteConfig.h), copier
    exactement le même secret dans `COMMAND_TOKEN`.
 3. Vérifier `RELAY_PIN`, actuellement GPIO 27, et adapter
-   `RELAY_ACTIVE_HIGH` au module relais utilisé.
+   `RELAY_ACTIVE_HIGH` au module relais utilisé. Vérifier également le câblage
+   de l'afficheur : `TM1637_CLK_PIN` sur GPIO 25 et `TM1637_DIO_PIN` sur GPIO 26.
 
 Les identifiants du réseau Wi-Fi ne sont pas écrits dans le code : ils seront
 saisis plus tard dans les portails de configuration du central et des postes.
@@ -338,8 +408,8 @@ saisis plus tard dans les portails de configuration du central et des postes.
 ### 7. Compiler et téléverser la centrale
 
 1. Ouvrir [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
-2. Vérifier de nouveau la carte, le port et le schéma
-   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+2. Vérifier de nouveau **Tools/Outils → Partition Scheme/Schéma de partition →
+   Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
 3. Cliquer sur **Verify** pour compiler.
 4. Cliquer sur **Upload** pour téléverser le firmware.
 5. Si Arduino reste sur `Connecting...`, maintenir le bouton **BOOT** de
@@ -358,7 +428,8 @@ La centrale démarre soit sur le réseau enregistré, soit avec le point d'accè
    défaut.
 3. Cliquer sur **Verify**, puis **Upload**.
 4. Ouvrir le moniteur série à **115200 baud**.
-5. Répéter l'opération sur chaque poste. Tous utilisent le même firmware et le
+5. Vérifier que le TM1637 affiche `00:00` avant de démarrer une session.
+6. Répéter l'opération sur chaque poste. Tous utilisent le même firmware et le
    même secret, mais chaque ESP32 possède un `chipId` matériel unique.
 
 ### 9. Installation équivalente avec arduino-cli
@@ -402,19 +473,26 @@ Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
 7. Dans **Gestion des postes**, attendre la détection du `chipId`, puis attribuer
    un nom au poste.
 8. Simuler un coin ou insérer une pièce, affecter le crédit au poste et vérifier
-   que le relais s'active et que le temps diminue.
+   que le relais s'active et que le temps diminue sur l'afficheur TM1637.
 
 ## Persistance et redémarrage
 
 | Appareil | Namespace NVS | Données conservées |
 |---|---|---|
 | Centrale | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
-| Centrale | `appcfg` | Durée par coin, impulsions par coin et solde. |
+| Centrale | `appcfg` | Durée, impulsions par coin, valeur en millimes, solde et reliquat. |
 | Centrale | `auth` | Comptes, hashes salés et token API. |
 | Centrale | `posts` | Identité et dernière IP des postes configurés. |
+| Centrale | `revenue` | Marqueur d'initialisation de LittleFS ; aucune recette n'est stockée en NVS. |
 | Poste | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
 | Poste | `identity` | Identifiant logique et nom du poste. |
 | Poste | `session` | Dernier temps restant sauvegardé ; une valeur positive indique une session interrompue. |
+
+La recette financière est stockée séparément dans `/revenue.bin` sur LittleFS.
+Elle n'est pas incluse dans l'export JSON de configuration. Les paramètres,
+comptes, postes et solde restent dans la NVS. Une compaction automatique
+regroupe les anciens événements par heure lorsque l'occupation dépasse 40 %,
+sans changer les rapports jour/semaine/mois.
 
 Ne sont pas persistants : les logs et sessions web de la centrale, les postes
 en attente et les statuts instantanés. Après le redémarrage d'un poste interrompu,
@@ -435,6 +513,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/AuthService.cpp` | Gère les comptes, rôles, hashes de mots de passe, cookies de session et tokens Bearer. |
 | `central-esp32/CoinService.h` | Déclare le service de lecture du monnayeur. |
 | `central-esp32/CoinService.cpp` | Traite l'interruption GPIO, l'anti-rebond et la conversion des impulsions en coins persistants. |
+| `central-esp32/RevenueService.h` / `RevenueService.cpp` | Synchronise l'heure, écrit le journal LittleFS et agrège les recettes. |
 | `central-esp32/LogService.h` | Déclare le service de journalisation. |
 | `central-esp32/LogService.cpp` | Écrit sur le port série et conserve les 100 derniers événements en RAM. |
 | `central-esp32/PostService.h` | Déclare la logique métier de gestion des postes. |
@@ -454,26 +533,29 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `central-esp32/ui-assets/` | Regroupe le logo maître et les variantes WebP HD documentées. |
-| `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,9 Mo pour le firmware central et 128 Ko de SPIFFS. |
+| `central-esp32/docs/schema-cablage-central-final.svg` | Schéma final de l'alimentation, du PC817 et de l'ESP32 sans module mémoire. |
+| `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,625 Mio et 640 Kio de LittleFS. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 
 ### Firmware d'un poste
 
 | Fichier | Rôle |
 |---|---|
-| `poste-esp32/poste-esp32.ino` | Point d'entrée Arduino : initialise identité, relais, serveur, Wi-Fi et annonces. |
-| `poste-esp32/PosteConfig.h` | Regroupe Wi-Fi de secours, portail, mDNS, secret partagé, GPIO relais, polarité et intervalle de sauvegarde. |
+| `poste-esp32/poste-esp32.ino` | Point d'entrée Arduino : initialise identité, relais, afficheur, serveur, Wi-Fi et annonces. |
+| `poste-esp32/PosteConfig.h` | Regroupe Wi-Fi, mDNS, secret partagé, GPIO du relais et du TM1637, luminosité et délais. |
 | `poste-esp32/PosteState.h` | Définit l'état partagé en RAM : identité, connexion, session, reprise en attente et relais. |
 | `poste-esp32/PosteIdentityService.h` | Déclare la gestion de l'identité persistante. |
 | `poste-esp32/PosteIdentityService.cpp` | Calcule le `chipId` eFuse et charge, sauvegarde ou efface `id` et `name` dans la NVS. |
 | `poste-esp32/RelayService.h` | Déclare le pilotage du relais et des sessions. |
 | `poste-esp32/RelayService.cpp` | Pilote le relais, gère les sessions et sauvegarde/restaure le temps récupérable après une coupure. |
+| `poste-esp32/DisplayService.h` / `DisplayService.cpp` | Pilote le TM1637 et affiche le temps local au format `MM:SS` ou `HH:MM`. |
 | `poste-esp32/PosteAnnounceService.h` | Déclare l'annonce périodique vers la centrale. |
 | `poste-esp32/PosteAnnounceService.cpp` | Résout la centrale par mDNS et lui envoie l'identité et l'état du poste en JSON. |
 | `poste-esp32/PosteWebServer.h` | Déclare les routes HTTP propres au poste. |
 | `poste-esp32/PosteWebServer.cpp` | Implémente `/status`, `/configure`, `/identity/clear`, `/command` et la validation Bearer. |
 | `poste-esp32/WiFiConfigService.h` | Déclare l'initialisation et le suivi du Wi-Fi. |
 | `poste-esp32/WiFiConfigService.cpp` | Gère les identifiants Wi-Fi, la connexion, le point d'accès, le portail captif et son DNS. |
+| `poste-esp32/docs/schema-cablage-poste-tm1637.svg` | Schéma du relais et de l'afficheur TM1637 raccordés à l'ESP32 du poste. |
 | `poste-esp32/README.md` | Manuel détaillé du firmware de poste, de son câblage et de son API. |
 
 Les fichiers `.h` définissent les structures et interfaces publiques. Les
@@ -500,11 +582,15 @@ sont présents dans le firmware ou la NVS sans chiffrement applicatif.
 - une reprise après coupure nécessite une décision manuelle et n'est précise
   qu'à l'intervalle du dernier instantané, 60 secondes par défaut ;
 - le temps écoulé pendant la coupure n'est pas déduit sans horloge RTC secourue ;
+- le TM1637 plafonne visuellement à `99:59`, même si une session plus longue
+  continue d'être gérée normalement ;
 - raccourcir fortement l'intervalle de sauvegarde augmente l'usure de la flash ;
 - la résolution de `pstm.local` dépend du support mDNS du réseau ;
 - les postes sont interrogés séquentiellement, donc un tour complet prend
   environ cinq secondes multipliées par leur nombre ;
 - les logs de la centrale sont limités à 100 entrées et perdus au redémarrage ;
+- les encaissements avant synchronisation NTP restent enregistrés mais non datés ;
+- si LittleFS est indisponible ou plein, les crédits continuent mais la recette correspondante ne peut pas être récupérée ;
 - le serveur Arduino convient à un petit réseau local, pas à une exposition
   publique ou à une forte charge ;
 - le changement du secret inter-ESP32 exige de recompiler la centrale et tous

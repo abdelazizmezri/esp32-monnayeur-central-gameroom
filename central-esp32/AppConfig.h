@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 namespace AppConfig {
 inline constexpr char AP_SSID_PREFIX[] = "GAMEROOM-CENTRAL";
 inline constexpr char AP_PASSWORD[] = "";
@@ -18,11 +20,23 @@ inline constexpr int COIN_PIN = 13;
 
 inline constexpr int DEFAULT_COIN_DURATION_SECONDS = 1800;
 inline constexpr int DEFAULT_PULSES_PER_COIN = 1;
+// Valeur monétaire d'une impulsion validée, en millimes tunisiens.
+// 1000 millimes = 1 TND.
+inline constexpr int DEFAULT_PULSE_VALUE_MILLIMES = 1000;
 inline constexpr int DEFAULT_AVAILABLE_COINS = 0;
 
-// Le JY-133B fournit une sortie impulsionnelle à collecteur ouvert, NO ou NC.
-// Une pull-down externe de 4,7 kΩ relie COIN/GPIO 13 au GND.
-// On valide une impulsion complète pour ne pas créditer les fronts parasites.
+// Journal financier binaire compact dans la partition LittleFS.
+inline constexpr char REVENUE_FILE[] = "/revenue.bin";
+inline constexpr unsigned long REVENUE_STORAGE_RETRY_INTERVAL_MS = 30000;
+
+// Heure locale tunisienne (UTC+1, sans changement saisonnier actuel).
+inline constexpr char TIMEZONE[] = "CET-1";
+inline constexpr char NTP_SERVER_1[] = "pool.ntp.org";
+inline constexpr char NTP_SERVER_2[] = "time.nist.gov";
+
+// Le JY-133B fournit une sortie impulsionnelle NO ou NC. Le GPIO doit recevoir
+// un signal conditionné en 3,3 V (optocoupleur recommandé). On valide une
+// impulsion complète pour ne pas créditer les fronts parasites.
 inline constexpr unsigned long COIN_MIN_PULSE_MS = 10;
 inline constexpr unsigned long COIN_MAX_PULSE_MS = 250;
 inline constexpr unsigned long COIN_DEBOUNCE_MS = 80;

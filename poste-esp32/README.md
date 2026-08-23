@@ -11,7 +11,8 @@ le temps de jeu attribué.
 - [Place du poste dans le système](#place-du-poste-dans-le-système)
 - [Fonctionnement du firmware](#fonctionnement-du-firmware)
 - [Configuration](#configuration)
-- [Câblage du relais](#câblage-du-relais)
+- [Affichage du temps restant](#affichage-du-temps-restant)
+- [Câblage du poste](#câblage-du-poste)
 - [Installation et compilation](#installation-et-compilation)
 - [Première mise en service](#première-mise-en-service)
 - [API HTTP du poste](#api-http-du-poste)
@@ -32,6 +33,7 @@ le temps de jeu attribué.
 - démarrage, prolongation et arrêt d'une session ;
 - activation d'un relais pendant toute la durée de la session ;
 - arrêt automatique du relais lorsque le temps est écoulé ;
+- affichage local du temps restant sur quatre chiffres TM1637 ;
 - remontée de l'état, de l'adresse IP et du temps restant à la centrale ;
 - sauvegarde périodique du temps et reprise contrôlée après une coupure ;
 - protection des commandes par un token Bearer partagé.
@@ -44,6 +46,7 @@ flowchart LR
     Central -->|"START_SESSION, ADD_TIME,<br>STOP_SESSION, configuration"| Poste["ESP32 du poste"]
     Poste -->|"Annonce toutes les 5 s<br>et état du poste"| Central
     Poste -->|GPIO| Relay["Module relais"]
+    Poste -->|"GPIO 25 / 26"| Display["Afficheur TM1637"]
     Relay --> Machine["Machine ou poste de jeu"]
     Poste --> NVS["Mémoire NVS<br>Wi-Fi, identité et session"]
 ```
@@ -71,10 +74,11 @@ La fonction `setup()` exécute les opérations suivantes :
 4. configure la broche du relais et force le relais à l'arrêt ;
 5. charge le dernier instantané de session et passe à `recovery_pending` s'il
    détecte une session interrompue, sinon à `idle` ;
-6. enregistre les routes du serveur HTTP ;
-7. charge les identifiants Wi-Fi et tente une connexion pendant 15 secondes ;
-8. ouvre le portail de configuration si la connexion échoue ;
-9. démarre le serveur HTTP sur le port 80.
+6. initialise l'afficheur TM1637 et présente le temps correspondant à l'état ;
+7. enregistre les routes du serveur HTTP ;
+8. charge les identifiants Wi-Fi et tente une connexion pendant 15 secondes ;
+9. ouvre le portail de configuration si la connexion échoue ;
+10. démarre le serveur HTTP sur le port 80.
 
 ### Boucle principale
 
@@ -83,6 +87,7 @@ La fonction `loop()` traite continuellement :
 - les requêtes HTTP entrantes ;
 - le DNS du portail captif et l'état de la connexion Wi-Fi ;
 - l'expiration de la session en cours ;
+- la mise à jour non bloquante de l'afficheur ;
 - la sauvegarde périodique du temps restant ;
 - l'annonce périodique du poste à la centrale.
 
@@ -204,20 +209,67 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `COMMAND_TOKEN` | valeur de développement | Secret partagé avec la centrale. |
 | `RELAY_PIN` | GPIO 27 | GPIO commandant le relais. |
 | `RELAY_ACTIVE_HIGH` | `true` | Niveau logique qui active le relais. |
+| `TM1637_CLK_PIN` | GPIO 25 | Horloge de l'afficheur TM1637. |
+| `TM1637_DIO_PIN` | GPIO 26 | Données de l'afficheur TM1637. |
+| `TM1637_BRIGHTNESS` | `5` | Luminosité de 0 à 7. |
+| `DISPLAY_UPDATE_INTERVAL_MS` | `100` | Période de vérification du contenu de l'afficheur. |
 | `HTTP_PORT` | `80` | Port du serveur HTTP local. |
 
-Avant le déploiement, modifier au minimum `COMMAND_TOKEN`, `RELAY_PIN` et, si
-nécessaire, `RELAY_ACTIVE_HIGH`. Le token doit être strictement identique à
-`AppConfig::POSTE_COMMAND_TOKEN` dans le firmware de la centrale.
+Avant le déploiement, modifier au minimum `COMMAND_TOKEN`, vérifier les trois
+GPIO du relais et de l'afficheur puis, si nécessaire, adapter
+`RELAY_ACTIVE_HIGH`. Le token doit être strictement identique à
+`AppConfig::POSTE_COMMAND_TOKEN` dans le firmware de la centrale. Les assertions
+de compilation empêchent d'attribuer la même broche au relais, à `CLK` ou à
+`DIO`, et refusent une luminosité hors de la plage 0 à 7.
 
-## Câblage du relais
+## Affichage du temps restant
+
+Le pilote TM1637 est inclus directement dans le firmware : aucune bibliothèque
+supplémentaire n'est nécessaire. Le format dépend automatiquement de la durée :
+
+| État ou durée | Affichage | Comportement |
+|---|---|---|
+| Poste inactif | `00:00` | Fixe. |
+| Session de moins d'une heure | `MM:SS` | Le séparateur clignote. |
+| Session à partir d'une heure | `HH:MM` | Les minutes sont arrondies à la minute supérieure et le séparateur clignote. |
+| Reprise après coupure | temps sauvegardé | Les quatre chiffres clignotent tant que la reprise attend une décision. |
+| Durée supérieure à 99 h 59 | `99:59` | Valeur plafonnée à la capacité des quatre chiffres ; la session continue normalement. |
+
+L'affichage ne détermine jamais l'expiration d'une session : le relais reste
+piloté par `RelayService` avec la précision de `millis()`. Ainsi, l'arrondi du
+mode `HH:MM` et le plafond visuel ne modifient pas le temps réel.
+
+## Câblage du poste
+
+Le schéma complet de la partie poste regroupe l'ESP32, l'afficheur et le relais :
+
+![Schéma de câblage du poste ESP32 avec afficheur TM1637 et relais](docs/schema-cablage-poste-tm1637.svg)
+
+### Afficheur TM1637 à quatre broches
+
+Respecter ce câblage avec les valeurs par défaut :
+
+| ESP32 | TM1637 | Fonction |
+|---|---|---|
+| `3V3` | `VCC` | Alimentation 3,3 V. |
+| `GND` | `GND` | Masse commune. |
+| GPIO 25 | `CLK` | Horloge, constante `TM1637_CLK_PIN`. |
+| GPIO 26 | `DIO` | Données, constante `TM1637_DIO_PIN`. |
+
+> Alimenter le module TM1637 en **3,3 V**. De nombreux modules relient leurs
+> résistances de rappel de `CLK` et `DIO` à `VCC` ; avec une alimentation 5 V,
+> ces lignes pourraient donc appliquer 5 V à l'ESP32, qui n'est pas tolérant au
+> 5 V. Si un module impose réellement 5 V, intercaler un convertisseur de niveau
+> bidirectionnel adapté sur `CLK` et `DIO`.
+
+### Relais
 
 Par défaut, le relais est piloté par le GPIO 27. Pour utiliser une autre broche,
 remplacer cette valeur par le GPIO relié à l'entrée du module relais :
 
 ```cpp
-static const int RELAY_PIN = 27;
-static const bool RELAY_ACTIVE_HIGH = true;
+inline constexpr int RELAY_PIN = 27;
+inline constexpr bool RELAY_ACTIVE_HIGH = true;
 ```
 
 Câblage logique typique :
@@ -237,6 +289,11 @@ Certains modules sont actifs à l'état bas. Dans ce cas, utiliser
 `RELAY_ACTIVE_HIGH = false`. Au démarrage et à l'arrêt d'une session, le firmware
 écrit toujours le niveau correspondant à l'état désactivé.
 
+Le relais et le TM1637 doivent partager la masse logique de l'ESP32. Le relais
+représenté sur le schéma est alimenté par `5V/VIN`, mais cette alimentation doit
+être adaptée au modèle réellement utilisé. Ses contacts `COM` et `NO` sont des
+contacts secs séparés du signal `IN`.
+
 ## Installation et compilation
 
 ### Prérequis
@@ -248,7 +305,8 @@ Certains modules sont actifs à l'état bas. Dans ce cas, utiliser
 - la bibliothèque **ArduinoJson**.
 
 `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS` et `HTTPClient` sont
-fournis par le package Arduino pour ESP32.
+fournis par le package Arduino pour ESP32. Le pilote TM1637 fait partie du
+sketch et ne demande aucune installation de bibliothèque.
 
 ### Avec Arduino IDE
 
@@ -289,8 +347,9 @@ sous Windows.
 9. Attendre l'apparition du nouveau `chipId` dans les postes découverts.
 10. Attribuer uniquement un nom visible au poste. La centrale dérive
     automatiquement l'identifiant technique depuis le `chipId`.
-11. Affecter du temps et vérifier le passage à `active`, l'activation du relais
-    et le décompte du temps restant.
+11. Vérifier que l'afficheur indique `00:00` au repos.
+12. Affecter du temps et vérifier le passage à `active`, l'activation du relais
+    et le décompte du temps restant sur le TM1637.
 
 ## API HTTP du poste
 
@@ -461,6 +520,8 @@ décision de reprise de la centrale au lieu de revenir directement à `idle`.
 | `PosteState.h` | Définit `PosteState`, la structure en RAM partagée : identité, session, reprise, relais et réseau. |
 | `RelayService.h` | Déclare l'interface de gestion du relais et des sessions. |
 | `RelayService.cpp` | Pilote le GPIO, gère le temps, sauvegarde la session en NVS et restaure une reprise en attente après coupure. |
+| `DisplayService.h` | Déclare l'initialisation et la mise à jour de l'afficheur. |
+| `DisplayService.cpp` | Pilote directement le bus TM1637, formate le temps et gère les états fixe/clignotant sans bibliothèque externe. |
 | `PosteIdentityService.h` | Déclare le chargement, l'enregistrement et l'effacement de l'identité du poste. |
 | `PosteIdentityService.cpp` | Construit le `chipId` depuis l'eFuse et conserve `id`/`name` dans le namespace NVS `identity`. |
 | `PosteAnnounceService.h` | Déclare la mise à jour périodique de l'annonce. |
@@ -532,6 +593,19 @@ niveau haut et `false` si elle s'active au niveau bas.
 - envoyer manuellement `START_SESSION`, puis consulter `/status` ;
 - observer les messages `START_SESSION` et `STOP_SESSION` sur le port série.
 
+### L'afficheur TM1637 reste éteint ou incohérent
+
+- vérifier `3V3 → VCC` et la masse commune ;
+- vérifier `GPIO 25 → CLK` et `GPIO 26 → DIO`, certains modules présentant les
+  broches dans un ordre différent ;
+- confirmer les valeurs `TM1637_CLK_PIN` et `TM1637_DIO_PIN` dans
+  `PosteConfig.h` puis recompiler ;
+- augmenter temporairement `TM1637_BRIGHTNESS` jusqu'à 7 ;
+- ne pas alimenter le module en 5 V sans convertisseur de niveau sur les deux
+  lignes logiques ;
+- tester d'abord sans la charge de puissance raccordée au relais afin d'écarter
+  les perturbations d'alimentation.
+
 ## Limites connues
 
 - le relais repart toujours désactivé et une session interrompue exige une
@@ -544,6 +618,7 @@ niveau haut et `false` si elle s'active au niveau bas.
 - le portail Wi-Fi est ouvert avec la configuration par défaut ;
 - il n'existe pas de route HTTP dédiée à l'effacement des identifiants Wi-Fi ;
 - le firmware n'impose pas de durée maximale de session ;
+- l'affichage est plafonné à `99:59`, sans plafonner la durée réelle de la session ;
 - la résolution de `pstm.local` dépend du support mDNS du réseau ;
 - le serveur HTTP Arduino traite un nombre limité de requêtes et convient à un
   réseau local, pas à une exposition publique ;

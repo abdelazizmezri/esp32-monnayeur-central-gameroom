@@ -74,11 +74,13 @@ Déconnexion
 <style>
 .config-toolbar{display:flex;justify-content:flex-end;margin-bottom:14px}.config-toolbar .action{display:inline-flex;align-items:center;gap:8px;color:#d9e8f8;border-color:#49627e!important;background:#071426;box-shadow:none}.config-toolbar svg{width:17px;height:17px}.config-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);align-items:stretch}.config-grid>.panel{min-height:585px;padding:25px;background:radial-gradient(circle at 88% 7%,rgba(57,82,182,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.panel-heading{display:flex;align-items:center;gap:13px;margin-bottom:24px}.panel-heading-icon{display:grid;place-items:center;flex:0 0 auto;width:46px;height:46px;border:1px solid #314bd8;border-radius:12px;color:#6381ff;background:rgba(36,53,154,.18);box-shadow:0 0 22px rgba(70,81,255,.1)}.panel-heading-icon.purple{color:#8b67ff;border-color:#6243cb;background:rgba(84,45,175,.17)}.panel-heading-icon svg{width:27px;height:27px}.panel-heading h2{margin:0 0 5px;font-size:19px}.panel-heading p{margin:0;color:#8ea1ba;font-size:11px;line-height:1.4}.config-grid .form-group{margin:0}.config-grid input{min-height:49px}.field-help{margin:7px 0 16px;color:#8295ae;font-size:10px}.field-divider{height:1px;margin:0 0 16px;background:rgba(43,67,92,.55)}.config-save,.config-import{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;margin-top:18px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 25px rgba(50,64,238,.22)}.config-save svg,.config-import svg{width:19px;height:19px}.backup-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0 23px;border-bottom:1px solid rgba(43,67,92,.6)}.backup-row strong,.import-label{color:#eef5ff;font-size:12px}.export-file{display:flex;align-items:center;gap:8px;min-width:134px;justify-content:center;color:#e8f0ff;border-color:#7156f2!important;background:#071426;box-shadow:none}.export-file svg{width:17px;height:17px}.import-label{display:block;margin:23px 0 12px}.file-drop{display:flex;min-height:172px;flex-direction:column;align-items:center;justify-content:center;padding:22px;border:1px dashed #4a557f;border-radius:10px;color:#9fa9c9;background:radial-gradient(circle at 50% 45%,rgba(76,62,182,.12),transparent 55%),rgba(5,16,34,.7);text-align:center;transition:border-color .18s ease,background .18s ease}.file-drop.dragging{border-color:#8b67ff;background:rgba(71,48,158,.18)}.file-drop svg{width:33px;height:33px;margin-bottom:12px;color:#a99af1}.file-drop p{margin:0 0 14px;font-size:11px}.file-picker{color:#e8efff;border-color:#7156f2!important;background:#08172c;box-shadow:none}.selected-file{display:flex;align-items:center;gap:8px;max-width:100%;margin-top:12px;color:#80d8ff;font-size:10px}.selected-file svg{width:15px;height:15px;margin:0}.selected-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.config-warning,.token-warning{display:flex;align-items:center;gap:11px;margin-top:14px;padding:13px 15px;border:1px solid #9b6706;border-radius:8px;color:#ffc34a;background:rgba(72,45,3,.4);font-size:10px;line-height:1.4}.config-warning svg,.token-warning svg{flex:0 0 auto;width:22px;height:22px}.config-import:disabled{opacity:.38}.security-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px}.security-layout>.panel{padding:25px;background:radial-gradient(circle at 86% 8%,rgba(61,81,181,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.security-password,.security-token{min-height:430px}.secret-field{position:relative}.secret-field input{min-height:48px;padding-right:48px}.secret-toggle{position:absolute;right:7px;bottom:7px;display:grid;place-items:center;width:35px;height:35px;padding:0;border:0;color:#a5b8d0;background:transparent;cursor:pointer}.secret-toggle:hover{color:#fff}.secret-toggle svg{width:20px;height:20px}.password-strength{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:14px 0 18px}.strength-bars{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.strength-segment{height:5px;border-radius:4px;background:#26384d;transition:background .18s ease,box-shadow .18s ease}.strength-label{min-width:54px;color:#7f93ac;font-size:10px;text-align:right}.password-strength.strength-1{--strength-color:#ff5967}.password-strength.strength-2{--strength-color:#ff9c37}.password-strength.strength-3{--strength-color:#ffc43d}.password-strength.strength-4{--strength-color:#68d985}.password-strength.strength-5{--strength-color:#35e79a}.password-strength.strength-1 .strength-segment:nth-child(-n+1),.password-strength.strength-2 .strength-segment:nth-child(-n+2),.password-strength.strength-3 .strength-segment:nth-child(-n+3),.password-strength.strength-4 .strength-segment:nth-child(-n+4),.password-strength.strength-5 .strength-segment:nth-child(-n+5){background:var(--strength-color);box-shadow:0 0 8px color-mix(in srgb,var(--strength-color) 30%,transparent)}.password-strength[class*="strength-"] .strength-label{color:var(--strength-color)}.password-match{min-height:17px;margin:-6px 0 4px;color:#8295ae;font-size:10px}.password-match.ok{color:var(--green)}.password-match.error{color:var(--red)}.security-primary{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;margin-top:18px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 25px rgba(50,64,238,.22)}.token-box{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 13px;border:1px solid #49617c;border-radius:8px;background:#071426}.token-box code{min-width:0;flex:1;overflow:hidden;color:#d6e3f4;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.token-copy{display:grid;place-items:center;flex:0 0 auto;width:35px;height:35px;padding:0;border:0;color:#d6e3f4;background:transparent;cursor:pointer}.token-copy:hover{color:#fff}.token-copy svg{width:21px;height:21px}.token-example{margin:12px 0 0;color:#9aacbf;font-size:10px}.token-example code{color:#9fc3ec}.token-regenerate{width:100%;min-height:48px;margin-top:26px;color:#ffc34a;border-color:#b27405!important;background:#071426;box-shadow:none}.security-status{grid-column:1/-1;min-height:134px}.security-status h2{margin-bottom:20px}.security-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.security-check{display:flex;align-items:center;gap:12px;color:#d7e2ef;font-size:11px}.security-check-icon{display:grid;place-items:center;flex:0 0 auto;width:31px;height:31px;border:1px solid #42d872;border-radius:50%;color:#54e883;background:rgba(36,138,70,.08)}.security-check-icon svg{width:18px;height:18px}.security-message{min-height:18px;margin-top:10px;font-size:10px;color:#8fa3bd}@media(max-width:1050px){.config-grid,.security-layout{grid-template-columns:1fr}.config-grid>.panel{min-height:auto}.security-status{grid-column:1}.security-password,.security-token{min-height:auto}}@media(max-width:680px){.config-grid>.panel,.security-layout>.panel{padding:18px}.backup-row{align-items:flex-start;flex-direction:column}.export-file{width:100%}.security-checks{grid-template-columns:1fr}.config-toolbar .action{width:100%;justify-content:center}}
 .config-grid>.panel{min-height:0}.config-grid>.panel>.message:empty{display:none}.stats-toolbar{text-align:right;margin-bottom:12px}
+#view-revenue{--revenue-accent:#38d9ff}.revenue-toolbar{display:grid;grid-template-columns:minmax(150px,210px) minmax(150px,210px) auto;gap:12px;align-items:end;margin-bottom:18px}.revenue-toolbar .form-group{margin:0}.revenue-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.revenue-actions .action{display:inline-flex;align-items:center;gap:7px}.revenue-status{display:flex;align-items:center;gap:9px;margin:0 0 15px;padding:11px 13px;border:1px solid #24435d;border-radius:9px;color:#9eb5ca;background:#07172a;font-size:11px}.revenue-status.ok{color:#70e3ad;border-color:#227652}.revenue-status.error{color:#ff8a94;border-color:#8c3040}.revenue-status.warn{color:#ffd276;border-color:#80611e}.revenue-dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}.revenue-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.revenue-card{padding:17px;border:1px solid #27445d;border-radius:11px;background:linear-gradient(145deg,#091b31,#061223)}.revenue-card small{display:block;margin-bottom:9px;color:#8299b2;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.revenue-card strong{display:block;color:#edf7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:24px;font-variant-numeric:tabular-nums}.revenue-card.primary strong{color:var(--revenue-accent);text-shadow:0 0 16px rgba(56,217,255,.22)}.revenue-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(410px,.85fr);gap:16px}.revenue-grid>.panel{min-height:460px}.revenue-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.revenue-panel-head h2{margin:0}.revenue-range{color:#8ba0b8;font-size:11px}.revenue-chart{display:grid;gap:8px;max-height:590px;padding-right:5px;overflow:auto}.revenue-bar-row{display:grid;grid-template-columns:66px minmax(80px,1fr) 92px;gap:9px;align-items:center;min-height:27px;font-size:10px}.revenue-bar-label{overflow:hidden;color:#9fb2c7;text-overflow:ellipsis;white-space:nowrap}.revenue-bar-track{height:9px;overflow:hidden;border-radius:10px;background:#122b42}.revenue-bar-fill{height:100%;min-width:0;border-radius:10px;background:linear-gradient(90deg,#0b79ff,#31d8ff);box-shadow:0 0 12px rgba(24,183,255,.25)}.revenue-bar-value{color:#dff7ff;font-family:monospace;text-align:right}.revenue-table-wrap{max-height:590px;overflow:auto;border:1px solid #223c54;border-radius:9px}.revenue-table{width:100%;border-collapse:collapse;font-size:11px}.revenue-table th{position:sticky;top:0;padding:12px 10px;color:#8fa7bf;background:#0b1c30;text-align:left}.revenue-table td{padding:11px 10px;border-top:1px solid rgba(43,70,94,.55);color:#cbd8e5}.revenue-table td:nth-child(n+2),.revenue-table th:nth-child(n+2){text-align:right}.revenue-empty{padding:35px;color:#788da5;text-align:center}.revenue-note{margin:13px 0 0;color:#7f94aa;font-size:10px;line-height:1.5}@media(max-width:1120px){.revenue-grid{grid-template-columns:1fr}.revenue-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:680px){.revenue-toolbar{grid-template-columns:1fr}.revenue-actions{justify-content:stretch}.revenue-actions .action{flex:1;justify-content:center}.revenue-cards{grid-template-columns:1fr 1fr}.revenue-card strong{font-size:19px}.revenue-bar-row{grid-template-columns:58px minmax(60px,1fr) 78px}.revenue-grid>.panel{min-height:0;padding:15px}}
 </style>
 <script>
 document.body.classList.add('auth-pending');
-const navigationOrder = ['/', '/postes', '/users', '/security', '/logs', '/config'];
 const primaryNavigation = document.querySelector('.nav');
+primaryNavigation.insertAdjacentHTML('beforeend', '<a href="/recette" data-path="/recette" data-admin-only hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 6-5"/></svg><span>Recette</span></a>');
+const navigationOrder = ['/', '/recette', '/postes', '/users', '/security', '/logs', '/config'];
 navigationOrder.forEach(path => {
   const link = primaryNavigation.querySelector(`[data-path="${path}"]`);
   if (link) primaryNavigation.appendChild(link);
@@ -117,7 +119,8 @@ configView.innerHTML = `
 <section class="panel config-general-panel">
 <div class="panel-heading"><span class="panel-heading-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34A1.7 1.7 0 0 0 14 20.91V21h-4v-.09A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14v-4h.09A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.09V3h4v.09A1.7 1.7 0 0 0 15.06 4.6a1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06A1.7 1.7 0 0 0 19.43 9 1.7 1.7 0 0 0 20.91 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg></span><div><h2>Configuration générale</h2><p>Paramètres de crédit et de durée des sessions.</p></div></div>
 <div class="form-group"><label for="coinDurationMinutes">Durée par coin (minute)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="30" /></div><p class="field-help">Durée de jeu en minutes accordée pour chaque coin inséré.</p><div class="field-divider"></div>
-<div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" step="1" placeholder="1" /></div><p class="field-help">Nombre d’impulsions nécessaires pour créditer un coin.</p><div class="field-divider"></div>
+<div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" step="1" placeholder="1" /></div><p class="field-help">Nombre d’impulsions nécessaires pour créditer un coin. <span id="pulseProgress"></span></p><div class="field-divider"></div>
+<div class="form-group"><label for="pulseValueMillimes">Valeur d’une impulsion</label><select id="pulseValueMillimes"><option value="500">500 millimes (0,500 TND)</option><option value="1000">1 dinar (1,000 TND)</option><option value="2000">2 dinars (2,000 TND)</option><option value="5000">5 dinars (5,000 TND)</option></select></div><p class="field-help">Valeur réellement encaissée à chaque impulsion validée du monnayeur.</p><div class="field-divider"></div>
 <div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" step="1" placeholder="0" /></div><p class="field-help">Nombre total de coins actuellement disponibles dans le système.</p>
 <button class="action config-save" type="button" onclick="saveConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h12l2 2v16H5Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg>Enregistrer les modifications</button><div class="message" id="configMessage"></div>
 </section>
@@ -130,6 +133,23 @@ configView.innerHTML = `
 <button class="action config-import" id="importConfigButton" type="button" onclick="importConfig()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/></svg>Restaurer la sauvegarde</button><div class="message" id="importExportMessage"></div>
 </section>
 </div>`;
+const revenueView = document.createElement('section');
+revenueView.className = 'view';
+revenueView.id = 'view-revenue';
+revenueView.innerHTML = `
+<h2 class="page-title">Recette</h2>
+<div class="revenue-toolbar">
+  <div class="form-group"><label for="revenuePeriod">Regrouper par</label><select id="revenuePeriod" onchange="loadRevenue()"><option value="day">Jour</option><option value="week">Semaine</option><option value="month">Mois</option></select></div>
+  <div class="form-group"><label for="revenueAnchor">Date de référence</label><input id="revenueAnchor" type="date" onchange="loadRevenue()" /></div>
+  <div class="revenue-actions"><button class="action secondary" type="button" onclick="loadRevenue()">Actualiser</button><button class="action secondary" type="button" onclick="exportRevenueCsv()">CSV</button><button class="action primary" type="button" onclick="exportRevenuePdf()">PDF</button></div>
+</div>
+<div class="revenue-status" id="revenueStatus"><span class="revenue-dot"></span><span>Chargement du stockage…</span></div>
+<div class="revenue-cards" id="revenueCards"></div>
+<div class="revenue-grid">
+  <section class="panel"><div class="revenue-panel-head"><h2>Évolution de la recette</h2><span class="revenue-range" id="revenueChartRange"></span></div><div class="revenue-chart" id="revenueChart"></div></section>
+  <section class="panel"><div class="revenue-panel-head"><h2>Détail</h2><span class="revenue-range" id="revenueTableRange"></span></div><div class="revenue-table-wrap"><table class="revenue-table"><thead><tr><th>Période</th><th>Recette</th><th>Imp.</th><th>Coins</th></tr></thead><tbody id="revenueRows"></tbody></table><div class="revenue-empty" id="revenueEmpty" hidden>Aucune recette sur cette période.</div></div><p class="revenue-note">La recette compte les impulsions physiques validées. Les crédits de simulation et les corrections manuelles du solde ne sont pas inclus.</p></section>
+</div>`;
+configView.parentElement.insertBefore(revenueView, configView);
 const securityView = document.getElementById('view-security');
 securityView.innerHTML = `
 <h2 class="page-title">Sécurité</h2><div class="security-layout">
@@ -146,6 +166,7 @@ securityView.innerHTML = `
 
 const viewsByPath = {
 '/':'view-home',
+'/recette':'view-revenue',
 '/config':'view-config',
 '/logs':'view-logs',
 '/discover':'view-postes',
@@ -155,6 +176,7 @@ const viewsByPath = {
 };
 const pageTitles = {
 '/':'Vue des postes',
+'/recette':'Recette',
 '/config':'Configuration',
 '/logs':'Journal d’événements',
 '/discover':'Gestion des postes',
@@ -168,9 +190,10 @@ let logsTimer = null;
 let currentRole = 'user';
 let currentUsername = '';
 let postNames = {};
-let lastLoadedConfig = { coinDurationMinutes:30, pulsesPerCoin:1, availableCoins:0 };
+let lastLoadedConfig = { coinDurationMinutes:30, pulsesPerCoin:1, pulseValueMillimes:1000, availableCoins:0 };
 let selectedConfigJson = '';
 let currentDisplayedApiToken = '';
+let currentRevenueReport = null;
 function toggleStats(h){const s=document.getElementById('stats'),b=document.getElementById('statsToggle');h=typeof h==='boolean'?h:!s.hidden;s.hidden=h;b.textContent=(h?'Afficher':'Masquer')+' les cartes';b.ariaExpanded=!h;try{localStorage['pstm.statsHidden']=+h}catch(e){}}
 try{toggleStats(localStorage['pstm.statsHidden']==='1')}catch(e){toggleStats(false)}
 function applyPermissions(data) {
@@ -226,6 +249,9 @@ load();
 } else if (currentPath === '/users') {
 load();
 loadUsers();
+} else if (currentPath === '/recette') {
+load();
+loadRevenue();
 } else {
 load();
 }
@@ -382,11 +408,14 @@ ${currentRole === 'admin' ? '<button class="action stat-action" title="Simuler u
 lastLoadedConfig = {
 coinDurationMinutes:Number(data.coinDurationSeconds || 1800) / 60,
 pulsesPerCoin:Number(data.pulsesPerCoin || 1),
+pulseValueMillimes:Number(data.pulseValueMillimes || 1000),
 availableCoins:Number(data.availableCoins || 0)
 };
 document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
 document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
+document.getElementById('pulseValueMillimes').value = lastLoadedConfig.pulseValueMillimes;
 document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
+document.getElementById('pulseProgress').textContent = Number(data.pendingPulses || 0) > 0 ? `Reliquat mémorisé : ${data.pendingPulses}/${data.pulsesPerCoin}.` : 'Aucun reliquat en attente.';
 currentDisplayedApiToken = data.apiTokenMasked || '';
 const tokenDisplay = document.getElementById('apiTokenMasked');
 if (tokenDisplay) tokenDisplay.textContent = currentDisplayedApiToken || 'Token indisponible';
@@ -596,6 +625,7 @@ if (button) button.disabled = true;
 function resetConfigurationForm() {
 document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
 document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
+document.getElementById('pulseValueMillimes').value = lastLoadedConfig.pulseValueMillimes;
 document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
 clearSelectedConfigFile();
 setMessage('configMessage', 'Valeurs restaurées depuis la dernière configuration chargée.');
@@ -641,8 +671,9 @@ async function saveConfig() {
 const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
 const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
 const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
+const pulseValueMillimes = Number(document.getElementById('pulseValueMillimes').value || 0);
 const availableCoins = Number(document.getElementById('availableCoins').value || 0);
-if (!Number.isFinite(coinDurationMinutes) || coinDurationMinutes < 1 || !Number.isInteger(pulsesPerCoin) || pulsesPerCoin < 1 || !Number.isInteger(availableCoins) || availableCoins < 0) {
+if (!Number.isFinite(coinDurationMinutes) || coinDurationMinutes < 1 || !Number.isInteger(pulsesPerCoin) || pulsesPerCoin < 1 || ![500,1000,2000,5000].includes(pulseValueMillimes) || !Number.isInteger(availableCoins) || availableCoins < 0) {
 setMessage('configMessage', 'Vérifiez la durée, les impulsions et le nombre de coins.', true);
 return;
 }
@@ -650,7 +681,7 @@ try {
 await api('/config', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ coinDurationSeconds, pulsesPerCoin, availableCoins })
+body:JSON.stringify({ coinDurationSeconds, pulsesPerCoin, pulseValueMillimes, availableCoins })
 });
 setMessage('configMessage', 'Configuration enregistrée.');
 load();
@@ -863,6 +894,124 @@ currentDisplayedApiToken = data.apiToken || '';
 document.getElementById('apiTokenMasked').textContent = currentDisplayedApiToken || 'Token indisponible';
 setMessage('tokenMessage', 'Nouveau token généré. Copiez-le maintenant : il sera masqué au prochain chargement.');
 } catch(e) { if (e.message !== 'unauthorized') setMessage('tokenMessage', e.message, true); }
+}
+function localIsoDate(date = new Date()) {
+const offset = date.getTimezoneOffset() * 60000;
+return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+function formatRevenueMoney(millimes) {
+return `${(Number(millimes || 0) / 1000).toLocaleString('fr-TN', { minimumFractionDigits:3, maximumFractionDigits:3 })} TND`;
+}
+function revenueQuery() {
+const period = document.getElementById('revenuePeriod')?.value || 'day';
+const anchorInput = document.getElementById('revenueAnchor');
+if (anchorInput && !anchorInput.value) anchorInput.value = localIsoDate();
+return `period=${encodeURIComponent(period)}&anchor=${encodeURIComponent(anchorInput?.value || localIsoDate())}`;
+}
+async function loadRevenue() {
+const status = document.getElementById('revenueStatus');
+currentRevenueReport = null;
+status.className = 'revenue-status';
+status.querySelector('span:last-child').textContent = 'Lecture du stockage LittleFS…';
+try {
+const report = await api(`/revenue/data?${revenueQuery()}`);
+currentRevenueReport = report;
+const items = report.items || [];
+const maxAmount = Math.max(1, ...items.map(item => Number(item.amountMillimes || 0)));
+const statusText = !report.storageReady
+? (report.storageError || 'Partition LittleFS indisponible.')
+: !report.timeReady
+? 'LittleFS prêt · attente de synchronisation de l’horloge NTP.'
+: `LittleFS prêt · ${(Number(report.storageUsedBytes || 0) / 1024).toLocaleString('fr-FR', { maximumFractionDigits:1 })} / ${(Number(report.storageTotalBytes || 0) / 1024).toLocaleString('fr-FR', { maximumFractionDigits:0 })} Ko utilisés · journal ${(Number(report.fileBytes || 0) / 1024).toLocaleString('fr-FR', { maximumFractionDigits:1 })} Ko`;
+status.className = `revenue-status ${!report.storageReady ? 'error' : !report.timeReady ? 'warn' : 'ok'}`;
+status.querySelector('span:last-child').textContent = statusText;
+document.getElementById('revenueCards').innerHTML = `
+<article class="revenue-card primary"><small>Recette totale</small><strong>${formatRevenueMoney(report.totalMillimes)}</strong></article>
+<article class="revenue-card"><small>Impulsions encaissées</small><strong>${Number(report.pulses || 0).toLocaleString('fr-FR')}</strong></article>
+<article class="revenue-card"><small>Coins générés</small><strong>${Number(report.credits || 0).toLocaleString('fr-FR')}</strong></article>
+<article class="revenue-card"><small>Écritures persistées</small><strong>${Number(report.events || 0).toLocaleString('fr-FR')}</strong></article>`;
+document.getElementById('revenueChartRange').textContent = report.rangeLabel || '';
+document.getElementById('revenueTableRange').textContent = report.rangeLabel || '';
+document.getElementById('revenueChart').innerHTML = items.map(item => `
+<div class="revenue-bar-row"><span class="revenue-bar-label">${esc(item.label)}</span><span class="revenue-bar-track"><span class="revenue-bar-fill" style="display:block;width:${Math.max(0, Number(item.amountMillimes || 0)) * 100 / maxAmount}%"></span></span><span class="revenue-bar-value">${esc(formatRevenueMoney(item.amountMillimes))}</span></div>`).join('') || '<div class="revenue-empty">Aucune donnée disponible.</div>';
+document.getElementById('revenueRows').innerHTML = items.map(item => `
+<tr><td>${esc(item.label)}</td><td>${esc(formatRevenueMoney(item.amountMillimes))}</td><td>${Number(item.pulses || 0)}</td><td>${Number(item.credits || 0)}</td></tr>`).join('');
+document.getElementById('revenueEmpty').hidden = items.length > 0;
+if (Number(report.undatedEvents || 0) > 0) {
+status.className = 'revenue-status warn';
+status.querySelector('span:last-child').textContent += ` · ${report.undatedEvents} écriture(s) non datée(s) avant NTP (${formatRevenueMoney(report.undatedMillimes)}).`;
+}
+if (Number(report.corruptRecords || 0) > 0) {
+status.className = 'revenue-status warn';
+status.querySelector('span:last-child').textContent += ` · ${report.corruptRecords} enregistrement(s) corrompu(s) ignoré(s).`;
+}
+} catch(e) {
+if (e.message === 'unauthorized') return;
+status.className = 'revenue-status error';
+status.querySelector('span:last-child').textContent = e.message;
+}
+}
+function downloadBlob(blob, filename) {
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+link.href = url;
+link.download = filename;
+document.body.appendChild(link);
+link.click();
+link.remove();
+setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function exportRevenueCsv() {
+try {
+const response = await fetch(`/revenue/export.csv?${revenueQuery()}`);
+if (response.status === 401) { window.location.href = '/login'; return; }
+if (!response.ok) throw new Error('Export CSV impossible.');
+const disposition = response.headers.get('Content-Disposition') || '';
+const match = disposition.match(/filename="([^"]+)"/);
+downloadBlob(await response.blob(), match?.[1] || 'recette.csv');
+} catch(e) { alert(e.message); }
+}
+function asciiPdfText(value) {
+return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '-').replace(/([\\()])/g, '\\$1');
+}
+function createSimplePdf(lines) {
+const commands = ['BT', '/F1 17 Tf', '48 800 Td', `(${asciiPdfText(lines[0] || '')}) Tj`, '/F1 10 Tf'];
+lines.slice(1).forEach(line => { commands.push('0 -18 Td', `(${asciiPdfText(line)}) Tj`); });
+commands.push('ET');
+const stream = commands.join('\n');
+const objects = [
+'<< /Type /Catalog /Pages 2 0 R >>',
+'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`
+];
+let pdf = '%PDF-1.4\n';
+const offsets = [0];
+objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
+const xref = pdf.length;
+pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
+pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+return new Blob([pdf], { type:'application/pdf' });
+}
+async function exportRevenuePdf() {
+if (!currentRevenueReport) await loadRevenue();
+const report = currentRevenueReport;
+if (!report) return;
+const periodLabels = { day:'Jour', week:'Semaine', month:'Mois' };
+const lines = [
+'PS TIME MANAGER - RAPPORT DE RECETTE',
+`Periode : ${periodLabels[report.period] || report.period} - ${report.rangeLabel || ''}`,
+`Recette totale : ${formatRevenueMoney(report.totalMillimes)}`,
+`Impulsions : ${report.pulses || 0}   Coins generes : ${report.credits || 0}   Ecritures : ${report.events || 0}`,
+'',
+'DETAIL',
+...(report.items || []).map(item => `${String(item.label || '').padEnd(12)} ${formatRevenueMoney(item.amountMillimes).padStart(16)}   impulsions ${item.pulses || 0}   coins ${item.credits || 0}`),
+'',
+`Genere : ${report.generatedAt || ''}`
+];
+downloadBlob(createSimplePdf(lines), `recette-${report.period}-${report.startDate || localIsoDate()}.pdf`);
 }
 async function exportConfig() {
 try {

@@ -20,5 +20,5 @@ résolution de l’écran et ne nécessitent aucune variante bitmap.
 Les fichiers `LoginStationAsset.inc`, `GameRoomLogoAsset.inc` et
 `PlayStationMarkAsset.inc` sont les représentations `PROGMEM` générées depuis
 les trois WebP embarqués. Le firmware central utilise le fichier
-`../partitions.csv`, équivalent au schéma **Minimal SPIFFS** : deux partitions
-OTA de 1,9 Mo, 128 Ko de SPIFFS et conservation de la NVS.
+`../partitions.csv` : deux partitions OTA de 1,625 Mio, 640 Kio de LittleFS et
+conservation de la NVS.
