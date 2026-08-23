@@ -550,23 +550,35 @@ bool buildReport(AppState& state, const String& period,
 }
 
 String buildCsv(const RevenueReport& report) {
-  String csv;
+  String periodLabel = report.period;
+  if (report.period == "day") periodLabel = "Jour";
+  else if (report.period == "week") periodLabel = "Semaine";
+  else if (report.period == "month") periodLabel = "Mois";
+
+  auto formatAmount = [](int64_t millimes) {
+    String amount = String((double)millimes / 1000.0, 3);
+    amount.replace('.', ',');
+    return amount;
+  };
+
+  String csv = "\xEF\xBB\xBF";
   csv.reserve(256 + report.buckets.size() * 64);
-  csv += "Periode;\"" + report.period + "\"\r\n";
+  csv += "Période;\"" + periodLabel + "\"\r\n";
   csv += "Plage;\"" + report.rangeLabel + "\"\r\n";
-  csv += "Total_TND;" + String((double)report.totalMillimes / 1000.0, 3) + "\r\n";
+  csv += "Recette totale (TND);" + formatAmount(report.totalMillimes) + "\r\n";
   csv += "Impulsions;" + String(report.pulses) + "\r\n";
-  csv += "Credits_generes;" + String(report.credits) + "\r\n\r\n";
-  csv += "Cle;Libelle;Recette_TND;Impulsions;Credits;Evenements\r\n";
+  csv += "Coins générés;" + String(report.credits) + "\r\n";
+  csv += "Écritures;" + String(report.events) + "\r\n\r\n";
+  csv += "Clé;Libellé;Recette (TND);Impulsions;Coins;Événements\r\n";
   for (const auto& bucket : report.buckets) {
     csv += "\"" + bucket.key + "\";\"" + bucket.label + "\";";
-    csv += String((double)bucket.amountMillimes / 1000.0, 3) + ";";
+    csv += formatAmount(bucket.amountMillimes) + ";";
     csv += String(bucket.pulses) + ";" + String(bucket.credits) + ";";
     csv += String(bucket.events) + "\r\n";
   }
   if (report.undatedEvents > 0) {
-    csv += "NON_DATE;Impulsions avant synchronisation;";
-    csv += String((double)report.undatedMillimes / 1000.0, 3) + ";;;;\r\n";
+    csv += "NON_DATÉ;Impulsions avant synchronisation;";
+    csv += formatAmount(report.undatedMillimes) + ";;;\r\n";
   }
   return csv;
 }
