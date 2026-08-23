@@ -139,19 +139,18 @@ namespace DisplayService {
     writeSegments(segments);
   }
 
-  static void refresh(const PosteState& state, bool force) {
+  static void refresh(const RelayService::SessionSnapshot& session, bool force) {
     unsigned long now = millis();
-    bool active = state.relayState;
+    bool active = session.relayState;
     DisplayMode mode = active
                            ? DisplayMode::Active
-                           : (state.recoveryPending ? DisplayMode::Recovery
+                           : (session.recoveryPending ? DisplayMode::Recovery
                                                     : DisplayMode::Idle);
 
-    long activeRemaining = active ? RelayService::getRemainingSeconds(state) : 0;
-    unsigned long displayedSeconds = activeRemaining > 0
-                                         ? static_cast<unsigned long>(activeRemaining)
+    unsigned long displayedSeconds = active && session.remainingSeconds > 0
+                                         ? session.remainingSeconds
                                          : (mode == DisplayMode::Recovery
-                                                ? state.recoveryRemainingSeconds
+                                                ? session.recoveryRemainingSeconds
                                                 : 0UL);
     bool blinkPhase = mode == DisplayMode::Idle ||
                       ((now / COLON_BLINK_INTERVAL_MS) & 1UL) == 0;
@@ -174,22 +173,22 @@ namespace DisplayService {
     hasRendered = true;
   }
 
-  void begin(const PosteState& state) {
+  void begin(const RelayService::SessionSnapshot& session) {
     pinMode(PosteConfig::TM1637_CLK_PIN, OUTPUT_OPEN_DRAIN);
     pinMode(PosteConfig::TM1637_DIO_PIN, OUTPUT_OPEN_DRAIN);
     digitalWrite(PosteConfig::TM1637_CLK_PIN, HIGH);
     digitalWrite(PosteConfig::TM1637_DIO_PIN, HIGH);
-    refresh(state, true);
+    refresh(session, true);
     lastUpdateAtMs = millis();
   }
 
-  void update(const PosteState& state) {
+  void update(const RelayService::SessionSnapshot& session) {
     unsigned long now = millis();
     if (now - lastUpdateAtMs < PosteConfig::DISPLAY_UPDATE_INTERVAL_MS) {
       return;
     }
 
     lastUpdateAtMs = now;
-    refresh(state, false);
+    refresh(session, false);
   }
 }

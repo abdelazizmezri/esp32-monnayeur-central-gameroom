@@ -8,12 +8,6 @@ struct PosteState {
 
   String id;
   String name;
-  String status;
-
-  bool relayState = false;
-  unsigned long endTimeMs = 0;
-  bool recoveryPending = false;
-  unsigned long recoveryRemainingSeconds = 0;
 
   bool wifiConnected = false;
   bool wifiConfigPortalActive = false;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PosteState.h"
+#include "RelayService.h"
 
 namespace DisplayService {
-  void begin(const PosteState& state);
-  void update(const PosteState& state);
+  void begin(const RelayService::SessionSnapshot& session);
+  void update(const RelayService::SessionSnapshot& session);
 }

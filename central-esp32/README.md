@@ -66,7 +66,9 @@ flowchart LR
 La centrale est le point de décision du système. Les postes doivent exécuter le
 firmware compatible du dossier voisin `../poste-esp32`, qui fournit les
 endpoints `/status`, `/command`, `/configure` et `/identity/clear`, commande le
-relais et affiche localement le temps restant sur un TM1637.
+relais et affiche localement le temps restant sur un TM1637. Son contrôle de
+session fonctionne dans une tâche FreeRTOS dédiée : les délais mDNS ou HTTP ne
+peuvent plus figer l'affichage ni retarder l'expiration du relais.
 
 ### Composants internes
 
@@ -287,11 +289,20 @@ Le relais du poste reste coupé tant qu'aucune décision n'a été envoyée. Les
 reprises de plusieurs postes sont affichées et traitées indépendamment. Sur le
 poste, le temps récupérable clignote sur le TM1637 jusqu'à cette décision.
 
+Le poste confirme une commande après l'avoir appliquée à son état protégé. Les
+crédits restent donc débités uniquement après une réponse réussie, comme avant
+la séparation temps réel/réseau.
+
 ### Surveillance
 
 La centrale interroge un poste toutes les 5 secondes avec `GET /status`. Les
 postes sont interrogés à tour de rôle. Après un échec et plus de 10 secondes sans
 réponse valide, le poste passe à l'état `offline`.
+
+En complément de ce sondage, chaque poste conserve un battement d'annonce de
+5 secondes et envoie plus rapidement les transitions de session. Une révision
+interne empêche qu'un état devenu ancien pendant la transmission reste affiché :
+le poste renvoie le nouvel instantané dès la fin de l'échange précédent.
 
 Les informations affichées sont :
 

@@ -4,8 +4,7 @@
 
 #include "PosteConfig.h"
 #include "PosteState.h"
-#include "RelayService.h"
-#include "DisplayService.h"
+#include "PosteControlService.h"
 #include "PosteWebServer.h"
 #include "WiFiConfigService.h"
 #include "PosteIdentityService.h"
@@ -19,12 +18,7 @@ void setup() {
   delay(200);
 
   PosteIdentityService::begin(posteState);
-  posteState.status = "idle";
-  posteState.relayState = false;
-  posteState.endTimeMs = 0;
-
-  RelayService::begin(posteState);
-  DisplayService::begin(posteState);
+  PosteControlService::begin();
 
   PosteWebServer::begin(server, posteState);
   WiFiConfigService::begin(server, posteState);
@@ -37,7 +31,6 @@ void loop() {
   server.handleClient();
   WiFiConfigService::loop(posteState);
 
-  RelayService::update(posteState);
-  DisplayService::update(posteState);
+  PosteControlService::loop();
   PosteAnnounceService::update(posteState);
 }

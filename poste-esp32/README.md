@@ -32,7 +32,7 @@ le temps de jeu attribué.
 - serveur HTTP local sur le port 80 ;
 - démarrage, prolongation et arrêt d'une session ;
 - activation d'un relais pendant toute la durée de la session ;
-- arrêt automatique du relais lorsque le temps est écoulé ;
+- arrêt automatique précis du relais dans une tâche FreeRTOS dédiée ;
 - affichage local du temps restant sur quatre chiffres TM1637 ;
 - remontée de l'état, de l'adresse IP et du temps restant à la centrale ;
 - sauvegarde périodique du temps et reprise contrôlée après une coupure ;
@@ -44,7 +44,7 @@ le temps de jeu attribué.
 flowchart LR
     Admin["Navigateur de l'administrateur"] -->|HTTP| Central["Centrale ESP32<br>pstm.local"]
     Central -->|"START_SESSION, ADD_TIME,<br>STOP_SESSION, configuration"| Poste["ESP32 du poste"]
-    Poste -->|"Annonce toutes les 5 s<br>et état du poste"| Central
+    Poste -->|"Annonce périodique<br>et transitions de session"| Central
     Poste -->|GPIO| Relay["Module relais"]
     Poste -->|"GPIO 25 / 26"| Display["Afficheur TM1637"]
     Relay --> Machine["Machine ou poste de jeu"]
@@ -75,25 +75,33 @@ La fonction `setup()` exécute les opérations suivantes :
 5. charge le dernier instantané de session et passe à `recovery_pending` s'il
    détecte une session interrompue, sinon à `idle` ;
 6. initialise l'afficheur TM1637 et présente le temps correspondant à l'état ;
-7. enregistre les routes du serveur HTTP ;
-8. charge les identifiants Wi-Fi et tente une connexion pendant 15 secondes ;
-9. ouvre le portail de configuration si la connexion échoue ;
-10. démarre le serveur HTTP sur le port 80.
+7. crée la tâche FreeRTOS `poste-control`, prioritaire sur la boucle Arduino ;
+8. enregistre les routes du serveur HTTP ;
+9. charge les identifiants Wi-Fi et tente une connexion pendant 15 secondes ;
+10. ouvre le portail de configuration si la connexion échoue ;
+11. démarre le serveur HTTP sur le port 80.
 
-### Boucle principale
+### Tâche de contrôle et boucle réseau
 
-La fonction `loop()` traite continuellement :
+La tâche `poste-control` se réveille toutes les 20 ms et traite exclusivement :
+
+- l'expiration de la session et la coupure du relais ;
+- la sauvegarde périodique du temps restant ;
+- la mise à jour du TM1637 à partir d'un instantané cohérent.
+
+La fonction Arduino `loop()` reste consacrée au réseau :
 
 - les requêtes HTTP entrantes ;
 - le DNS du portail captif et l'état de la connexion Wi-Fi ;
-- l'expiration de la session en cours ;
-- la mise à jour non bloquante de l'afficheur ;
-- la sauvegarde périodique du temps restant ;
 - l'annonce périodique du poste à la centrale.
 
-Le code est non bloquant pendant une session : la date de fin est conservée dans
-`endTimeMs` et comparée à `millis()`. Le relais est donc coupé automatiquement
-sans attendre une nouvelle commande de la centrale.
+L'état de session est privé à `RelayService` et protégé par un mutex FreeRTOS.
+Les routes HTTP, l'annonce et l'afficheur utilisent des instantanés atomiques :
+ils ne peuvent donc jamais lire un mélange d'ancien et de nouvel état. Une
+résolution mDNS ou une requête HTTP lente peut encore occuper la boucle réseau,
+mais ne peut plus figer le décompte ni retarder la coupure du relais. Si la tâche
+ne peut exceptionnellement pas être créée, un mode de secours reprend le
+contrôle dans `loop()` et écrit un avertissement sur le port série.
 
 ### Cycle d'une session
 
@@ -183,8 +191,11 @@ L'identité du poste contient :
 Une fois connecté au Wi-Fi et hors du portail captif, le poste :
 
 1. démarre mDNS sous le nom `poste-<chipId>` en minuscules ;
-2. résout le nom `pstm.local` ;
-3. envoie son annonce à `POST /poste/announce` toutes les cinq secondes.
+2. résout le nom `pstm.local` une première fois et mémorise son adresse IP ;
+3. envoie son annonce à `POST /poste/announce` toutes les cinq secondes, ainsi
+   qu'après une transition de session ;
+4. invalide l'adresse mémorisée et relance mDNS uniquement après une erreur de
+   transport HTTP.
 
 Un poste sans identité apparaît dans les postes découverts de la centrale. La
 centrale lui attribue ensuite automatiquement son `id` et transmet le `name`
@@ -202,7 +213,12 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `WIFI_SETUP_AP_SSID_PREFIX` | `GAMEROOM-POSTE` | Préfixe suivi automatiquement du `chipId` matériel. |
 | `WIFI_SETUP_AP_PASSWORD` | chaîne vide | Mot de passe du point d'accès ; huit caractères minimum pour le protéger. |
 | `CENTRAL_MDNS_HOSTNAME` | `pstm` | Nom mDNS de la centrale, sans `.local`. |
-| `ANNOUNCE_INTERVAL_MS` | `5000` | Période d'annonce à la centrale. |
+| `ANNOUNCE_INTERVAL_MS` | `5000` | Période normale d'annonce à la centrale. |
+| `ANNOUNCE_STATE_CHANGE_DELAY_MS` | `250` | Délai minimal avant l'annonce accélérée d'une transition de session. |
+| `ANNOUNCE_RETRY_INTERVAL_MS` | `5000` | Attente avant une nouvelle tentative après un échec. |
+| `CENTRAL_MDNS_QUERY_TIMEOUT_MS` | `750` | Délai maximal de résolution mDNS quand l'IP centrale n'est pas connue. |
+| `ANNOUNCE_HTTP_CONNECT_TIMEOUT_MS` | `400` | Délai maximal d'ouverture TCP vers la centrale. |
+| `ANNOUNCE_HTTP_RESPONSE_TIMEOUT_MS` | `1200` | Délai maximal de lecture de la réponse d'annonce. |
 | `SESSION_CHECKPOINT_INTERVAL_MS` | `60000` | Période de sauvegarde du temps restant pendant une session. |
 | `DEFAULT_POST_ID` | chaîne vide | Identifiant initial si la NVS est vide. |
 | `DEFAULT_POST_NAME` | chaîne vide | Nom initial si la NVS est vide. |
@@ -213,6 +229,7 @@ Les constantes se trouvent dans `PosteConfig.h` :
 | `TM1637_DIO_PIN` | GPIO 26 | Données de l'afficheur TM1637. |
 | `TM1637_BRIGHTNESS` | `5` | Luminosité de 0 à 7. |
 | `DISPLAY_UPDATE_INTERVAL_MS` | `100` | Période de vérification du contenu de l'afficheur. |
+| `CONTROL_TASK_INTERVAL_MS` | `20` | Période de contrôle du relais et de la session. |
 | `HTTP_PORT` | `80` | Port du serveur HTTP local. |
 
 Avant le déploiement, modifier au minimum `COMMAND_TOKEN`, vérifier les trois
@@ -237,7 +254,8 @@ supplémentaire n'est nécessaire. Le format dépend automatiquement de la duré
 
 L'affichage ne détermine jamais l'expiration d'une session : le relais reste
 piloté par `RelayService` avec la précision de `millis()`. Ainsi, l'arrondi du
-mode `HH:MM` et le plafond visuel ne modifient pas le temps réel.
+mode `HH:MM` et le plafond visuel ne modifient pas le temps réel. Le pilote est
+appelé par `poste-control`, indépendamment des délais mDNS et HTTP.
 
 ## Câblage du poste
 
@@ -466,7 +484,8 @@ curl -X POST http://ADRESSE_IP_DU_POSTE/command \
 
 ## Annonce envoyée à la centrale
 
-Toutes les cinq secondes, le poste envoie une requête à :
+Le poste envoie une requête périodique toutes les cinq secondes et accélère
+l'envoi après un démarrage, un ajout, un arrêt ou une expiration de session :
 
 ```text
 POST http://pstm.local/poste/announce
@@ -492,7 +511,14 @@ L'en-tête Bearer et `Content-Type: application/json` sont ajoutés. Le contenu 
 
 L'annonce n'est pas envoyée tant que le Wi-Fi est déconnecté ou que le portail
 captif est actif. L'échec d'une annonce n'arrête pas le poste ni une session en
-cours ; une nouvelle tentative a lieu au prochain intervalle.
+cours ; une nouvelle tentative a lieu après cinq secondes. Chaque changement de
+session incrémente une révision interne. Si l'état change pendant un envoi HTTP,
+la différence de révision provoque une nouvelle annonce après au moins 250 ms,
+ce qui évite qu'un instantané devenu ancien reste visible sur la centrale.
+
+La résolution `pstm.local` n'est plus répétée à chaque envoi. L'IP résolue est
+réutilisée tant que le transport fonctionne ; cela réduit les appels bloquants
+et laisse davantage de temps à la réception des commandes centrales.
 
 ## Persistance des données
 
@@ -515,17 +541,19 @@ décision de reprise de la centrale au lieu de revenir directement à `idle`.
 
 | Fichier | Rôle |
 |---|---|
-| `poste-esp32.ino` | Point d'entrée Arduino. Crée l'état partagé et le serveur, initialise tous les services dans `setup()` et les exécute dans `loop()`. |
-| `PosteConfig.h` | Centralise les constantes : Wi-Fi, portail captif, mDNS, token, délais, intervalle de sauvegarde, GPIO et port HTTP. |
-| `PosteState.h` | Définit `PosteState`, la structure en RAM partagée : identité, session, reprise, relais et réseau. |
-| `RelayService.h` | Déclare l'interface de gestion du relais et des sessions. |
-| `RelayService.cpp` | Pilote le GPIO, gère le temps, sauvegarde la session en NVS et restaure une reprise en attente après coupure. |
+| `poste-esp32.ino` | Point d'entrée Arduino. Initialise l'identité, la tâche de contrôle, le serveur, le Wi-Fi et les annonces. |
+| `PosteConfig.h` | Centralise les constantes : Wi-Fi, mDNS, timeouts réseau, tâche de contrôle, sauvegarde, GPIO et port HTTP. |
+| `PosteState.h` | Définit uniquement l'état réseau et l'identité partagés par la boucle HTTP. L'état de session est encapsulé dans `RelayService`. |
+| `PosteControlService.h` | Déclare l'initialisation de la tâche temps réel et son mode de secours. |
+| `PosteControlService.cpp` | Exécute relais et afficheur toutes les 20 ms dans une tâche FreeRTOS prioritaire. |
+| `RelayService.h` | Définit les commandes de session et la structure d'instantané atomique. |
+| `RelayService.cpp` | Protège l'état par mutex, pilote le relais, gère le temps et sauvegarde/restaure la session en NVS. |
 | `DisplayService.h` | Déclare l'initialisation et la mise à jour de l'afficheur. |
 | `DisplayService.cpp` | Pilote directement le bus TM1637, formate le temps et gère les états fixe/clignotant sans bibliothèque externe. |
 | `PosteIdentityService.h` | Déclare le chargement, l'enregistrement et l'effacement de l'identité du poste. |
 | `PosteIdentityService.cpp` | Construit le `chipId` depuis l'eFuse et conserve `id`/`name` dans le namespace NVS `identity`. |
 | `PosteAnnounceService.h` | Déclare la mise à jour périodique de l'annonce. |
-| `PosteAnnounceService.cpp` | Démarre mDNS pour le poste, résout la centrale et lui envoie l'état en JSON toutes les cinq secondes. |
+| `PosteAnnounceService.cpp` | Met en cache l'IP centrale, applique les timeouts HTTP et annonce périodiquement ou immédiatement les transitions. |
 | `PosteWebServer.h` | Déclare l'enregistrement des routes HTTP du poste. |
 | `PosteWebServer.cpp` | Implémente `/status`, `/configure`, `/identity/clear`, `/command`, les réponses JSON et la validation du token Bearer. |
 | `WiFiConfigService.h` | Déclare l'initialisation et le suivi de la connexion Wi-Fi. |
@@ -606,6 +634,16 @@ niveau haut et `false` si elle s'active au niveau bas.
 - tester d'abord sans la charge de puissance raccordée au relais afin d'écarter
   les perturbations d'alimentation.
 
+### Le décompte se fige encore pendant les échanges réseau
+
+- vérifier dans le moniteur série la présence de `Poste control task started.` ;
+- si `Control task allocation failed` apparaît, redémarrer le poste et vérifier
+  qu'aucune extension du firmware ne consomme anormalement la RAM ;
+- contrôler que `CONTROL_TASK_INTERVAL_MS` reste à une valeur raisonnable, 20 ms
+  par défaut ;
+- distinguer un gel réel du mode `HH:MM`, qui ne change volontairement qu'à la
+  minute lorsque la durée restante atteint une heure.
+
 ## Limites connues
 
 - le relais repart toujours désactivé et une session interrompue exige une
@@ -620,6 +658,9 @@ niveau haut et `false` si elle s'active au niveau bas.
 - le firmware n'impose pas de durée maximale de session ;
 - l'affichage est plafonné à `99:59`, sans plafonner la durée réelle de la session ;
 - la résolution de `pstm.local` dépend du support mDNS du réseau ;
+- en cas d'échec exceptionnel de création de la tâche FreeRTOS, le mode de
+  secours maintient les fonctions mais le réseau peut de nouveau retarder leur
+  actualisation jusqu'au prochain redémarrage ;
 - le serveur HTTP Arduino traite un nombre limité de requêtes et convient à un
   réseau local, pas à une exposition publique ;
 - le changement de `COMMAND_TOKEN` nécessite de recompiler chaque poste et de

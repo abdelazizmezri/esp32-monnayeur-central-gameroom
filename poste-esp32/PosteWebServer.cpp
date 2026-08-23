@@ -36,17 +36,19 @@ namespace PosteWebServer {
   }
 
   static void handleStatus() {
+    RelayService::SessionSnapshot session = RelayService::getSessionSnapshot();
+
     StaticJsonDocument<512> doc;
     doc["chipId"] = gState->chipId;
     doc["configured"] = gState->configured;
     doc["id"] = gState->id;
     doc["name"] = gState->name;
     doc["ip"] = WiFi.localIP().toString();
-    doc["status"] = gState->status;
-    doc["relay"] = gState->relayState;
-    doc["remaining"] = RelayService::getRemainingSeconds(*gState);
-    doc["recoveryPending"] = gState->recoveryPending;
-    doc["recoveryRemaining"] = gState->recoveryRemainingSeconds;
+    doc["status"] = RelayService::statusToString(session.status);
+    doc["relay"] = session.relayState;
+    doc["remaining"] = session.remainingSeconds;
+    doc["recoveryPending"] = session.recoveryPending;
+    doc["recoveryRemaining"] = session.recoveryRemainingSeconds;
 
     String json;
     serializeJson(doc, json);
@@ -87,7 +89,7 @@ namespace PosteWebServer {
       return;
     }
 
-    RelayService::stopSession(*gState);
+    RelayService::stopSession();
     PosteIdentityService::clearIdentity(*gState);
     gServer->send(200, "application/json", "{\"ok\":true}");
   }
@@ -118,18 +120,17 @@ namespace PosteWebServer {
         sendJsonError(400, "duration required");
         return;
       }
-      RelayService::startSession(*gState, duration);
+      RelayService::startSession(duration);
     } else if (action == "ADD_TIME") {
       if (duration == 0) {
         sendJsonError(400, "duration required");
         return;
       }
-      RelayService::addTime(*gState, duration);
+      RelayService::addTime(duration);
     } else if (action == "STOP_SESSION") {
-      // Répondre avant l'écriture NVS effectuée par stopSession(). La commande
-      // est sans échec possible une fois validée et reste idempotente.
+      RelayService::stopSession();
+      // Confirmer uniquement apres la coupure du relais et l'effacement NVS.
       gServer->send(200, "application/json", "{\"ok\":true}");
-      RelayService::stopSession(*gState);
       return;
     } else if (action == "PING") {
       // no-op

@@ -10,6 +10,11 @@ namespace PosteConfig {
 
   inline constexpr char CENTRAL_MDNS_HOSTNAME[] = "pstm";
   inline constexpr unsigned long ANNOUNCE_INTERVAL_MS = 5000;
+  inline constexpr unsigned long ANNOUNCE_STATE_CHANGE_DELAY_MS = 250;
+  inline constexpr unsigned long ANNOUNCE_RETRY_INTERVAL_MS = 5000;
+  inline constexpr unsigned long CENTRAL_MDNS_QUERY_TIMEOUT_MS = 750;
+  inline constexpr unsigned long ANNOUNCE_HTTP_CONNECT_TIMEOUT_MS = 400;
+  inline constexpr unsigned long ANNOUNCE_HTTP_RESPONSE_TIMEOUT_MS = 1200;
 
   // Sauvegarde périodique du temps restant pour proposer une reprise après coupure.
   // Une valeur courte améliore la précision mais augmente les écritures en mémoire flash.
@@ -30,6 +35,7 @@ namespace PosteConfig {
   // Luminosite comprise entre 0 (minimum) et 7 (maximum).
   inline constexpr int TM1637_BRIGHTNESS = 5;
   inline constexpr unsigned long DISPLAY_UPDATE_INTERVAL_MS = 100;
+  inline constexpr unsigned long CONTROL_TASK_INTERVAL_MS = 20;
 
   inline constexpr uint16_t HTTP_PORT = 80;
 }

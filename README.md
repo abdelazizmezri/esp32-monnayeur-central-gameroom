@@ -66,11 +66,14 @@ elle ouvre un point d'accès `GAMEROOM-CENTRAL-<chipId>` et son portail captif.
 
 Le poste calcule son `chipId` matériel, charge son identité et ses identifiants
 Wi-Fi depuis la NVS, force le relais à l'arrêt puis initialise son afficheur
-TM1637 à `00:00` ou avec le temps récupérable. En cas d'échec Wi-Fi, il ouvre un
-point d'accès `GAMEROOM-POSTE-<chipId>`.
+TM1637 à `00:00` ou avec le temps récupérable. Il démarre ensuite une tâche
+FreeRTOS prioritaire qui contrôle le relais et l'afficheur toutes les 20 ms,
+indépendamment du réseau. En cas d'échec Wi-Fi, il ouvre un point d'accès
+`GAMEROOM-POSTE-<chipId>`.
 
-Une fois connecté, il publie son propre service mDNS, résout `pstm.local` et
-annonce son état à la centrale toutes les cinq secondes.
+Une fois connecté, il publie son propre service mDNS, résout `pstm.local`, garde
+l'adresse IP centrale en cache et annonce son état toutes les cinq secondes ou
+après une transition de session.
 
 ### 3. Découverte et configuration
 
@@ -131,16 +134,20 @@ Elle envoie ensuite au poste :
 
 Les coins ne sont débités qu'après une réponse HTTP réussie du poste. Sur le
 poste, `START_SESSION` active le relais et fixe la date de fin ; `ADD_TIME`
-prolonge cette date. La boucle principale coupe automatiquement le relais quand
-le temps arrive à zéro. Chaque poste affiche en parallèle son propre décompte en
-`MM:SS` sous une heure, puis en `HH:MM` jusqu'à `99:59`.
+prolonge cette date. La tâche de contrôle coupe automatiquement le relais avec
+une granularité de 20 ms quand le temps arrive à zéro. Chaque poste affiche en
+parallèle son propre décompte en `MM:SS` sous une heure, puis en `HH:MM` jusqu'à
+`99:59`. Les commandes et les annonces utilisent des instantanés protégés de la
+session afin de conserver un état cohérent entre les deux ESP32.
 
 ### 6. Supervision
 
 En plus des annonces, la centrale interroge un poste configuré toutes les cinq
 secondes, à tour de rôle, avec `GET /status`. Elle affiche son état, son IP, le
 relais et le temps restant. Un poste sans réponse valide depuis plus de dix
-secondes passe à l'état `offline`.
+secondes passe à l'état `offline`. Une transition de session déclenche aussi une
+annonce accélérée du poste ; si l'état change pendant un envoi, une révision
+interne provoque immédiatement l'envoi de l'instantané plus récent.
 
 ### 7. Recette administrateur
 
@@ -541,16 +548,17 @@ centrale pour une relance ou une annulation explicite.
 
 | Fichier | Rôle |
 |---|---|
-| `poste-esp32/poste-esp32.ino` | Point d'entrée Arduino : initialise identité, relais, afficheur, serveur, Wi-Fi et annonces. |
-| `poste-esp32/PosteConfig.h` | Regroupe Wi-Fi, mDNS, secret partagé, GPIO du relais et du TM1637, luminosité et délais. |
-| `poste-esp32/PosteState.h` | Définit l'état partagé en RAM : identité, connexion, session, reprise en attente et relais. |
+| `poste-esp32/poste-esp32.ino` | Point d'entrée Arduino : initialise identité, contrôle temps réel, serveur, Wi-Fi et annonces. |
+| `poste-esp32/PosteConfig.h` | Regroupe Wi-Fi, mDNS, timeouts, tâche de contrôle, GPIO du relais et du TM1637 et luminosité. |
+| `poste-esp32/PosteState.h` | Définit l'identité et l'état réseau partagés ; la session reste privée au service relais. |
+| `poste-esp32/PosteControlService.h` / `PosteControlService.cpp` | Exécute le relais et l'afficheur dans une tâche FreeRTOS toutes les 20 ms. |
 | `poste-esp32/PosteIdentityService.h` | Déclare la gestion de l'identité persistante. |
 | `poste-esp32/PosteIdentityService.cpp` | Calcule le `chipId` eFuse et charge, sauvegarde ou efface `id` et `name` dans la NVS. |
 | `poste-esp32/RelayService.h` | Déclare le pilotage du relais et des sessions. |
-| `poste-esp32/RelayService.cpp` | Pilote le relais, gère les sessions et sauvegarde/restaure le temps récupérable après une coupure. |
+| `poste-esp32/RelayService.cpp` | Protège l'état de session par mutex, pilote le relais et sauvegarde/restaure le temps récupérable. |
 | `poste-esp32/DisplayService.h` / `DisplayService.cpp` | Pilote le TM1637 et affiche le temps local au format `MM:SS` ou `HH:MM`. |
 | `poste-esp32/PosteAnnounceService.h` | Déclare l'annonce périodique vers la centrale. |
-| `poste-esp32/PosteAnnounceService.cpp` | Résout la centrale par mDNS et lui envoie l'identité et l'état du poste en JSON. |
+| `poste-esp32/PosteAnnounceService.cpp` | Met en cache l'IP centrale et envoie les états périodiques ou les transitions en JSON. |
 | `poste-esp32/PosteWebServer.h` | Déclare les routes HTTP propres au poste. |
 | `poste-esp32/PosteWebServer.cpp` | Implémente `/status`, `/configure`, `/identity/clear`, `/command` et la validation Bearer. |
 | `poste-esp32/WiFiConfigService.h` | Déclare l'initialisation et le suivi du Wi-Fi. |
