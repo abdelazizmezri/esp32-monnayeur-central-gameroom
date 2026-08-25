@@ -213,10 +213,6 @@ namespace RelayService {
     return snapshot;
   }
 
-  unsigned long getRemainingSeconds() {
-    return getSessionSnapshot().remainingSeconds;
-  }
-
   const char* statusToString(SessionStatus status) {
     switch (status) {
       case SessionStatus::Active:

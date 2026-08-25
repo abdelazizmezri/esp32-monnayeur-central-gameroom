@@ -1,8 +1,8 @@
 #pragma once
 
 namespace PosteControlService {
-  // Initialise le relais, l'afficheur et la tache temps reel. Retourne false si
-  // la tache n'a pas pu etre creee ; loop() assure alors le mode de secours.
-  bool begin();
+  // Initialise le relais, l'afficheur et la tache temps reel. Si la tache ne
+  // peut pas etre creee, loop() assure automatiquement le mode de secours.
+  void begin();
   void loop();
 }

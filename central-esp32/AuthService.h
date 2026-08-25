@@ -18,7 +18,6 @@ namespace AuthService {
   UserAccount* findUser(AppState& state, const String& username);
   UserAccount* currentUser(WebServer& server, AppState& state);
 
-  void requirePageAuth(WebServer& server, AppState& state);
   bool requireApiAuth(WebServer& server, AppState& state);
   bool requireAdminAuth(WebServer& server, AppState& state);
 

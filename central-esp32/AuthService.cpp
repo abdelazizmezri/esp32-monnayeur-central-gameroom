@@ -300,15 +300,6 @@ namespace AuthService {
     return isAdmin(server, state) || hasValidApiToken(server, state);
   }
 
-  void requirePageAuth(WebServer& server, AppState& state) {
-    if (isAuthenticated(server, state)) {
-      return;
-    }
-
-    server.sendHeader("Location", "/login", true);
-    server.send(302, "text/plain", "");
-  }
-
   bool requireApiAuth(WebServer& server, AppState& state) {
     if (hasValidApiAccess(server, state)) {
       return true;

@@ -6,5 +6,5 @@
 
 namespace WifiService {
   bool begin(String& localIp);
-  bool beginMdns(AppState& state);
+  void beginMdns(AppState& state);
 }

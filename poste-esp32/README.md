@@ -5,8 +5,20 @@ module de poste se connecte au réseau local, se fait découvrir par
 la centrale, reçoit des commandes de session par HTTP et active un relais pendant
 le temps de jeu attribué.
 
+## Guides PDF
+
+- [Guide technique client](../output/pdf/ps-time-manager-guide-technique-client.pdf)
+  pour le câblage du relais et du TM1637, l'installation des outils, le
+  téléversement et les essais ;
+- [Manuel d'utilisation](../output/pdf/ps-time-manager-manuel-utilisation.pdf)
+  pour la mise en réseau d'un poste et son exploitation depuis la centrale.
+
+Les réseaux Wi-Fi, postes et états visibles dans les captures sont des données
+de démonstration, sans information extraite d'une installation réelle.
+
 ## Sommaire
 
+- [Guides PDF](#guides-pdf)
 - [Fonctions principales](#fonctions-principales)
 - [Place du poste dans le système](#place-du-poste-dans-le-système)
 - [Fonctionnement du firmware](#fonctionnement-du-firmware)
@@ -316,33 +328,47 @@ contacts secs séparés du signal `IN`.
 
 ### Prérequis
 
-- une carte ESP32 compatible avec le framework Arduino ;
-- un câble USB de données ;
-- Arduino IDE ou `arduino-cli` ;
-- le package de cartes **esp32 by Espressif Systems** ;
-- la bibliothèque **ArduinoJson**.
+| Catégorie | Éléments requis |
+|---|---|
+| Carte | ESP32 Dev Module avec 4 Mo de flash et câble USB de données. |
+| Périphériques | TM1637 quatre broches, module relais compatible 3,3 V et alimentation adaptée. |
+| Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
+| Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
+| Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
+| Bibliothèque externe | **ArduinoJson** 7.4.3. |
 
-`WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS` et `HTTPClient` sont
-fournis par le package Arduino pour ESP32. Le pilote TM1637 fait partie du
-sketch et ne demande aucune installation de bibliothèque.
+`WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient` et
+FreeRTOS sont fournis par le cœur ESP32 3.3.11. Le pilote TM1637 fait partie de
+`DisplayService.cpp` : ne pas installer de bibliothèque TM1637 externe. La
+compilation finale utilise 1 134 216 octets de programme et 51 632 octets de
+variables globales. La partition applicative par défaut accepte 1 310 720
+octets : il reste environ 176 504 octets pour les évolutions.
 
 ### Avec Arduino IDE
 
 1. Ouvrir `poste-esp32.ino`.
 2. Installer **ArduinoJson** depuis le gestionnaire de bibliothèques.
 3. Sélectionner une carte compatible, par exemple **ESP32 Dev Module**.
-4. Conserver le schéma **Default 4MB with spiffs**. Le schéma
+4. Régler **Flash Size = 4MB (32Mb)** et conserver le schéma
+   **Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**. Le schéma
    **Minimal SPIFFS** ne concerne que la centrale qui embarque les visuels HD.
-5. Adapter les constantes de `PosteConfig.h`.
-6. Sélectionner le port série de la carte.
-7. Cliquer sur **Vérifier**, puis **Téléverser**.
-8. Ouvrir le moniteur série à 115200 bauds.
+5. Conserver **CPU Frequency = 240 MHz (WiFi/BT)**, **Flash Frequency = 80 MHz**,
+   **Flash Mode = QIO**, **PSRAM = Disabled** et **Erase All Flash = Disabled**.
+6. Adapter les constantes de `PosteConfig.h`, surtout `COMMAND_TOKEN`,
+   `RELAY_PIN`, `RELAY_ACTIVE_HIGH`, `TM1637_CLK_PIN` et `TM1637_DIO_PIN`.
+7. Pour le premier essai, débrancher la charge des contacts du relais.
+8. Sélectionner le port série de la carte.
+9. Cliquer sur **Vérifier**, puis **Téléverser**.
+10. Ouvrir le moniteur série à 115200 bauds et vérifier `00:00` sur le TM1637.
 
 ### Avec arduino-cli
 
 ```bash
-arduino-cli core install esp32:esp32
-arduino-cli lib install ArduinoJson
+arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core update-index
+arduino-cli core install esp32:esp32@3.3.11
+arduino-cli lib install ArduinoJson@7.4.3
+arduino-cli board list
 arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=default .
 arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=default --port PORT_SERIE .
 ```

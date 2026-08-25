@@ -14,14 +14,13 @@ namespace WifiService {
     return WifiProvisioning::connectWithSavedCredentials(localIp);
   }
 
-  bool beginMdns(AppState& state) {
+  void beginMdns(AppState& state) {
     if (!MDNS.begin(AppConfig::MDNS_HOSTNAME)) {
       LogService::warn(state, "mDNS non démarré.");
-      return false;
+      return;
     }
 
     MDNS.addService("http", "tcp", AppConfig::SERVER_PORT);
     LogService::info(state, String("Accès web: http://") + AppConfig::MDNS_HOSTNAME + ".local");
-    return true;
   }
 }

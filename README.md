@@ -16,13 +16,47 @@ le même firmware, avec une identité propre enregistrée en mémoire.
 
 ## Documentation
 
+- [Guide technique client (PDF)](output/pdf/ps-time-manager-guide-technique-client.pdf) :
+  installation de l'environnement, matériel, sécurité électrique, câblage de la
+  centrale et des postes, compilation, mise en réseau, API, persistance et
+  recette de mise en service ;
+- [Manuel d'utilisation (PDF)](output/pdf/ps-time-manager-manuel-utilisation.pdf) :
+  parcours illustré pour l'administrateur et l'utilisateur simple, avec les
+  écrans de connexion, postes, recette, comptes, sécurité, journal et Wi-Fi ;
 - [Manuel complet de la centrale](central-esp32/README.md)
 - [Manuel complet d'un poste](poste-esp32/README.md)
+- [Sources de la documentation illustrée](docs/manuals/README.md)
 
-Ces deux manuels détaillent la mise en service, toutes les routes HTTP, les
-exemples `curl`, la persistance, le dépannage et les limites propres à chaque
-firmware. Le présent README décrit surtout l'architecture et le fonctionnement
-du système complet.
+Les README de la centrale et du poste détaillent la mise en service, toutes les
+routes HTTP, les exemples `curl`, la persistance, le dépannage et les limites
+propres à chaque firmware. Le présent README décrit surtout l'architecture et le
+fonctionnement du système complet.
+
+Les captures publiées dans les PDF proviennent des pages HTML réellement
+embarquées dans les firmwares. Le serveur de démonstration local injecte
+uniquement des postes, comptes, réseaux Wi-Fi, événements et valeurs de recette
+fictifs : aucune donnée NVS, adresse ou identité issue d'une installation réelle
+n'est utilisée.
+
+## État de la version finale
+
+Cette version a été auditée et recompilée le **25 août 2026** avec la chaîne
+d'outils suivante :
+
+| Élément | Version ou valeur validée |
+|---|---|
+| Arduino IDE | 2.3.10 |
+| `arduino-cli` | 1.5.1 |
+| Cœur de cartes | `esp32 by Espressif Systems` 3.3.11 |
+| Bibliothèque externe | ArduinoJson 7.4.3 |
+| Carte de référence | `ESP32 Dev Module`, flash 4 Mo, PSRAM désactivée |
+| Moniteur série | 115200 bauds |
+
+Les deux sketches compilent avec cette configuration. La centrale occupe
+1 560 932 octets et le poste 1 134 216 octets dans la compilation de référence.
+Ces tailles peuvent légèrement varier avec une autre version du compilateur ;
+il faut donc conserver les versions ci-dessus pour reproduire exactement la
+validation finale.
 
 ## Architecture générale
 
@@ -247,7 +281,7 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 
 ## Matériel et câblage
 
-Matériel minimal :
+### Nomenclature minimale
 
 - un ESP32 pour la centrale ;
 - un ESP32 par poste de jeu ;
@@ -258,6 +292,30 @@ Matériel minimal :
 - un réseau Wi-Fi local ;
 - des alimentations adaptées et un câblage sécurisé.
 
+| Partie | Éléments spécifiques |
+|---|---|
+| Centrale | ESP32 4 Mo, monnayeur JY-133B ou équivalent, alimentation 12 V, buck 12 V vers 5 V d'au moins 1 A, PC817, résistance 2,2 kΩ et résistance 10 kΩ. |
+| Chaque poste | ESP32 4 Mo, module relais compatible avec une commande logique 3,3 V, afficheur TM1637 quatre broches, alimentation adaptée au relais et à la machine. |
+| Réseau | Point d'accès ou routeur Wi-Fi local sans isolation entre clients, avec mDNS si l'accès par `pstm.local` est souhaité. |
+
+### Outillage recommandé
+
+| Outil | Utilisation |
+|---|---|
+| Ordinateur avec Arduino IDE 2 ou `arduino-cli` | Compilation, téléversement et moniteur série. |
+| Câbles USB de données | Programmation de la centrale et des postes. |
+| Multimètre numérique | Réglage du buck à 5,0 V, contrôle des masses, des alimentations et du niveau maximal de 3,3 V sur les GPIO. |
+| Alimentation de laboratoire limitée en courant, si disponible | Premier démarrage et recherche de court-circuit sans exposer tout le système. |
+| Fer à souder, gaine thermorétractable et étain | Assemblage durable de la partie basse tension. |
+| Pince à dénuder, pince à sertir et petits tournevis isolés | Préparation des conducteurs et borniers. |
+| Analyseur logique ou oscilloscope, facultatif | Vérification des impulsions du monnayeur et du bus TM1637. |
+
+Toujours effectuer le premier téléversement avec le monnayeur, le relais et la
+charge de puissance débranchés. Couper toutes les alimentations avant de
+modifier un raccordement.
+
+### Raccordement de la centrale
+
 La centrale utilise le GPIO 13 pour le monnayeur. NVS et LittleFS utilisent la
 flash interne et n'ajoutent aucun câblage. Le schéma final est disponible ici :
 
@@ -267,10 +325,37 @@ Le [tableau de raccordement broche par broche](central-esp32/README.md#câblage-
 complète le dessin et doit être vérifié avec les noms sérigraphiés sur le modèle
 réel de l'ESP32.
 
+| Depuis | Vers | Fonction |
+|---|---|---|
+| Alimentation `+12 V` | Monnayeur rouge, buck `IN+`, puis `R1 2,2 kΩ` | Alimentation primaire et entrée du PC817. |
+| Alimentation `GND` | Monnayeur noir et buck `IN−` | Retour primaire. |
+| Monnayeur blanc `COIN` | Retour de la LED du PC817 | Impulsion brute du monnayeur. |
+| Buck `OUT+`, réglé à 5,0 V avant connexion | ESP32 `VIN/5V` | Alimentation de la centrale. |
+| Buck `OUT−` | ESP32 `GND` | Masse logique. |
+| ESP32 `3V3` | Résistance de pull-up `R2 10 kΩ` | Rappel logique 3,3 V. |
+| Collecteur PC817 `OUT` | ESP32 `GPIO13` | Signal monnayeur protégé. |
+| Émetteur PC817 | ESP32 `GND` | Référence du signal logique. |
+
+Avant de brancher l'ESP32, alimenter uniquement le buck et régler sa sortie à
+**5,0 V** au multimètre. Après raccordement du PC817, vérifier que `GPIO13` ne
+reçoit jamais plus de **3,3 V**.
+
+### Raccordement d'un poste
+
 Le firmware du poste utilise le GPIO 27 pour le relais, le GPIO 25 pour `CLK` et
 le GPIO 26 pour `DIO`. Le schéma complet de la partie poste est disponible ici :
 
 ![Schéma de câblage du poste avec relais et afficheur TM1637](poste-esp32/docs/schema-cablage-poste-tm1637.svg)
+
+| ESP32 | Équipement | Fonction |
+|---|---|---|
+| `3V3` | TM1637 `VCC` | Alimentation sûre des résistances de rappel du module. |
+| `GND` | TM1637 `GND` et relais `GND` | Masse logique commune. |
+| GPIO 25 | TM1637 `CLK` | Horloge. |
+| GPIO 26 | TM1637 `DIO` | Données. |
+| GPIO 27 | Relais `IN` | Commande logique. |
+| Alimentation adaptée | Relais `VCC` | 5 V sur le schéma, à confirmer avec le module réel. |
+| Contacts `COM` et `NO` du relais | Circuit d'autorisation de la machine | Contact sec, séparé de `IN`; `NC` reste inutilisé dans le montage de référence. |
 
 Avant de connecter une machine, il faut vérifier `RELAY_PIN`, adapter
 `RELAY_ACTIVE_HIGH` au module relais et alimenter le TM1637 en 3,3 V. Son pilote
@@ -286,6 +371,27 @@ est inclus dans le firmware et ne nécessite aucune bibliothèque supplémentair
 Cette procédure part d'une installation neuve d'Arduino IDE 2 et va jusqu'au
 premier démarrage des deux firmwares. Le projet a été vérifié avec le cœur ESP32
 3.3.11 et ArduinoJson 7.4.3.
+
+### Dépendances par firmware
+
+| Élément | Centrale | Poste | Installation |
+|---|:---:|:---:|---|
+| `esp32 by Espressif Systems` 3.3.11 | Oui | Oui | Gestionnaire de cartes Arduino ou `arduino-cli core install esp32:esp32@3.3.11`. |
+| ArduinoJson 7.4.3 | Oui | Oui | Gestionnaire de bibliothèques ou `arduino-cli lib install ArduinoJson@7.4.3`. |
+| `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient` | Oui | Oui | Inclus automatiquement dans le cœur ESP32. |
+| `FS`, `LittleFS`, mbedTLS | Oui | Non | Inclus automatiquement dans le cœur ESP32. |
+| FreeRTOS | Non directement | Oui | Inclus automatiquement dans le cœur ESP32. |
+| Pilote TM1637 externe | Non | **Non requis** | Le pilote est implémenté dans `DisplayService.cpp`. |
+
+Ne pas installer séparément des bibliothèques homonymes à `WiFi`, `WebServer`,
+`Preferences` ou `LittleFS` : le projet doit utiliser celles fournies avec le
+cœur ESP32 3.3.11.
+
+Avec ArduinoJson 7.4.3 et le niveau d'avertissement maximal, le compilateur peut
+signaler les anciennes formes `StaticJsonDocument`, `DynamicJsonDocument`,
+`createNestedArray` ou `createNestedObject` comme dépréciées. Ces avertissements
+de compatibilité ne bloquent ni la compilation ni le téléversement de cette
+version finale.
 
 ### 1. Installer Arduino IDE
 
@@ -377,12 +483,37 @@ ce découpage standard et réserve réellement **640 Kio à LittleFS**. Ne pas
 renommer, déplacer ou supprimer ce fichier. Ne pas choisir **Default** pour la
 centrale : sa limite d'application est trop petite pour le firmware actuel.
 
+Table réellement écrite depuis `central-esp32/partitions.csv` :
+
+| Partition | Offset | Taille | Utilisation |
+|---|---:|---:|---|
+| `nvs` | `0x9000` | 20 Kio | Wi-Fi, configuration, comptes, token et postes. |
+| `otadata` | `0xE000` | 8 Kio | Sélection des emplacements applicatifs. |
+| `app0` | `0x10000` | 1,625 Mio | Firmware actif. |
+| `app1` | `0x1B0000` | 1,625 Mio | Second emplacement applicatif. |
+| `littlefs` | `0x350000` | 640 Kio | Journal `/revenue.bin`. |
+| `coredump` | `0x3F0000` | 64 Kio | Diagnostic ESP32. |
+
+Le profil **Minimal SPIFFS** est requis pour que l'outil accepte la taille de la
+centrale, mais la limite physique à respecter reste celle de `app0`, soit
+**1 703 936 octets**. La version finale utilise environ 91,6 % de cet espace et
+laisse approximativement 143 004 octets. Le pourcentage affiché par Arduino IDE
+est calculé avec le profil de menu et peut donc être plus optimiste. Après toute
+extension du firmware, comparer impérativement la taille compilée à 1 703 936.
+
+La table comporte deux emplacements OTA, mais le firmware n'implémente pas de
+procédure de mise à jour OTA. Les téléversements documentés ici se font par USB.
+
 | Réglage Arduino IDE | Centrale | Poste |
 |---|---|---|
 | Board | ESP32 Dev Module | ESP32 Dev Module |
 | Flash Size | 4MB | 4MB |
 | Partition Scheme | **Minimal SPIFFS** (remplacé par le `partitions.csv` local) | Default 4MB with spiffs |
+| CPU Frequency | 240 MHz (WiFi/BT) | 240 MHz (WiFi/BT) |
+| Flash Frequency / Mode | 80 MHz / QIO | 80 MHz / QIO |
+| PSRAM | Disabled | Disabled |
 | Upload Speed | 460800, ou 115200 en cas d'échec | 460800, ou 115200 en cas d'échec |
+| Erase All Flash Before Sketch Upload | Disabled | Disabled |
 | Port | Port USB de la centrale | Port USB du poste concerné |
 
 La centrale embarque désormais le fond de connexion et les logos en WebP haute
@@ -409,8 +540,11 @@ Avant de compiler :
    `RELAY_ACTIVE_HIGH` au module relais utilisé. Vérifier également le câblage
    de l'afficheur : `TM1637_CLK_PIN` sur GPIO 25 et `TM1637_DIO_PIN` sur GPIO 26.
 
-Les identifiants du réseau Wi-Fi ne sont pas écrits dans le code : ils seront
-saisis plus tard dans les portails de configuration du central et des postes.
+La centrale ne contient pas d'identifiants Wi-Fi compilés. Sur le poste, laisser
+`WIFI_SSID="YOUR_WIFI"` et `WIFI_PASSWORD="YOUR_PASSWORD"` pour utiliser le
+portail, ou remplacer ces deux valeurs uniquement si un réseau de secours doit
+être intégré au firmware. Dans le parcours recommandé, les identifiants sont
+saisis dans les portails de configuration puis conservés en NVS.
 
 ### 7. Compiler et téléverser la centrale
 
@@ -444,8 +578,8 @@ La centrale démarre soit sur le réseau enregistré, soit avec le point d'accè
 ```bash
 arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core update-index
-arduino-cli core install esp32:esp32
-arduino-cli lib install ArduinoJson
+arduino-cli core install esp32:esp32@3.3.11
+arduino-cli lib install ArduinoJson@7.4.3
 arduino-cli board list
 ```
 
@@ -469,18 +603,29 @@ Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
 
 ## Mise en service rapide
 
-1. Téléverser et démarrer la centrale.
-2. Se connecter au réseau ouvert `GAMEROOM-CENTRAL-<chipId>` (sans mot de passe).
-3. Ouvrir `http://192.168.4.1` et sélectionner le réseau local.
-4. Ouvrir `http://pstm.local`, se connecter avec `admin` / `12345678`, puis
-   changer immédiatement le mot de passe.
-5. Téléverser et démarrer un poste configuré avec le même secret partagé.
-6. Si nécessaire, rejoindre son point d'accès `GAMEROOM-POSTE-<chipId>`, ouvrir
-   `http://192.168.4.1` et choisir le même réseau local.
-7. Dans **Gestion des postes**, attendre la détection du `chipId`, puis attribuer
-   un nom au poste.
-8. Simuler un coin ou insérer une pièce, affecter le crédit au poste et vérifier
-   que le relais s'active et que le temps diminue sur l'afficheur TM1637.
+1. Couper les alimentations et vérifier tout le câblage au multimètre.
+2. Régler le buck de la centrale à 5,0 V avant de connecter l'ESP32.
+3. Remplacer le secret partagé dans les deux firmwares, puis compiler la
+   centrale avec **Minimal SPIFFS** et chaque poste avec **Default**.
+4. Téléverser d'abord la centrale par USB et ouvrir le moniteur série à 115200
+   bauds.
+5. Se connecter au réseau `GAMEROOM-CENTRAL-<chipId>`, ouvrir
+   `http://192.168.4.1` et sélectionner le réseau local.
+6. Ouvrir l'IP annoncée ou `http://pstm.local`, se connecter avec
+   `admin` / `12345678`, puis changer immédiatement le mot de passe.
+7. Régénérer le token API et exporter une première sauvegarde JSON protégée.
+8. Téléverser un poste, rejoindre au besoin `GAMEROOM-POSTE-<chipId>`, puis le
+   connecter au même réseau local que la centrale.
+9. Dans **Gestion des postes**, attendre sa découverte et lui attribuer un nom.
+10. Vérifier `00:00` sur le TM1637, effectuer un ping et lancer une courte
+    session de test sans charge de puissance.
+11. Vérifier le niveau actif du relais ; inverser `RELAY_ACTIVE_HIGH` et
+    retéléverser si le module fonctionne à l'état bas.
+12. Raccorder ensuite la charge, affecter un coin et confirmer l'arrêt automatique.
+13. Introduire une impulsion réelle et vérifier simultanément le solde, les logs
+    et la page **Recette** après synchronisation NTP.
+14. Redémarrer un poste pendant une session de test et valider les deux choix
+    **Reprendre** et **Annuler**.
 
 ## Persistance et redémarrage
 
@@ -575,11 +720,10 @@ le démarrage et la boucle principale de son ESP32.
 Modifier impérativement les valeurs de développement :
 
 - le mot de passe administrateur `12345678` ;
-- si le portail de configuration doit être protégé, `AP_PASSWORD`, vide par
-  défaut sur la centrale et le poste ;
+- `AP_PASSWORD` sur la centrale et `WIFI_SETUP_AP_PASSWORD` sur les postes,
+  tous deux vides par défaut ;
 - le secret partagé `POSTE_COMMAND_TOKEN` / `COMMAND_TOKEN` ;
-- le token API de la centrale, depuis l'interface ;
-- éventuellement le mot de passe du portail Wi-Fi des postes, ouvert par défaut.
+- le token API de la centrale, depuis l'interface.
 
 Le système utilise HTTP sans TLS. Il doit rester sur un réseau local privé, sans
 redirection de port depuis Internet. Le token partagé et les identifiants Wi-Fi

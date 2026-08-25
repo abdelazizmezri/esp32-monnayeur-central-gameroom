@@ -5,8 +5,20 @@ La centrale ESP32 reçoit les impulsions du monnayeur, transforme ces impulsions
 en crédits, découvre les ESP32 installés sur les postes et distribue du temps de
 jeu depuis une interface web locale.
 
+## Guides PDF
+
+- [Guide technique client](../output/pdf/ps-time-manager-guide-technique-client.pdf)
+  pour l'installation, le câblage, le téléversement et la recette technique ;
+- [Manuel d'utilisation](../output/pdf/ps-time-manager-manuel-utilisation.pdf)
+  pour les parcours administrateur et utilisateur simple.
+
+Toutes les captures de ces guides utilisent des données fictives générées par
+le serveur de démonstration documentaire ; elles ne contiennent aucun SSID,
+compte, mot de passe, token ou historique provenant d'une centrale réelle.
+
 ## Sommaire
 
+- [Guides PDF](#guides-pdf)
 - [Fonctions principales](#fonctions-principales)
 - [Architecture](#architecture)
 - [Démarrage du firmware](#démarrage-du-firmware)
@@ -401,15 +413,19 @@ navigateur ne suffit donc pas à contourner les restrictions.
 
 ### Matériel et logiciels
 
-- carte ESP32 compatible avec le framework Arduino ;
-- optocoupleur PC817, résistance 2,2 kΩ et pull-up 10 kΩ pour le monnayeur ;
-- câble USB de données ;
-- Arduino IDE ou `arduino-cli` ;
-- package de cartes **esp32 by Espressif Systems** ;
-- bibliothèque **ArduinoJson**.
+| Catégorie | Éléments requis |
+|---|---|
+| Carte | ESP32 Dev Module avec 4 Mo de flash, câble USB de données. |
+| Monnayeur | JY-133B ou équivalent, alimentation 12 V, buck 12 V vers 5 V d'au moins 1 A, PC817, résistance 2,2 kΩ et pull-up 10 kΩ. |
+| Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
+| Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
+| Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
+| Bibliothèque externe | **ArduinoJson** 7.4.3. |
 
-Le projet a été vérifié avec le cœur ESP32 3.3.11 et la cible
-`esp32:esp32:esp32`.
+`WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient`,
+`FS`, `LittleFS` et mbedTLS sont fournis par le cœur ESP32 3.3.11 et ne doivent
+pas être installés séparément. La compilation finale utilise 1 560 932 octets
+de programme et 52 776 octets de variables globales.
 
 ### Avec Arduino IDE
 
@@ -428,6 +444,10 @@ Le projet a été vérifié avec le cœur ESP32 3.3.11 et la cible
    nouvelle table de partitions par USB.
 9. Ouvrir le moniteur série à 115200 bauds.
 
+Conserver également **CPU Frequency = 240 MHz (WiFi/BT)**, **Flash Frequency =
+80 MHz**, **Flash Mode = QIO** et **PSRAM = Disabled**. Une vitesse d'upload de
+460800 convient généralement ; utiliser 115200 si la liaison série est instable.
+
 Le nom du menu annonce 128 Kio de SPIFFS, mais il sert ici à fournir assez de
 place au compilateur pour l'application. Le fichier local `partitions.csv`
 remplace automatiquement le découpage standard par deux applications OTA de
@@ -440,11 +460,30 @@ mise à jour, faire un téléversement complet par USB pour écrire la table de
 partitions. Éviter **Erase All Flash** si les paramètres NVS doivent être
 conservés. La nouvelle table reformate LittleFS à sa première initialisation.
 
+| Partition | Offset | Taille |
+|---|---:|---:|
+| `nvs` | `0x9000` | 20 Kio |
+| `otadata` | `0xE000` | 8 Kio |
+| `app0` | `0x10000` | 1,625 Mio |
+| `app1` | `0x1B0000` | 1,625 Mio |
+| `littlefs` | `0x350000` | 640 Kio |
+| `coredump` | `0x3F0000` | 64 Kio |
+
+La taille maximale physique du firmware dans `app0` est **1 703 936 octets**.
+La version finale laisse environ 143 004 octets. Le profil de menu Minimal
+SPIFFS annonce une limite plus grande ; après toute modification, comparer la
+taille réelle indiquée en fin de compilation à 1 703 936 octets. La présence de
+deux emplacements applicatifs ne signifie pas qu'une mise à jour OTA est
+disponible : ce firmware se téléverse par USB.
+
 ### Avec arduino-cli
 
 ```bash
-arduino-cli core install esp32:esp32
-arduino-cli lib install ArduinoJson
+arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core update-index
+arduino-cli core install esp32:esp32@3.3.11
+arduino-cli lib install ArduinoJson@7.4.3
+arduino-cli board list
 arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs .
 arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --port PORT_SERIE .
 ```
@@ -790,24 +829,36 @@ déploiement.
 
 ## Valeurs configurables dans le code
 
-Les constantes principales se trouvent dans `AppConfig.h` :
+Toutes les constantes de `AppConfig.h` utilisées par la version finale sont
+répertoriées ci-dessous :
 
-```cpp
-AP_SSID_PREFIX
-AP_PASSWORD
-MDNS_HOSTNAME
-DEFAULT_ADMIN_USERNAME
-DEFAULT_ADMIN_PASSWORD
-POSTE_COMMAND_TOKEN
-COIN_PIN
-DEFAULT_COIN_DURATION_SECONDS
-DEFAULT_PULSES_PER_COIN
-DEFAULT_PULSE_VALUE_MILLIMES
-REVENUE_FILE
-REVENUE_STORAGE_RETRY_INTERVAL_MS
-COIN_DEBOUNCE_MS
-POST_REFRESH_INTERVAL_MS
-POST_OFFLINE_TIMEOUT_MS
-```
+| Constante | Valeur par défaut | Rôle |
+|---|---|---|
+| `AP_SSID_PREFIX` | `GAMEROOM-CENTRAL` | Préfixe du point d'accès de configuration. |
+| `AP_PASSWORD` | chaîne vide | Mot de passe du portail ; utiliser au moins 8 caractères pour le protéger. |
+| `MDNS_HOSTNAME` | `pstm` | Nom publié sous `pstm.local`. |
+| `DEFAULT_ADMIN_USERNAME` | `admin` | Compte initial. |
+| `DEFAULT_ADMIN_PASSWORD` | `12345678` | Mot de passe initial à changer immédiatement. |
+| `POSTE_COMMAND_TOKEN` | valeur de développement | Secret partagé avec tous les postes. |
+| `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai de connexion avant ouverture du portail. |
+| `SERVER_PORT` | `80` | Port HTTP de la centrale. |
+| `COIN_PIN` | GPIO 13 | Entrée protégée du monnayeur. |
+| `DEFAULT_COIN_DURATION_SECONDS` | `1800` | Durée initiale d'un coin. |
+| `DEFAULT_PULSES_PER_COIN` | `1` | Impulsions nécessaires par coin. |
+| `DEFAULT_PULSE_VALUE_MILLIMES` | `1000` | Valeur financière d'une impulsion. |
+| `DEFAULT_AVAILABLE_COINS` | `0` | Solde initial. |
+| `REVENUE_FILE` | `/revenue.bin` | Journal financier LittleFS. |
+| `REVENUE_STORAGE_RETRY_INTERVAL_MS` | `30000` | Nouvelle tentative de montage/écriture après erreur. |
+| `TIMEZONE` | `CET-1` | Fuseau tunisien utilisé pour les rapports. |
+| `NTP_SERVER_1` | `pool.ntp.org` | Serveur NTP principal. |
+| `NTP_SERVER_2` | `time.nist.gov` | Serveur NTP secondaire. |
+| `COIN_MIN_PULSE_MS` | `10` | Durée minimale d'une impulsion acceptée. |
+| `COIN_MAX_PULSE_MS` | `250` | Durée maximale d'une impulsion acceptée. |
+| `COIN_DEBOUNCE_MS` | `80` | Anti-rebond entre impulsions. |
+| `POST_REFRESH_INTERVAL_MS` | `5000` | Intervalle de sondage des postes. |
+| `POST_OFFLINE_TIMEOUT_MS` | `10000` | Délai avant état hors ligne. |
+| `POSTE_STATUS_TIMEOUT_MS` | `1200` | Timeout de lecture de `/status`. |
+| `POSTE_COMMAND_TIMEOUT_MS` | `4000` | Timeout des commandes vers un poste. |
+| `PENDING_POST_TIMEOUT_MS` | `30000` | Expiration d'un poste découvert non configuré. |
 
 Après modification de ces valeurs, recompiler et téléverser le firmware.

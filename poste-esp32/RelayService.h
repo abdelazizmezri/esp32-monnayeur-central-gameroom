@@ -28,6 +28,5 @@ namespace RelayService {
   void stopSession();
 
   SessionSnapshot getSessionSnapshot();
-  unsigned long getRemainingSeconds();
   const char* statusToString(SessionStatus status);
 }

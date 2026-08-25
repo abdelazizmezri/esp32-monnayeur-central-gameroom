@@ -15,7 +15,6 @@ namespace PosteControlService {
   static constexpr uint32_t CONTROL_TASK_STACK_SIZE = 4096;
   static constexpr UBaseType_t CONTROL_TASK_PRIORITY = 2;
 
-  static TaskHandle_t controlTaskHandle = nullptr;
   static bool dedicatedTaskReady = false;
 
   static void runControlCycle() {
@@ -33,13 +32,13 @@ namespace PosteControlService {
     }
   }
 
-  bool begin() {
+  void begin() {
     bool mutexReady = RelayService::begin();
     DisplayService::begin(RelayService::getSessionSnapshot());
 
     if (!mutexReady) {
       Serial.println("Control task disabled: session mutex allocation failed.");
-      return false;
+      return;
     }
 
     BaseType_t result = xTaskCreatePinnedToCore(
@@ -48,18 +47,15 @@ namespace PosteControlService {
         CONTROL_TASK_STACK_SIZE,
         nullptr,
         CONTROL_TASK_PRIORITY,
-        &controlTaskHandle,
+        nullptr,
         ARDUINO_RUNNING_CORE);
 
     dedicatedTaskReady = result == pdPASS;
     if (dedicatedTaskReady) {
       Serial.println("Poste control task started.");
     } else {
-      controlTaskHandle = nullptr;
       Serial.println("Control task allocation failed; using loop fallback.");
     }
-
-    return dedicatedTaskReady;
   }
 
   void loop() {
