@@ -229,7 +229,6 @@ static void handleDeletePost() {
   if (!ok) {
     int code = 400;
     if (error == "post not found") code = 404;
-    else if (error == "poste unreachable") code = 502;
     sendJsonError(code, error);
     return;
   }

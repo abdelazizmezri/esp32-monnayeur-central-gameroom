@@ -591,7 +591,7 @@ method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({ id })
 });
-setMessage('managedMessage', 'Poste supprimé. Il réapparaîtra dans les postes découverts à sa prochaine annonce.');
+setMessage('managedMessage', 'Poste supprimé de la centrale. S’il se reconnecte, il pourra réapparaître automatiquement.');
 load();
 } catch(e) {
 if (e.message !== 'unauthorized') {

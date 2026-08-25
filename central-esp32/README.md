@@ -649,7 +649,7 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 | GET | `/revenue/data?period=day|week|month&anchor=AAAA-MM-JJ` | Retourne la recette agrégée et l'état LittleFS/NTP. |
 | GET | `/revenue/export.csv?period=day|week|month&anchor=AAAA-MM-JJ` | Télécharge la recette agrégée en CSV. |
 | POST | `/post/update` | Renomme un poste inactif. |
-| POST | `/post/delete` | Supprime et déconfigure un poste inactif. |
+| POST | `/post/delete` | Supprime un poste inactif et tente de le déconfigurer s'il est joignable. |
 | POST | `/post/ping` | Teste manuellement un poste. |
 | POST | `/poste/configure` | Configure un poste découvert. |
 | GET | `/logs/data` | Retourne les logs. |

@@ -259,14 +259,15 @@ namespace PostService {
 
         String chipId = state.posts[i].chipId;
         String ip = state.posts[i].ip;
-        if (!PosteClient::clearIdentity(ip)) {
-          error = "poste unreachable";
-          LogService::error(state, "Impossible de déconfigurer le poste avant suppression: " + cleanId);
-          return false;
+        bool identityCleared = PosteClient::clearIdentity(ip);
+        if (!identityCleared) {
+          // La suppression locale doit rester possible lorsqu'un poste est
+          // définitivement éteint ou n'est plus présent sur le réseau.
+          LogService::warn(state, "Poste injoignable pendant la suppression, identité distante non effacée: " + cleanId);
         }
 
         state.posts.erase(state.posts.begin() + i);
-        if (!chipId.isEmpty()) {
+        if (identityCleared && !chipId.isEmpty()) {
           PendingPost* pending = findPendingByChipId(state, chipId);
           if (pending) {
             pending->ip = ip;
@@ -280,7 +281,11 @@ namespace PostService {
           }
         }
         StorageService::savePosts(state);
-        LogService::warn(state, "Poste supprimé et remis en découverte: " + cleanId);
+        if (identityCleared) {
+          LogService::warn(state, "Poste supprimé et remis en découverte: " + cleanId);
+        } else {
+          LogService::warn(state, "Poste supprimé localement: " + cleanId);
+        }
         return true;
       }
     }
