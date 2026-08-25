@@ -143,10 +143,11 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-Le signal du monnayeur arrive sur le GPIO 13 configuré en `INPUT`, exclusivement
-à travers une interface 3,3 V. Le schéma final utilise un PC817 avec une
-résistance d'entrée de 2,2 kΩ et une pull-up de 10 kΩ côté ESP32. Ne jamais
-relier directement la sortie 12 V `COIN` à l'ESP32.
+Le fil de signal `COIN` du monnayeur arrive sur le GPIO 13 configuré en `INPUT`.
+La masse du monnayeur et celle de l'ESP32 sont communes. Une résistance
+pull-down externe de 4,7 kΩ relie le GPIO 13 au GND afin de maintenir un niveau
+bas stable au repos. Avant raccordement, mesurer la sortie `COIN` et confirmer
+qu'elle ne dépasse jamais 3,3 V. Ne jamais relier le `+12 V` au GPIO13.
 
 Le firmware ne compte une impulsion qu'après avoir observé un niveau complet
 entre 10 et 250 ms. La polarité `NO`/`NC` est détectée automatiquement et un
@@ -240,26 +241,23 @@ le solde, les comptes et les postes ; LittleFS conserve les événements financi
 
 ![Schéma de câblage final de la centrale ESP32 sans module mémoire](docs/schema-cablage-central-final.svg)
 
-Le monnayeur reste alimenté en 12 V. L'ESP32 reçoit 5 V régulés depuis un
-convertisseur abaisseur ou une alimentation USB séparée. NVS et LittleFS sont
-des zones de la flash intégrée à l'ESP32 : aucune broche et aucun module mémoire
-externe ne sont nécessaires.
+Le monnayeur reste alimenté en 12 V et l'ESP32 est alimenté séparément par USB.
+Le schéma ne conserve que le raccordement du monnayeur et la résistance
+pull-down 4,7 kΩ. NVS et LittleFS sont des zones de la flash intégrée à
+l'ESP32 : aucun module mémoire externe n'est nécessaire.
 
 Le schéma utilise des fils colorés et les noms sérigraphiés des broches, dans le
 style d'un montage physique. La position exacte des broches peut varier selon le
 fabricant du DevKit : toujours suivre les étiquettes `VIN/5V`, `GND`, `3V3` et
-`GPIO13` imprimées sur la carte, et non uniquement leur position dans le dessin.
+`GND` et `GPIO13` imprimées sur la carte, et non uniquement leur position dans
+le dessin.
 
 | Depuis | Vers | Rôle |
 |---|---|---|
-| Alimentation `+12 V` | Monnayeur rouge, buck `IN+` et entrée `R1 2,2 kΩ` | Alimentation 12 V |
-| Alimentation `GND` | Monnayeur noir et buck `IN−` | Masse primaire |
-| Monnayeur blanc `COIN` | Retour de la LED du PC817 | Impulsions brutes NPN |
-| Buck `OUT+` réglé à 5,0 V | ESP32 `VIN/5V` | Alimentation de la centrale |
-| Buck `OUT−` | ESP32 `GND` | Masse de la centrale |
-| ESP32 `3V3` | Pull-up `R2 10 kΩ` | Niveau logique 3,3 V |
-| Collecteur PC817 `OUT` | ESP32 `GPIO13` | Signal protégé du monnayeur |
-| Émetteur PC817 | ESP32 `GND` | Référence logique |
+| Alimentation `+12 V` | Fil rouge du monnayeur | Alimentation du monnayeur |
+| Alimentation `GND` | Fil noir du monnayeur et `GND` de l'ESP32 | Masse commune |
+| Fil blanc `COIN` du monnayeur | ESP32 `GPIO13` | Signal impulsionnel, mesuré à 3,3 V maximum |
+| Résistance pull-down `4,7 kΩ` | Entre `GPIO13` et `GND` | Niveau bas stable au repos |
 
 Les broches SPI (`MOSI`, `MISO`, `SCK`, `CS`) restent libres : le journal de
 recette utilise LittleFS dans la flash interne et ne demande aucun câblage.
@@ -416,7 +414,7 @@ navigateur ne suffit donc pas à contourner les restrictions.
 | Catégorie | Éléments requis |
 |---|---|
 | Carte | ESP32 Dev Module avec 4 Mo de flash, câble USB de données. |
-| Monnayeur | JY-133B ou équivalent, alimentation 12 V, buck 12 V vers 5 V d'au moins 1 A, PC817, résistance 2,2 kΩ et pull-up 10 kΩ. |
+| Monnayeur | JY-133B ou équivalent, alimentation 12 V et résistance pull-down 4,7 kΩ. L'ESP32 est alimenté séparément par USB. |
 | Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
 | Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
 | Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
@@ -747,7 +745,7 @@ et un fichier de secours rendent la compaction récupérable après une coupure.
 | `WebAssets.h` / `WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `*Asset.inc` | Données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `ui-assets/` | Logo maître, fond de connexion et variantes WebP HD documentées. |
-| `docs/schema-cablage-central-final.svg` | Schéma vectoriel final sans module mémoire : alimentation, PC817 et ESP32. |
+| `docs/schema-cablage-central-final.svg` | Schéma vectoriel minimal : monnayeur, GPIO13, masse commune et pull-down 4,7 kΩ. |
 | `partitions.csv` | Deux partitions OTA de 1,625 Mio, 640 Kio de LittleFS et NVS conservée. |
 
 ## Sécurité
@@ -792,8 +790,8 @@ déploiement.
 
 ### Les coins ne sont pas détectés
 
-- contrôler le câblage du GPIO 13 et l'interface PC817 ;
-- vérifier le niveau électrique et le circuit d'adaptation ;
+- contrôler le câblage du GPIO 13, la masse commune et la résistance 4,7 kΩ ;
+- vérifier que la sortie `COIN` ne dépasse jamais 3,3 V ;
 - ajuster **Impulsions par coin** ;
 - utiliser **+1 coin** de simulation pour distinguer un problème matériel d'un problème logiciel.
 
@@ -842,7 +840,7 @@ répertoriées ci-dessous :
 | `POSTE_COMMAND_TOKEN` | valeur de développement | Secret partagé avec tous les postes. |
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai de connexion avant ouverture du portail. |
 | `SERVER_PORT` | `80` | Port HTTP de la centrale. |
-| `COIN_PIN` | GPIO 13 | Entrée protégée du monnayeur. |
+| `COIN_PIN` | GPIO 13 | Entrée du monnayeur avec pull-down 4,7 kΩ. |
 | `DEFAULT_COIN_DURATION_SECONDS` | `1800` | Durée initiale d'un coin. |
 | `DEFAULT_PULSES_PER_COIN` | `1` | Impulsions nécessaires par coin. |
 | `DEFAULT_PULSE_VALUE_MILLIMES` | `1000` | Valeur financière d'une impulsion. |

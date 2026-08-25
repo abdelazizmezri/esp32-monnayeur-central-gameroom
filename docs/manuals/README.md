@@ -16,7 +16,8 @@ La version finale 1.1 du 25 août 2026 comprend :
 - un guide technique client de 27 pages : architecture, sécurité électrique,
   nomenclature, Arduino IDE 2.3.10, `arduino-cli` 1.5.1, cœur ESP32 3.3.11,
   ArduinoJson 7.4.3, secrets et GPIO, table `partitions.csv` réelle de la
-  centrale, réglages des deux firmwares, téléversement USB, schémas de câblage,
+  centrale, réglages des deux firmwares, téléversement USB, schémas de câblage
+  dont le raccordement minimal du monnayeur avec pull-down 4,7 kΩ,
   Wi-Fi, postes, comptes, sécurité, recette et procès-verbal de mise en service ;
 - un manuel d'utilisation de 21 pages : rôles, première configuration,
   tableaux de bord administrateur et utilisateur simple, sessions, recette,

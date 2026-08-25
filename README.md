@@ -285,8 +285,8 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 
 - un ESP32 pour la centrale ;
 - un ESP32 par poste de jeu ;
-- un monnayeur à impulsions avec une adaptation électrique vers 3,3 V ;
-- un PC817, une résistance 2,2 kΩ et une pull-up 10 kΩ pour protéger le GPIO 13 ;
+- un monnayeur à impulsions dont la sortie `COIN` ne dépasse pas 3,3 V ;
+- une résistance pull-down de 4,7 kΩ pour stabiliser le GPIO 13 ;
 - un module relais adapté à chaque charge ;
 - un afficheur quatre chiffres TM1637 à quatre broches pour chaque poste ;
 - un réseau Wi-Fi local ;
@@ -294,7 +294,7 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 
 | Partie | Éléments spécifiques |
 |---|---|
-| Centrale | ESP32 4 Mo, monnayeur JY-133B ou équivalent, alimentation 12 V, buck 12 V vers 5 V d'au moins 1 A, PC817, résistance 2,2 kΩ et résistance 10 kΩ. |
+| Centrale | ESP32 4 Mo, monnayeur JY-133B ou équivalent, alimentation 12 V du monnayeur et résistance pull-down 4,7 kΩ. L'ESP32 est alimenté séparément par USB. |
 | Chaque poste | ESP32 4 Mo, module relais compatible avec une commande logique 3,3 V, afficheur TM1637 quatre broches, alimentation adaptée au relais et à la machine. |
 | Réseau | Point d'accès ou routeur Wi-Fi local sans isolation entre clients, avec mDNS si l'accès par `pstm.local` est souhaité. |
 
@@ -304,7 +304,7 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 |---|---|
 | Ordinateur avec Arduino IDE 2 ou `arduino-cli` | Compilation, téléversement et moniteur série. |
 | Câbles USB de données | Programmation de la centrale et des postes. |
-| Multimètre numérique | Réglage du buck à 5,0 V, contrôle des masses, des alimentations et du niveau maximal de 3,3 V sur les GPIO. |
+| Multimètre numérique | Contrôle des masses, des alimentations et du niveau maximal de 3,3 V sur la sortie `COIN`. |
 | Alimentation de laboratoire limitée en courant, si disponible | Premier démarrage et recherche de court-circuit sans exposer tout le système. |
 | Fer à souder, gaine thermorétractable et étain | Assemblage durable de la partie basse tension. |
 | Pince à dénuder, pince à sertir et petits tournevis isolés | Préparation des conducteurs et borniers. |
@@ -327,18 +327,14 @@ réel de l'ESP32.
 
 | Depuis | Vers | Fonction |
 |---|---|---|
-| Alimentation `+12 V` | Monnayeur rouge, buck `IN+`, puis `R1 2,2 kΩ` | Alimentation primaire et entrée du PC817. |
-| Alimentation `GND` | Monnayeur noir et buck `IN−` | Retour primaire. |
-| Monnayeur blanc `COIN` | Retour de la LED du PC817 | Impulsion brute du monnayeur. |
-| Buck `OUT+`, réglé à 5,0 V avant connexion | ESP32 `VIN/5V` | Alimentation de la centrale. |
-| Buck `OUT−` | ESP32 `GND` | Masse logique. |
-| ESP32 `3V3` | Résistance de pull-up `R2 10 kΩ` | Rappel logique 3,3 V. |
-| Collecteur PC817 `OUT` | ESP32 `GPIO13` | Signal monnayeur protégé. |
-| Émetteur PC817 | ESP32 `GND` | Référence du signal logique. |
+| Alimentation `+12 V` | Fil rouge du monnayeur | Alimentation du monnayeur. |
+| Alimentation `GND` | Fil noir du monnayeur et `GND` de l'ESP32 | Masse commune. |
+| Fil blanc `COIN` du monnayeur | ESP32 `GPIO13` | Signal impulsionnel, après contrôle qu'il reste inférieur ou égal à 3,3 V. |
+| Résistance pull-down `4,7 kΩ` | Entre `GPIO13` et `GND` | Maintient un niveau bas stable au repos. |
 
-Avant de brancher l'ESP32, alimenter uniquement le buck et régler sa sortie à
-**5,0 V** au multimètre. Après raccordement du PC817, vérifier que `GPIO13` ne
-reçoit jamais plus de **3,3 V**.
+L'ESP32 est alimenté séparément par USB. Avant de relier le fil blanc à
+`GPIO13`, mesurer la sortie `COIN` et vérifier qu'elle ne reçoit jamais plus de
+**3,3 V**.
 
 ### Raccordement d'un poste
 
@@ -361,10 +357,9 @@ Avant de connecter une machine, il faut vérifier `RELAY_PIN`, adapter
 `RELAY_ACTIVE_HIGH` au module relais et alimenter le TM1637 en 3,3 V. Son pilote
 est inclus dans le firmware et ne nécessite aucune bibliothèque supplémentaire.
 
-> Un GPIO ESP32 n'accepte pas directement la sortie 12 V d'un monnayeur et ne doit
-> jamais alimenter une charge de puissance. Utiliser l'interface optocouplée 3,3 V,
-> l'isolation et les protections adaptées. Le câblage secteur doit être confié à
-> une personne qualifiée.
+> Ne jamais relier le `+12 V` au GPIO13. Le montage minimal présenté suppose que
+> la sortie `COIN` a été mesurée à 3,3 V maximum. Le câblage secteur doit être
+> confié à une personne qualifiée.
 
 ## Installation de l'environnement et téléversement
 
@@ -604,7 +599,8 @@ Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
 ## Mise en service rapide
 
 1. Couper les alimentations et vérifier tout le câblage au multimètre.
-2. Régler le buck de la centrale à 5,0 V avant de connecter l'ESP32.
+2. Alimenter la centrale séparément par USB et vérifier son démarrage avant de
+   raccorder le monnayeur.
 3. Remplacer le secret partagé dans les deux firmwares, puis compiler la
    centrale avec **Minimal SPIFFS** et chaque poste avec **Default**.
 4. Téléverser d'abord la centrale par USB et ouvrir le moniteur série à 115200
@@ -685,7 +681,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `central-esp32/ui-assets/` | Regroupe le logo maître et les variantes WebP HD documentées. |
-| `central-esp32/docs/schema-cablage-central-final.svg` | Schéma final de l'alimentation, du PC817 et de l'ESP32 sans module mémoire. |
+| `central-esp32/docs/schema-cablage-central-final.svg` | Schéma minimal du monnayeur vers GPIO13 avec résistance pull-down 4,7 kΩ. |
 | `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,625 Mio et 640 Kio de LittleFS. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 

@@ -318,7 +318,7 @@ class ArchitectureDiagram(Flowable):
         upper_y = h * 0.61
         lower_y = h * 0.09
         center_y = h * 0.29
-        self.draw_box(left_x, upper_y, box_w, box_h, "Monnayeur", "Impulsions 12 V conditionnees", PALE_AMBER)
+        self.draw_box(left_x, upper_y, box_w, box_h, "Monnayeur", "COIN mesure a 3,3 V max.", PALE_AMBER)
         self.draw_box(left_x, lower_y, box_w, box_h, "Navigateur", "Admin ou utilisateur simple", PALE_BLUE)
         self.draw_box(center_x, center_y, center_w, center_h, "Centrale ESP32", "HTTP, NVS, LittleFS, mDNS", colors.HexColor("#E8F3F8"))
         self.draw_box(right_x, upper_y, box_w, box_h, "Poste ESP32 1", "Relais + TM1637 + NVS", PALE_GREEN)
@@ -509,7 +509,7 @@ def build_technical_story() -> list[Flowable]:
                 ["2. Installer", "Arduino IDE / CLI, coeur ESP32 et ArduinoJson", "Environnement reproductible avec versions figees"],
                 ["3. Configurer", "Secrets, GPIO, Wi-Fi et partition centrale", "Sources adaptees au site et options de carte correctes"],
                 ["4. Televerser", "Centrale puis firmware identique sur chaque poste", "Demarrage serie valide a 115200 bauds"],
-                ["5. Cabler", "Schema centrale, PC817, buck, relais et TM1637", "Continuite, tensions et polarites controlees hors charge"],
+                ["5. Cabler", "Monnayeur + pull-down 4,7 kOhm, relais et TM1637", "Continuite, tensions et polarites controlees hors charge"],
                 ["6. Mettre en service", "Wi-Fi, premier compte, postes, utilisateurs et securite", "Systeme exploitable sur le LAN prive"],
                 ["7. Recetter", "Tests fonctionnels, reprise, recette, sauvegarde et remise", "Proces-verbal de mise en service complete"],
             ],
@@ -567,8 +567,8 @@ def build_technical_story() -> list[Flowable]:
     story.append(Spacer(1, 0.28 * cm))
     safety = [
         "Couper toutes les alimentations avant de cabler ou de deplacer un conducteur.",
-        "Ne jamais relier la sortie 12 V COIN du monnayeur directement au GPIO13.",
-        "Regler et mesurer la sortie du convertisseur abaisseur a 5,0 V avant de raccorder l'ESP32.",
+        "Ne jamais relier le +12 V ni une sortie COIN superieure a 3,3 V au GPIO13.",
+        "Mesurer la sortie COIN et confirmer qu'elle ne depasse jamais 3,3 V avant de la raccorder au GPIO13.",
         "Alimenter le TM1637 en 3,3 V pour eviter des rappels logiques a 5 V sur CLK et DIO.",
         "Verifier que le module relais accepte une commande logique 3,3 V et adapter RELAY_ACTIVE_HIGH.",
         "Maintenir l'isolation entre la logique basse tension et le circuit de puissance commute.",
@@ -587,9 +587,9 @@ def build_technical_story() -> list[Flowable]:
             [
                 ["Centrale", "1 ESP32 Dev Module, cable USB de donnees", "Flash 4 Mo et table partitions.csv du projet"],
                 ["Par poste", "1 ESP32, 1 TM1637 4 chiffres, 1 module relais compatible 3,3 V", "Verifier courant, tension et logique du relais"],
-                ["Monnayeur", "Monnayeur impulsionnel 12 V", "Type NO ou NC accepte apres conditionnement"],
-                ["Protection centrale", "PC817, R1 2,2 kOhm, R2 10 kOhm", "Isolation et pull-up 3,3 V du GPIO13"],
-                ["Alimentation", "12 V pour monnayeur, buck 12 V vers 5 V au moins 1 A", "Mesurer 5,0 V avant l'ESP32"],
+                ["Monnayeur", "Monnayeur impulsionnel 12 V", "Sortie COIN mesuree a 3,3 V maximum"],
+                ["Resistance centrale", "Pull-down 4,7 kOhm entre GPIO13 et GND", "Maintient un niveau bas stable au repos"],
+                ["Alimentation", "12 V pour le monnayeur, USB pour l'ESP32", "Masses du monnayeur et de l'ESP32 communes"],
                 ["Atelier", "Multimetre, tournevis, borniers, fusibles, gaine et etiquettes", "Verifier continuite et polarite hors tension"],
                 ["Logiciels", "Arduino IDE 2.3.10 ou arduino-cli 1.5.1", "Moniteur serie regle a 115200 bauds"],
                 ["Packages", "esp32 3.3.11 + ArduinoJson 7.4.3", "Les autres bibliotheques sont fournies par le coeur ESP32"],
@@ -724,7 +724,7 @@ def build_technical_story() -> list[Flowable]:
     story.append(note_box("Controle de la cible", "Verifier le port avant chaque Upload : plusieurs ESP32 branches peuvent etre intervertis. Noter le chipId et etiqueter physiquement la carte des que le moniteur serie l'affiche.", "blue"))
     story.append(PageBreak())
 
-    story.extend(page_title("Schema de cablage de la centrale", "8 - Monnayeur et protection GPIO13"))
+    story.extend(page_title("Schema de cablage de la centrale", "8 - Monnayeur et GPIO13"))
     story.append(fit_image(SHOTS / "schema-cablage-centrale.jpg", 26.7 * cm, 14.4 * cm))
     story.append(Spacer(1, 0.12 * cm))
     story.append(p("Schema source : central-esp32/docs/schema-cablage-central-final.svg", "caption"))
@@ -735,24 +735,20 @@ def build_technical_story() -> list[Flowable]:
         make_table(
             ["Depuis", "Vers", "Fonction / controle"],
             [
-                ["Alimentation +12 V", "Monnayeur rouge, buck IN+, R1 2,2 kOhm", "Alimentation primaire 12 V"],
-                ["Alimentation GND", "Monnayeur noir, buck IN-", "Masse primaire"],
-                ["Monnayeur blanc COIN", "Retour LED du PC817", "Impulsions NPN brutes, jamais vers le GPIO"],
-                ["Buck OUT+ regle a 5,0 V", "ESP32 VIN/5V", "Alimentation de la centrale"],
-                ["Buck OUT-", "ESP32 GND", "Masse logique"],
-                ["ESP32 3V3", "R2 10 kOhm", "Pull-up logique 3,3 V"],
-                ["Collecteur PC817 OUT", "ESP32 GPIO13", "Signal protege du monnayeur"],
-                ["Emetteur PC817", "ESP32 GND", "Reference logique"],
+                ["Alimentation +12 V", "Fil rouge du monnayeur", "Alimentation du monnayeur"],
+                ["Alimentation GND", "Fil noir du monnayeur et ESP32 GND", "Masse commune"],
+                ["Monnayeur blanc COIN", "ESP32 GPIO13", "Signal mesure a 3,3 V maximum"],
+                ["Resistance 4,7 kOhm", "Entre GPIO13 et GND", "Pull-down : niveau bas stable au repos"],
             ],
             [8.4 * cm, 8.1 * cm, 9.6 * cm],
         )
     )
     story.append(Spacer(1, 0.25 * cm))
     checks = [
-        "Hors tension : confirmer aucune continuite entre le 12 V et le GPIO13.",
-        "Buck seul alimente : regler et mesurer exactement 5,0 V en sortie.",
-        "ESP32 seul : verifier le demarrage et le moniteur serie a 115200 bauds.",
-        "Monnayeur active : mesurer uniquement un niveau logique protege sur GPIO13.",
+        "Hors tension : confirmer aucune continuite entre le +12 V et le GPIO13.",
+        "ESP32 alimente par USB : verifier le demarrage et le moniteur serie a 115200 bauds.",
+        "Hors tension : verifier la masse commune et la resistance 4,7 kOhm entre GPIO13 et GND.",
+        "Monnayeur alimente : mesurer au maximum 3,3 V sur COIN avant de le relier au GPIO13.",
         "Piece test : verifier une impulsion comptee une seule fois et une recette incrementee.",
     ]
     story.append(make_table(["Etape de test", "Resultat attendu"], [[str(i + 1), value] for i, value in enumerate(checks)], [2.6 * cm, 23.5 * cm]))
@@ -998,10 +994,10 @@ def build_technical_story() -> list[Flowable]:
         make_table(
             ["Ordre", "Action terrain", "Critere pour continuer"],
             [
-                ["1", "Couper toutes les alimentations ; verifier continuite, polarites, borniers, fusibles et absence de court-circuit", "Aucune liaison 12 V vers GPIO ; conducteurs immobilises"],
-                ["2", "Alimenter seulement le buck et regler OUT a 5,0 V au multimetre", "5,0 V stable avant raccordement de la centrale"],
-                ["3", "Brancher la centrale sans monnayeur ni poste de puissance", "Demarrage serie, Wi-Fi et interface web stables"],
-                ["4", "Raccorder le PC817 et le monnayeur 12 V", "GPIO13 reste protege en 3,3 V ; chaque piece est comptee une fois"],
+                ["1", "Couper toutes les alimentations ; verifier continuite, polarites, borniers, fusibles et absence de court-circuit", "Aucune liaison +12 V vers GPIO ; conducteurs immobilises"],
+                ["2", "Brancher la centrale seule par USB, sans monnayeur ni poste de puissance", "Demarrage serie, Wi-Fi et interface web stables"],
+                ["3", "Hors tension, cabler la masse commune et la resistance pull-down 4,7 kOhm", "4,7 kOhm mesure entre GPIO13 et GND"],
+                ["4", "Alimenter le monnayeur sans relier COIN, puis mesurer sa sortie", "COIN ne depasse jamais 3,3 V avant raccordement au GPIO13"],
                 ["5", "Alimenter un poste avec TM1637 et relais, charge debranchee", "00:00 au repos, relais OFF ; test session conforme"],
                 ["6", "Couper, raccorder COM/NO a la machine par personnel qualifie, puis proteger le coffret", "Isolation logique/puissance validee"],
                 ["7", "Remettre sous tension et lancer un cycle court", "Relais, affichage, decompte, arret et expiration corrects"],
@@ -1016,7 +1012,7 @@ def build_technical_story() -> list[Flowable]:
 
     story.extend(page_title("Recette de mise en service", "25 - Validation et remise au client"))
     acceptance = [
-        ["Alimentations", "12 V monnayeur, 5,0 V centrale, 3,3 V TM1637 mesures et stables", "OK / NOK"],
+        ["Alimentations", "12 V monnayeur, USB centrale et 3,3 V TM1637 mesures et stables", "OK / NOK"],
         ["Centrale", "Demarrage sans erreur, pstm.local accessible, compte admin securise", "OK / NOK"],
         ["Monnayeur", "Une piece produit le nombre d'impulsions attendu, le solde et la recette progressent", "OK / NOK"],
         ["Postes", "Tous les postes apparaissent, sont nommes, joignables et affichent 00:00 au repos", "OK / NOK"],
@@ -1306,7 +1302,7 @@ def build_user_story() -> list[Flowable]:
                 ["Poste hors ligne", "Alimentation, Wi-Fi, IP, Ping et token partage", "Redemarrer le poste et consulter le journal"],
                 ["Relais inverse", "Logique du module", "Faire corriger RELAY_ACTIVE_HIGH par le technicien"],
                 ["TM1637 eteint", "3,3 V, GND, CLK GPIO25, DIO GPIO26", "Couper l'alimentation et verifier le cablage"],
-                ["Coin non compte", "GPIO13 protege, impulsions, anti-rebond et alimentation monnayeur", "Intervention technique sur PC817 et configuration"],
+                ["Coin non compte", "GPIO13, pull-down 4,7 kOhm, masse commune, impulsions et alimentation monnayeur", "Mesurer COIN puis verifier le cablage et la configuration"],
                 ["Recette absente", "LittleFS pret et horloge NTP synchronisee", "Verifier le journal et le reseau Internet NTP"],
                 ["Reprise inattendue", "Coupure pendant une session et checkpoint NVS", "Choisir Reprendre ou Annuler pour ce poste"],
                 ["Connexion refusee", "Nom en minuscules et mot de passe", "Contacter un administrateur, ne pas multiplier les essais"],
