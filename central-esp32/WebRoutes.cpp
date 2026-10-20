@@ -9,6 +9,7 @@
 #include "PosteClient.h"
 #include "LogService.h"
 #include "RevenueService.h"
+#include "CoinService.h"
 
 #include <ArduinoJson.h>
 
@@ -173,7 +174,11 @@ static void handleGetPosts() {
   doc["availableCoins"] = gState->availableCoins;
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
   doc["pulsesPerCoin"] = gState->pulsesPerCoin;
-  doc["pulseValueMillimes"] = gState->pulseValueMillimes;
+  doc["coinCurrency"] = Money::code(gState->coinCurrency);
+  doc["pulseValueMinor"] = gState->pulseValueMinor;
+  doc["dzdToTndRateMicros"] = gState->dzdToTndRateMicros;
+  if (gState->coinCurrency == Money::TND) doc["pulseValueMillimes"] = gState->pulseValueMinor;
+  doc["pendingPulsesPerCoin"] = gState->pendingPulsesPerCoin;
   doc["pendingPulses"] = gState->pendingPulses;
   doc["accessRole"] = adminAccess ? "admin" : "user";
 
@@ -187,6 +192,8 @@ static void handleGetPosts() {
   }
   if (adminAccess) {
     doc["apiTokenMasked"] = AuthService::getMaskedToken(*gState);
+    doc["creditStorageReady"] = gState->creditStorageReady;
+    doc["revenueTransactionPending"] = gState->revenueTransactionPending;
     doc["revenueStorageReady"] = gState->revenueStorageReady;
     doc["revenueTimeReady"] = gState->revenueTimeReady;
     doc["revenueStorageError"] = gState->revenueStorageError;
@@ -243,6 +250,9 @@ static void handleAssign() {
   if (!parseJsonBody(doc)) return;
 
   String error;
+  if (!CoinService::settle(*gState)) {
+    sendJsonError(503,"Comptage en attente de sauvegarde ; réessayez après rétablissement du stockage."); return;
+  }
   bool ok = PostService::assignCoins(*gState, doc["post_id"] | "", doc["coins"] | 0, error);
 
   if (!ok) {
@@ -259,8 +269,15 @@ static void handleAssign() {
 static void handleSimulateCoin() {
   if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
+  if (!CoinService::settle(*gState) || gState->availableCoins == INT32_MAX) {
+    sendJsonError(503,"Crédits indisponibles ou solde maximal atteint."); return;
+  }
   gState->availableCoins += 1;
-  StorageService::saveCredits(*gState);
+  if (!StorageService::saveCredits(*gState)) {
+    --gState->availableCoins;
+    gState->creditStorageReady = false;
+    sendJsonError(503,"Échec d'enregistrement des crédits NVS."); return;
+  }
   LogService::info(*gState, "Simulation monnayeur: +1 coin, total=" + String(gState->availableCoins));
 
   DynamicJsonDocument doc(128);
@@ -273,57 +290,80 @@ static void handleSimulateCoin() {
 }
 
 static void handleConfig() {
-  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
-
-  DynamicJsonDocument doc(256);
+  if (!AuthService::requireAdminAuth(*gServer,*gState)) return;
+  DynamicJsonDocument doc(1024);
   if (!parseJsonBody(doc)) return;
-
+  AppState next = *gState;
   if (doc.containsKey("coinDurationSeconds")) {
-    int value = doc["coinDurationSeconds"];
-    if (value <= 0) {
-      sendJsonError(400, "invalid coinDurationSeconds");
-      return;
+    if (!doc["coinDurationSeconds"].is<int>() || doc["coinDurationSeconds"].as<int>() <= 0) {
+      sendJsonError(400,"Durée de crédit invalide."); return;
     }
-    gState->coinDurationSeconds = value;
+    next.coinDurationSeconds = doc["coinDurationSeconds"].as<int>();
   }
-
   if (doc.containsKey("pulsesPerCoin")) {
-    int value = doc["pulsesPerCoin"];
-    if (value <= 0) {
-      sendJsonError(400, "invalid pulsesPerCoin");
-      return;
+    if (!doc["pulsesPerCoin"].is<int>() || doc["pulsesPerCoin"].as<int>() <= 0) {
+      sendJsonError(400,"Nombre d'impulsions invalide."); return;
     }
-    if (gState->pulsesPerCoin != value) {
-      gState->pulsesPerCoin = value;
-      // Un groupe incomplet dépend de l'ancien réglage : il ne doit pas être
-      // converti rétroactivement avec le nouveau.
-      gState->pendingPulses = 0;
+    next.pulsesPerCoin = doc["pulsesPerCoin"].as<int>();
+  }
+  if (doc.containsKey("coinCurrency")) {
+    String currency = doc["coinCurrency"] | "";
+    if (currency != "TND" && currency != "DZD") { sendJsonError(400,"Devise invalide."); return; }
+    next.coinCurrency = currency == "DZD" ? Money::DZD : Money::TND;
+    if (next.coinCurrency != gState->coinCurrency && !doc.containsKey("pulseValueMinor")) {
+      sendJsonError(400,"Choisir la valeur de l'impulsion dans la nouvelle devise."); return;
     }
   }
-
   if (doc.containsKey("pulseValueMillimes")) {
-    int value = doc["pulseValueMillimes"];
-    if (value != 500 && value != 1000 && value != 2000 && value != 5000) {
-      sendJsonError(400, "invalid pulseValueMillimes");
-      return;
+    if (next.coinCurrency != Money::TND || !doc["pulseValueMillimes"].is<uint32_t>()) {
+      sendJsonError(400,"pulseValueMillimes est réservé au TND."); return;
     }
-    gState->pulseValueMillimes = value;
+    next.pulseValueMinor = doc["pulseValueMillimes"].as<uint32_t>();
   }
-
-  if (doc.containsKey("availableCoins")) {
-    int value = doc["availableCoins"];
-    if (value < 0) {
-      sendJsonError(400, "invalid availableCoins");
-      return;
+  if (doc.containsKey("pulseValueMinor")) {
+    if (!doc["pulseValueMinor"].is<uint32_t>()) { sendJsonError(400,"Valeur monétaire invalide."); return; }
+    if (doc.containsKey("pulseValueMillimes") &&
+        next.pulseValueMinor != doc["pulseValueMinor"].as<uint32_t>()) {
+      sendJsonError(400,"Valeurs monétaires contradictoires."); return;
     }
-    gState->availableCoins = value;
-    StorageService::saveCredits(*gState);
+    next.pulseValueMinor = doc["pulseValueMinor"].as<uint32_t>();
   }
-
-  StorageService::saveConfig(*gState);
-  StorageService::saveCredits(*gState);
-  LogService::info(*gState, "Configuration mise à jour.");
-  gServer->send(200, "application/json", "{\"ok\":true}");
+  if (doc.containsKey("dzdToTndRateMicros")) {
+    if (!doc["dzdToTndRateMicros"].is<uint32_t>() ||
+        !Money::validRate(doc["dzdToTndRateMicros"].as<uint32_t>())) {
+      sendJsonError(400,"Taux invalide : 1 DZD = X TND, de 0,000001 à 1000."); return;
+    }
+    next.dzdToTndRateMicros = doc["dzdToTndRateMicros"].as<uint32_t>();
+  }
+  if (!Money::validValue(next.coinCurrency,next.pulseValueMinor) ||
+      (next.coinCurrency == Money::DZD && !Money::validRate(next.dzdToTndRateMicros))) {
+    sendJsonError(400,"Choisir une valeur de pièce valide et renseigner un taux positif avant d'activer le DZD."); return;
+  }
+  if (doc.containsKey("availableCoins") &&
+      (!doc["availableCoins"].is<int>() || doc["availableCoins"].as<int>() < 0)) {
+    sendJsonError(400,"Solde invalide."); return;
+  }
+  if (!CoinService::settle(*gState)) {
+    sendJsonError(503,"Sauvegarde des encaissements en attente ; configuration non modifiée."); return;
+  }
+  // settle a pu créditer des impulsions : ne jamais restaurer un ancien solde.
+  next.availableCoins = doc.containsKey("availableCoins") ? doc["availableCoins"].as<int>() : gState->availableCoins;
+  next.pendingPulses = gState->pendingPulses;
+  next.pendingPulsesPerCoin = gState->pendingPulsesPerCoin;
+  next.lastRevenueSequence = gState->lastRevenueSequence;
+  // Le reliquat garde son ancien diviseur pour les impulsions déjà en file.
+  // Il sera abandonné à la première impulsion du nouveau réglage.
+  if (!StorageService::saveConfig(next) || !StorageService::saveCredits(next)) {
+    gState->creditStorageReady = false;
+    sendJsonError(503,"Échec NVS ; redémarrer pour recharger le dernier instantané enregistré."); return;
+  }
+  gState->coinDurationSeconds = next.coinDurationSeconds; gState->pulsesPerCoin = next.pulsesPerCoin;
+  gState->coinCurrency = next.coinCurrency; gState->pulseValueMinor = next.pulseValueMinor;
+  gState->dzdToTndRateMicros = next.dzdToTndRateMicros; gState->availableCoins = next.availableCoins;
+  gState->pendingPulses = next.pendingPulses; gState->pendingPulsesPerCoin = next.pendingPulsesPerCoin;
+  CoinService::publishConfiguration(*gState);
+  LogService::info(*gState,"Configuration enregistrée (" + String(Money::code(next.coinCurrency)) + ").");
+  gServer->send(200,"application/json","{\"ok\":true}");
 }
 
 static void handleStop() {
@@ -449,6 +489,9 @@ static void handleRegenerateToken() {
 static void handleExportConfig() {
   if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
+  if (!CoinService::settle(*gState)) {
+    sendJsonError(503,"Encaissements en attente ; sauvegarde de configuration temporairement indisponible."); return;
+  }
   String configJson;
   StorageService::exportConfigJson(*gState, configJson);
   gServer->sendHeader("Cache-Control", "no-store");
@@ -464,12 +507,16 @@ static void handleImportConfig() {
   }
 
   String error;
+  if (!CoinService::settle(*gState)) {
+    sendJsonError(503,"Encaissements en attente de sauvegarde ; restauration refusée."); return;
+  }
   bool ok = StorageService::importConfigJson(*gState, gServer->arg("plain"), error);
   if (!ok) {
     sendJsonError(400, error);
     return;
   }
 
+  CoinService::publishConfiguration(*gState);
   LogService::warn(*gState, "Sauvegarde complète restaurée.");
   gServer->sendHeader("Set-Cookie", "ESPSESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
   gServer->send(200, "application/json", "{\"ok\":true,\"reauthenticate\":true}");
@@ -506,7 +553,13 @@ static void handleRevenueData() {
   doc["storageUsedBytes"] = report.storageUsedBytes;
   doc["storageTotalBytes"] = report.storageTotalBytes;
   doc["totalMillimes"] = report.totalMillimes;
+  doc["totalTndMillimes"] = report.totalTndMillimes;
+  doc["totalDzdCentimes"] = report.totalDzdCentimes;
+  doc["currentRateMicros"] = report.currentRateMicros;
+  doc["conversionPolicy"] = "historical-per-pulse-half-up";
   doc["undatedMillimes"] = report.undatedMillimes;
+  doc["undatedTndMillimes"] = report.undatedTndMillimes;
+  doc["undatedDzdCentimes"] = report.undatedDzdCentimes;
   doc["pulses"] = report.pulses;
   doc["credits"] = report.credits;
   doc["events"] = report.events;
@@ -518,6 +571,8 @@ static void handleRevenueData() {
     item["key"] = bucket.key;
     item["label"] = bucket.label;
     item["amountMillimes"] = bucket.amountMillimes;
+    item["tndMillimes"] = bucket.tndMillimes;
+    item["dzdCentimes"] = bucket.dzdCentimes;
     item["pulses"] = bucket.pulses;
     item["credits"] = bucket.credits;
     item["events"] = bucket.events;

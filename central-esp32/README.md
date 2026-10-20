@@ -16,6 +16,13 @@ Toutes les captures de ces guides utilisent des données fictives générées pa
 le serveur de démonstration documentaire ; elles ne contiennent aucun SSID,
 compte, mot de passe, token ou historique provenant d'une centrale réelle.
 
+## Prise en charge TND / DZD
+
+La nouvelle [notice multidevise](../docs/multidevise.md) décrit les pièces,
+le taux historique, le format REV2, la migration, les sauvegardes V3 et les tests
+de reprise après coupure. Le taux ne modifie pas les crédits ou la durée de jeu.
+Les anciens exemples en millimes de ce manuel décrivent le mode TND.
+
 ## Sommaire
 
 - [Guides PDF](#guides-pdf)
@@ -43,7 +50,7 @@ compte, mot de passe, token ou historique provenant d'une centrale réelle.
 - accès local par adresse IP ou `http://pstm.local` ;
 - lecture du monnayeur sur le GPIO 13 ;
 - conversion configurable des impulsions en coins ;
-- valeur configurable de l'impulsion : 500, 1 000, 2 000 ou 5 000 millimes ;
+- devise active TND ou DZD, valeur d'impulsion configurable et taux manuel DZD vers TND ;
 - crédit disponible sauvegardé en mémoire NVS ;
 - journal monétaire binaire compact dans LittleFS ;
 - recette par jour, semaine ou mois avec graphique, cartes, tableau et exports PDF/CSV ;
@@ -227,7 +234,7 @@ Le solde et le reliquat d'impulsions sont sauvegardés après chaque détection 
 attribution. Une coupure entre deux impulsions ne fait donc pas perdre la
 progression vers le prochain coin. Lors d'une
 affectation, les coins ne sont retirés qu'après une réponse HTTP réussie du
-poste. Un changement de **Impulsions par coin** annule le reliquat incomplet
+poste. Un changement de **Impulsions par coin** annule le reliquat incomplet à la première nouvelle impulsion
 pour éviter de le convertir rétroactivement avec une nouvelle règle. Les
 impulsions déjà encaissées restent dans la recette.
 
@@ -239,9 +246,12 @@ impulsions déjà encaissées restent dans la recette.
 
 La centrale synchronise son horloge par NTP avec le fuseau tunisien `CET-1`,
 puis ajoute chaque lot d'impulsions dans `/revenue.bin`, dans la partition
-LittleFS de la flash interne. Chaque enregistrement binaire compact occupe 16
-octets : epoch, montant en millimes, impulsions, coins créés et CRC16. Le CRC
-permet d'ignorer proprement une éventuelle écriture incomplète ou corrompue.
+LittleFS de la flash interne. Le format REV2 utilise des enregistrements de
+72 octets : date, devise, taux fixe, valeur d'impulsion, montant natif, conversion
+TND, compteurs, séquence, instantané des crédits et CRC16. L'ancien format REV1
+(16 octets) est migré sans modifier les montants TND. Une dernière écriture
+incomplète est réparée ; une corruption intérieure bloque le journal et conserve
+l'original pour intervention.
 
 La valeur monétaire est écrite au moment de l'encaissement. Une modification
 ultérieure du tarif ne change donc jamais l'historique. Les simulations de coin
@@ -251,15 +261,16 @@ recette.
 La page administrateur `/recette` propose :
 
 - une sélection **Jour**, **Semaine** ou **Mois**, avec date de référence ;
-- quatre cartes de synthèse : recette, impulsions, coins créés et écritures ;
+- six cartes de synthèse : TND encaissés, DZD encaissés, total général TND, impulsions, coins créés et écritures ;
 - un graphique en barres et un tableau détaillé ;
 - un export CSV agrégé côté ESP32 ;
 - un export PDF généré localement dans le navigateur.
 
 Si une pièce est introduite avant la synchronisation NTP, l'écriture reçoit un
 epoch nul. Elle apparaît comme non datée et n'est pas affectée arbitrairement à
-un jour. Si LittleFS devient indisponible, le crédit de jeu continue à
-fonctionner, mais l'interface et les logs signalent explicitement l'échec de
+un jour. Si LittleFS devient indisponible, une transaction préparée reste en NVS
+et les crédits correspondants attendent sa finalisation. Les impulsions suivantes
+restent dans une file RAM bornée ; l'interface et les logs signalent l'échec de
 stockage. La centrale retente le montage toutes les 30 secondes.
 
 Au tout premier démarrage avec la nouvelle partition, LittleFS est formaté puis
@@ -606,7 +617,8 @@ Dans **Configuration** :
 
 - **Durée par coin** : nombre de minutes attribuées par coin ;
 - **Impulsions par coin** : impulsions électriques nécessaires pour un coin ;
-- **Valeur d'une impulsion** : 500, 1 000, 2 000 ou 5 000 millimes encaissés ;
+- **Devise et valeur d'une impulsion** : valeurs TND existantes ou pièces DZD ;
+- **Taux de change** : 1 DZD = X TND, strictement positif, jusqu'à six décimales ;
 - **Crédit disponible** : correction administrative du solde.
 
 Cliquer sur **Enregistrer** après modification.
@@ -731,10 +743,10 @@ La classe `Preferences` enregistre les données dans plusieurs espaces NVS :
 | Namespace | Données |
 |---|---|
 | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
-| `appcfg` | Durée, impulsions par coin, valeur en millimes, solde et reliquat. |
+| `appcfg` | Instantanés atomiques `configV3` (durée, impulsions, devise, valeur, taux) et `creditsV3` (solde, reliquat, diviseur, séquence), avec CRC. |
 | `auth` | Token API et comptes avec hash des mots de passe. |
 | `posts` | Identité et adresse IP des postes configurés. |
-| `revenue` | Marqueur d'initialisation de la partition LittleFS. |
+| `revenue` | Marqueur anti-formatage LittleFS et transaction financière `pending` permettant une reprise sans doublon. |
 
 Les statuts, sessions web, postes en attente et logs restent en RAM et sont
 réinitialisés au redémarrage. Les décisions de reprise ne dépendent cependant
@@ -742,11 +754,11 @@ pas de la NVS centrale : chaque poste conserve son propre instantané et le
 réannonce après le redémarrage de la centrale.
 
 Le journal financier n'est pas en NVS. Il est conservé dans `/revenue.bin` sur
-LittleFS. Une écriture compacte de 16 octets est flushée après chaque lot
-d'impulsions accepté. La partition LittleFS fait 640 Kio ; l'interface expose
+LittleFS. Une écriture de 72 octets est flushée et relue après chaque lot
+d'impulsions préparé durablement en NVS, avant l'instantané atomique des crédits. La partition LittleFS fait 640 Kio ; l'interface expose
 son occupation afin que l'administrateur puisse la surveiller. À partir de 40 %
 d'occupation, une compaction sûre regroupe automatiquement les anciens
-événements par heure. Cette granularité conserve exactement les rapports jour,
+événements compatibles par heure, devise, taux et valeur. Cette granularité conserve exactement les rapports jour,
 semaine et mois tout en prolongeant fortement la capacité. Un fichier temporaire
 et un fichier de secours rendent la compaction récupérable après une coupure.
 
@@ -835,7 +847,7 @@ Le monnayeur peut reconnaître une pièce sans que l'ESP32 reçoive un signal
    série affiche `Monnayeur inactif`, terminer la configuration Wi-Fi.
 2. Utiliser **+1 coin** : ce bouton vérifie le solde et son affichage, mais ne
    teste ni le GPIO ni l'interruption. Pour l'essai physique, régler **Impulsions par
-   coin** sur `1` ; changer ce réglage annule le reliquat incomplet existant.
+   coin** sur `1` ; le reliquat précédent est abandonné à la première nouvelle impulsion.
 3. Ouvrir le moniteur série à **115200 bauds**, redémarrer et vérifier
    `Monnayeur prêt: GPIO13, rappel=pull-up interne`. Sélectionner **NO** sur le
    monnayeur, introduire une pièce puis lire `Impulsions monnayeur validées`.
@@ -896,7 +908,7 @@ passe par le comptage réel et ajoute donc aussi une écriture de recette.
 - les communications HTTP ne sont pas chiffrées ;
 - les logs sont perdus au redémarrage ;
 - les écritures effectuées avant NTP sont conservées mais restent non datées ;
-- si LittleFS est indisponible, le crédit continue mais la recette correspondante ne peut pas être récupérée après coup ;
+- si LittleFS est indisponible, les crédits financiers attendent sa remise en service ; une transaction préparée reste en NVS, les impulsions suivantes restent dans une file RAM bornée ;
 - la partition de 640 Kio est finie malgré la compaction horaire : surveiller son occupation dans **Recette** ;
 - le temps récupérable dépend du dernier instantané écrit par le poste et peut
   être supérieur au temps réel d'environ 60 secondes avec la configuration par défaut ;

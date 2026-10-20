@@ -4,6 +4,7 @@
 #include <vector>
 #include "AppConfig.h"
 #include "Post.h"
+#include "Money.h"
 
 struct EventLogEntry {
   unsigned long ts = 0;
@@ -39,12 +40,18 @@ struct AppState {
   std::vector<UserSession> sessions;
 
   int pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
-  int pulseValueMillimes = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+  uint8_t coinCurrency = Money::TND;
+  uint32_t pulseValueMinor = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+  uint32_t dzdToTndRateMicros = 0; // Non renseigné ; interdit en mode DZD.
   int availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
   int coinDurationSeconds = AppConfig::DEFAULT_COIN_DURATION_SECONDS;
 
   volatile int pulseCount = 0;
   int pendingPulses = 0;
+  int pendingPulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
+  uint64_t lastRevenueSequence = 0;
+  bool creditStorageReady = true;
+  bool revenueTransactionPending = false;
 
   bool revenueStorageReady = false;
   bool revenueTimeReady = false;

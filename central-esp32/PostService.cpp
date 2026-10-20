@@ -326,7 +326,12 @@ namespace PostService {
     }
 
     state.availableCoins -= coins;
-    StorageService::saveCredits(state);
+    if (!StorageService::saveCredits(state)) {
+      state.creditStorageReady = false;
+      error = "Crédits affectés au poste, mais sauvegarde NVS échouée ; vérification opérateur nécessaire.";
+      LogService::error(state,error);
+      return false;
+    }
     LogService::info(state, "Crédits affectés à " + postId + ": " + String(coins) + " coin(s)");
     return true;
   }

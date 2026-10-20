@@ -5,13 +5,34 @@
 #include "RevenueService.h"
 
 #include <Arduino.h>
+#include <time.h>
 
 static AppState* gCoinState = nullptr;
 static volatile bool gCoinArmed = false;
 static uint32_t gCoinStartedAt = 0;
 static volatile bool gHasAcceptedPulse = false;
 static volatile uint32_t gLastAcceptedPulseAt = 0;
-static int gLastObservedPulses = 0;
+namespace {
+struct Pulse {
+  uint8_t currency;
+  uint32_t value, rate;
+  int divisor;
+  uint32_t epoch;
+};
+constexpr uint16_t QUEUE_SIZE = 128;
+Pulse gQueue[QUEUE_SIZE];
+Pulse gActive;
+volatile uint16_t gRead = 0, gWrite = 0;
+volatile uint32_t gOverflow = 0;
+volatile uint32_t gEpoch = 0, gEpochMillis = 0;
+uint32_t gLastFailureLog = 0;
+uint64_t gInFlightSequence = 0;
+uint16_t gInFlightEnd = 0;
+bool sameProfile(const Pulse& a, const Pulse& b) {
+  return a.currency == b.currency && a.value == b.value && a.rate == b.rate &&
+         a.divisor == b.divisor && a.epoch == b.epoch;
+}
+}
 
 static void IRAM_ATTR coinInterruptHandler() {
   if (!gCoinState || !gCoinArmed || digitalRead(AppConfig::COIN_PIN) != LOW) {
@@ -27,6 +48,14 @@ static void IRAM_ATTR coinInterruptHandler() {
 
   // Un front descendant = une impulsion, sans attendre son retour à HIGH.
   // Le stockage, la recette et les logs restent dans la boucle principale.
+  uint16_t next = (gWrite+1) % QUEUE_SIZE;
+  if (next == gRead) { ++gOverflow; return; }
+  // Seulement une capture RAM : aucune allocation, NVS ni LittleFS dans l'ISR.
+  Pulse& item = gQueue[gWrite];
+  item.currency = gActive.currency; item.value = gActive.value;
+  item.rate = gActive.rate; item.divisor = gActive.divisor;
+  item.epoch = gEpoch ? gEpoch + (uint32_t)(now-gEpochMillis)/1000 : 0;
+  gWrite = next;
   gCoinState->pulseCount = gCoinState->pulseCount + 1;
   gLastAcceptedPulseAt = now;
   gHasAcceptedPulse = true;
@@ -39,7 +68,10 @@ namespace CoinService {
     gCoinState = &state;
     gHasAcceptedPulse = false;
     gLastAcceptedPulseAt = 0;
-    gLastObservedPulses = 0;
+    gRead = gWrite = 0;
+    gOverflow = 0;
+    gInFlightSequence = 0;
+    publishConfiguration(state);
     state.pulseCount = 0;
 
     // Comme l'entrée active LOW du projet de référence. Le signal doit rester
@@ -57,6 +89,7 @@ namespace CoinService {
     if (gCoinArmed) {
       return true;
     }
+    if (!state.creditStorageReady || !state.revenueStorageReady || state.revenueTransactionPending) return false;
     uint32_t now = (uint32_t)millis();
     if (now - gCoinStartedAt < AppConfig::COIN_STARTUP_IGNORE_MS) {
       return false;
@@ -83,41 +116,72 @@ namespace CoinService {
     return true;
   }
 
-  void update(AppState& state) {
-    if (state.pulsesPerCoin <= 0) {
-      state.pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
-      LogService::warn(state, "Configuration pulsesPerCoin invalide, valeur par défaut appliquée.");
-      StorageService::saveConfig(state);
-    }
+  void publishConfiguration(const AppState& state) {
+    noInterrupts();
+    gActive.currency = state.coinCurrency; gActive.value = state.pulseValueMinor;
+    gActive.rate = state.dzdToTndRateMicros; gActive.divisor = state.pulsesPerCoin;
+    interrupts();
+  }
 
-    if (!armIfReady(state)) {
+  void update(AppState& state) {
+    time_t now = time(nullptr);
+    noInterrupts();
+    gEpoch = state.revenueTimeReady ? (uint32_t)now : 0;
+    gEpochMillis = millis();
+    uint32_t overflow = gOverflow; gOverflow = 0;
+    interrupts();
+    if (overflow) LogService::error(state,"File monnayeur saturée : " + String(overflow) +
+      " impulsion(s) non sauvegardée(s). Vérifier le stockage avant de continuer.");
+    if (!RevenueService::recoverPending(state)) {
+      if (millis()-gLastFailureLog >= 5000) {
+        LogService::error(state,state.revenueStorageError); gLastFailureLog = millis();
+      }
       return;
     }
-
-    noInterrupts();
-    int currentPulses = state.pulseCount;
-    interrupts();
-
-    int diff = currentPulses - gLastObservedPulses;
-    if (diff > 0) {
-      gLastObservedPulses = currentPulses;
-      int groupedPulses = state.pendingPulses + diff;
-      int newCoins = groupedPulses / state.pulsesPerCoin;
-      state.pendingPulses = groupedPulses % state.pulsesPerCoin;
-      state.availableCoins += newCoins;
-
-      StorageService::saveCredits(state);
-      bool stored = RevenueService::recordPulses(state, diff, newCoins);
-      String message = "Impulsions monnayeur validées: +" + String(diff) +
-                       ", recette +" +
-                       String((double)diff * state.pulseValueMillimes / 1000.0, 3) +
-                       " TND, coins +" + String(newCoins) +
-                       ", total=" + String(state.availableCoins);
-      if (stored) {
-        LogService::info(state, message);
-      } else {
-        LogService::error(state, message + " (échec stockage LittleFS)");
+    // Une préparation peut avoir été engagée même si sa relecture a échoué.
+    // Reconnaître sa séquence avant de retenter la même impulsion RAM.
+    if (gInFlightSequence) {
+      if (state.lastRevenueSequence >= gInFlightSequence) {
+        noInterrupts(); gRead = gInFlightEnd; interrupts();
       }
+      gInFlightSequence = 0;
     }
+    if (!armIfReady(state)) return;
+
+    // Borné pour laisser le serveur et les postes s'exécuter entre deux lots.
+    for (unsigned batch = 0; batch < 8; ++batch) {
+      noInterrupts();
+      uint16_t read = gRead, end = gWrite;
+      interrupts();
+      if (read == end) return;
+      Pulse profile = gQueue[read];
+      int count = 1;
+      uint16_t next = (read+1) % QUEUE_SIZE;
+      while (next != end && sameProfile(profile,gQueue[next])) {
+        ++count; next = (next+1) % QUEUE_SIZE;
+      }
+      gInFlightSequence = state.lastRevenueSequence+1; gInFlightEnd = next;
+      if (!RevenueService::recordPulses(state,count,profile.currency,profile.value,
+                                       profile.rate,profile.divisor,profile.epoch)) {
+        if (millis()-gLastFailureLog >= 5000) {
+          LogService::error(state,state.revenueStorageError); gLastFailureLog = millis();
+        }
+        return;
+      }
+      // La préparation NVS est durable ; une éventuelle reprise ne relira pas la file.
+      noInterrupts(); gRead = next; interrupts();
+      gInFlightSequence = 0;
+      LogService::info(state,"Impulsions monnayeur validées: +" + String(count) +
+        ", recette +" + RevenueService::formatMinor((uint64_t)count*profile.value,
+          profile.currency == Money::DZD ? 2 : 3) + " " + Money::code(profile.currency) +
+        ", solde=" + String(state.availableCoins));
+      if (state.revenueTransactionPending) return;
+    }
+  }
+
+  bool settle(AppState& state) {
+    update(state);
+    noInterrupts(); bool empty = gRead == gWrite; interrupts();
+    return empty && !state.revenueTransactionPending && state.creditStorageReady && state.revenueStorageReady;
   }
 }

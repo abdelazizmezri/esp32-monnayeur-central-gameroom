@@ -1,5 +1,6 @@
 #include "StorageService.h"
 #include "AppConfig.h"
+#include "RevenueJournal.h"
 
 #include <Preferences.h>
 #include <ArduinoJson.h>
@@ -21,11 +22,12 @@ namespace StorageService {
       changed = true;
     }
 
-    if (state.pulseValueMillimes != 500 &&
-        state.pulseValueMillimes != 1000 &&
-        state.pulseValueMillimes != 2000 &&
-        state.pulseValueMillimes != 5000) {
-      state.pulseValueMillimes = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+    if (!Money::validValue(state.coinCurrency, state.pulseValueMinor) ||
+        (state.coinCurrency == Money::DZD && !Money::validRate(state.dzdToTndRateMicros)) ||
+        state.dzdToTndRateMicros > Money::MAX_RATE) {
+      state.coinCurrency = Money::TND;
+      state.pulseValueMinor = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+      state.dzdToTndRateMicros = 0;
       changed = true;
     }
 
@@ -34,8 +36,9 @@ namespace StorageService {
       changed = true;
     }
 
-    if (state.pendingPulses < 0 || state.pendingPulses >= state.pulsesPerCoin) {
+    if (state.pendingPulsesPerCoin <= 0 || state.pendingPulses < 0 || state.pendingPulses >= state.pendingPulsesPerCoin) {
       state.pendingPulses = 0;
+      state.pendingPulsesPerCoin = state.pulsesPerCoin;
       changed = true;
     }
 
@@ -161,10 +164,47 @@ namespace StorageService {
     prefs.begin("appcfg", true);
     state.coinDurationSeconds = prefs.getInt("coinDur", AppConfig::DEFAULT_COIN_DURATION_SECONDS);
     state.pulsesPerCoin = prefs.getInt("pulseCoin", AppConfig::DEFAULT_PULSES_PER_COIN);
-    state.pulseValueMillimes = prefs.getInt("pulseVal", AppConfig::DEFAULT_PULSE_VALUE_MILLIMES);
+    state.pulseValueMinor = prefs.getInt("pulseVal", AppConfig::DEFAULT_PULSE_VALUE_MILLIMES);
     state.availableCoins = prefs.getInt("availCoins", AppConfig::DEFAULT_AVAILABLE_COINS);
     state.pendingPulses = prefs.getInt("pendingPulse", 0);
+    state.pendingPulsesPerCoin = state.pulsesPerCoin;
     prefs.end();
+
+    // Une seule valeur NVS atomique par instantané, avec CRC et relecture.
+    prefs.begin("appcfg", true);
+    uint8_t config[32] = {}, credits[40] = {};
+    bool hasConfig = prefs.isKey("configV3");
+    bool hasCredits = prefs.isKey("creditsV3");
+    if (hasConfig) {
+      if (prefs.getBytesLength("configV3") != sizeof(config) ||
+          prefs.getBytes("configV3", config, sizeof(config)) != sizeof(config) ||
+          memcmp(config, "CFG3", 4) ||
+          RevenueJournal::get(config+30,2) != Money::crc16(config,30)) {
+        state.creditStorageReady = false;
+      } else {
+        state.coinDurationSeconds = RevenueJournal::get(config+4,4);
+        state.pulsesPerCoin = RevenueJournal::get(config+8,4);
+        state.coinCurrency = config[12];
+        state.pulseValueMinor = RevenueJournal::get(config+16,4);
+        state.dzdToTndRateMicros = RevenueJournal::get(config+20,4);
+      }
+    }
+    if (hasCredits) {
+      if (prefs.getBytesLength("creditsV3") != sizeof(credits) ||
+          prefs.getBytes("creditsV3", credits, sizeof(credits)) != sizeof(credits) ||
+          memcmp(credits,"CRD3",4) ||
+          RevenueJournal::get(credits+38,2) != Money::crc16(credits,38)) {
+        state.creditStorageReady = false;
+      } else {
+        state.availableCoins = RevenueJournal::get(credits+4,4);
+        state.pendingPulses = RevenueJournal::get(credits+8,4);
+        state.pendingPulsesPerCoin = RevenueJournal::get(credits+12,4);
+        state.lastRevenueSequence = RevenueJournal::get(credits+16,8);
+      }
+    }
+    prefs.end();
+    if (!state.creditStorageReady)
+      state.revenueStorageError = "Instantané NVS illisible ; comptage suspendu pour protéger les données.";
 
     prefs.begin("auth", true);
     state.legacyAdminPassword = prefs.getString("adminPwd", "");
@@ -198,25 +238,65 @@ namespace StorageService {
       }
     }
 
-    if (configChanged) {
-      saveConfig(state);
-      saveCredits(state);
+    if (state.creditStorageReady) {
+      if (configChanged || !hasConfig) state.creditStorageReady = saveConfig(state);
+      if (state.creditStorageReady && (configChanged || !hasCredits))
+        state.creditStorageReady = saveCredits(state);
     }
   }
 
-  void saveConfig(const AppState& state) {
-    prefs.begin("appcfg", false);
-    prefs.putInt("coinDur", state.coinDurationSeconds);
-    prefs.putInt("pulseCoin", state.pulsesPerCoin);
-    prefs.putInt("pulseVal", state.pulseValueMillimes);
+  static bool writeVerified(const char* ns, const char* key, const uint8_t* data, size_t size) {
+    if (!prefs.begin(ns, false)) return false;
+    bool ok = prefs.putBytes(key, data, size) == size;
+    uint8_t check[RevenueJournal::RECORD_SIZE] = {};
+    ok = ok && size <= sizeof(check) && prefs.getBytesLength(key) == size &&
+         prefs.getBytes(key,check,size) == size && memcmp(data,check,size) == 0;
     prefs.end();
+    return ok;
   }
 
-  void saveCredits(const AppState& state) {
-    prefs.begin("appcfg", false);
-    prefs.putInt("availCoins", state.availableCoins);
-    prefs.putInt("pendingPulse", state.pendingPulses);
+  bool saveConfig(const AppState& state) {
+    uint8_t data[32] = {'C','F','G','3'};
+    RevenueJournal::put(data+4,state.coinDurationSeconds,4);
+    RevenueJournal::put(data+8,state.pulsesPerCoin,4);
+    data[12] = state.coinCurrency;
+    RevenueJournal::put(data+16,state.pulseValueMinor,4);
+    RevenueJournal::put(data+20,state.dzdToTndRateMicros,4);
+    RevenueJournal::put(data+30,Money::crc16(data,30),2);
+    return writeVerified("appcfg","configV3",data,sizeof(data));
+  }
+
+  bool saveCredits(const AppState& state) {
+    uint8_t data[40] = {'C','R','D','3'};
+    RevenueJournal::put(data+4,state.availableCoins,4);
+    RevenueJournal::put(data+8,state.pendingPulses,4);
+    RevenueJournal::put(data+12,state.pendingPulsesPerCoin,4);
+    RevenueJournal::put(data+16,state.lastRevenueSequence,8);
+    RevenueJournal::put(data+38,Money::crc16(data,38),2);
+    return writeVerified("appcfg","creditsV3",data,sizeof(data));
+  }
+
+  int loadRevenueTransaction(RevenueJournal::Entry& entry) {
+    if (!prefs.begin("revenue",true)) return 0; // namespace absent à la première installation
+    if (!prefs.isKey("pending")) { prefs.end(); return 0; }
+    uint8_t data[RevenueJournal::RECORD_SIZE];
+    bool ok = prefs.getBytesLength("pending") == sizeof(data) &&
+              prefs.getBytes("pending",data,sizeof(data)) == sizeof(data);
     prefs.end();
+    return ok && RevenueJournal::decode(data,entry) && entry.sequence > 0 ? 1 : -1;
+  }
+
+  bool stageRevenueTransaction(const RevenueJournal::Entry& entry) {
+    uint8_t data[RevenueJournal::RECORD_SIZE];
+    RevenueJournal::encode(entry,data);
+    return writeVerified("revenue","pending",data,sizeof(data));
+  }
+
+  bool clearRevenueTransaction() {
+    if (!prefs.begin("revenue",false)) return false;
+    bool ok = !prefs.isKey("pending") || prefs.remove("pending");
+    prefs.end();
+    return ok;
   }
 
   void savePosts(const AppState& state) {
@@ -258,10 +338,14 @@ namespace StorageService {
     DynamicJsonDocument doc(24576);
 
     doc["format"] = "pstm-backup";
-    doc["version"] = 2;
+    doc["version"] = 3;
     doc["coinDurationSeconds"] = state.coinDurationSeconds;
     doc["pulsesPerCoin"] = state.pulsesPerCoin;
-    doc["pulseValueMillimes"] = state.pulseValueMillimes;
+    doc["coinCurrency"] = Money::code(state.coinCurrency);
+    doc["pulseValueMinor"] = state.pulseValueMinor;
+    doc["dzdToTndRateMicros"] = state.dzdToTndRateMicros;
+    if (state.coinCurrency == Money::TND) doc["pulseValueMillimes"] = state.pulseValueMinor;
+    doc["pendingPulsesPerCoin"] = state.pendingPulsesPerCoin;
     doc["availableCoins"] = state.availableCoins;
     doc["pendingPulses"] = state.pendingPulses;
     doc["apiToken"] = state.apiToken;
@@ -295,7 +379,7 @@ namespace StorageService {
 
     int backupVersion = doc["version"] | 0;
     if (String(doc["format"] | "") != "pstm-backup" ||
-        (backupVersion != 1 && backupVersion != 2) ||
+        (backupVersion < 1 || backupVersion > 3) ||
         !doc["users"].is<JsonArray>() || !doc["posts"].is<JsonArray>()) {
       error = "invalid backup";
       return false;
@@ -304,20 +388,30 @@ namespace StorageService {
     AppState restored;
     restored.coinDurationSeconds = doc["coinDurationSeconds"] | 0;
     restored.pulsesPerCoin = doc["pulsesPerCoin"] | 0;
-    restored.pulseValueMillimes = backupVersion >= 2
+    restored.pulseValueMinor = backupVersion >= 2
                                      ? (doc["pulseValueMillimes"] | 0)
                                      : AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
+    if (backupVersion == 3) {
+      String currency = doc["coinCurrency"] | "";
+      restored.coinCurrency = currency == "TND" ? Money::TND : currency == "DZD" ? Money::DZD : 255;
+      if (!doc["pulseValueMinor"].is<uint32_t>() || !doc["dzdToTndRateMicros"].is<uint32_t>()) {
+        error = "invalid monetary settings"; return false;
+      }
+      restored.pulseValueMinor = doc["pulseValueMinor"].as<uint32_t>();
+      restored.dzdToTndRateMicros = doc["dzdToTndRateMicros"].as<uint32_t>();
+    }
     restored.availableCoins = doc["availableCoins"] | -1;
     restored.pendingPulses = backupVersion >= 2 ? (doc["pendingPulses"] | 0) : 0;
     restored.apiToken = doc["apiToken"] | "";
-    bool pulseValueValid = restored.pulseValueMillimes == 500 ||
-                           restored.pulseValueMillimes == 1000 ||
-                           restored.pulseValueMillimes == 2000 ||
-                           restored.pulseValueMillimes == 5000;
+    restored.pendingPulsesPerCoin = backupVersion == 3
+      ? (doc["pendingPulsesPerCoin"] | 0) : restored.pulsesPerCoin;
+    bool pulseValueValid = Money::validValue(restored.coinCurrency,restored.pulseValueMinor) &&
+      restored.dzdToTndRateMicros <= Money::MAX_RATE &&
+      (restored.coinCurrency != Money::DZD || Money::validRate(restored.dzdToTndRateMicros));
     if (restored.coinDurationSeconds <= 0 || restored.pulsesPerCoin <= 0 ||
         !pulseValueValid ||
         restored.availableCoins < 0 || restored.pendingPulses < 0 ||
-        restored.pendingPulses >= restored.pulsesPerCoin ||
+        restored.pendingPulsesPerCoin <= 0 || restored.pendingPulses >= restored.pendingPulsesPerCoin ||
         restored.apiToken.length() < 8) {
       error = "invalid settings";
       return false;
@@ -332,9 +426,20 @@ namespace StorageService {
       return false;
     }
 
+    if (!state.creditStorageReady || state.revenueTransactionPending) {
+      error = "Transaction financière en attente ; restauration refusée."; return false;
+    }
+    restored.lastRevenueSequence = state.lastRevenueSequence;
+    if (!saveConfig(restored) || !saveCredits(restored)) {
+      state.creditStorageReady = false;
+      error = "Échec de sauvegarde NVS ; redémarrer avant de réessayer."; return false;
+    }
     state.coinDurationSeconds = restored.coinDurationSeconds;
     state.pulsesPerCoin = restored.pulsesPerCoin;
-    state.pulseValueMillimes = restored.pulseValueMillimes;
+    state.coinCurrency = restored.coinCurrency;
+    state.pulseValueMinor = restored.pulseValueMinor;
+    state.dzdToTndRateMicros = restored.dzdToTndRateMicros;
+    state.pendingPulsesPerCoin = restored.pendingPulsesPerCoin;
     state.availableCoins = restored.availableCoins;
     state.pendingPulses = restored.pendingPulses;
     state.apiToken = restored.apiToken;
@@ -343,8 +448,6 @@ namespace StorageService {
     state.pendingPosts.clear();
     state.sessions.clear();
 
-    saveConfig(state);
-    saveCredits(state);
     saveAuth(state);
     saveUsers(state);
     savePosts(state);

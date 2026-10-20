@@ -38,7 +38,18 @@ uniquement des postes, comptes, réseaux Wi-Fi, événements et valeurs de recet
 fictifs : aucune donnée NVS, adresse ou identité issue d'une installation réelle
 n'est utilisée.
 
-## État de la version finale
+## Évolution TND / DZD — 20 octobre 2026
+
+La centrale prend en charge une devise active par monnayeur, un taux manuel
+DZD vers TND à six décimales, trois totaux de recette et des exports adaptés.
+Les anciennes données TND sont migrées sans effacement. La reprise des
+encaissements utilise une transaction NVS et un journal LittleFS vérifiés.
+
+Voir [le fonctionnement et la migration](docs/multidevise.md).
+Les PDF illustrés existants décrivent la version antérieure du 25 août 2026 ;
+les réglages multidevises sont documentés dans cette nouvelle notice.
+
+## Référence de compilation précédente
 
 Cette version a été auditée et recompilée le **25 août 2026** avec la chaîne
 d'outils suivante :
@@ -131,9 +142,10 @@ Le log `Monnayeur prêt` confirme que les pièces peuvent être introduites.
 Un verrouillage anti-doublon de 320 ms sépare ensuite les fronts acceptés,
 sans délai bloquant ni validation de durée d'impulsion. Le nombre d'impulsions
 requis par coin est configurable ;
-chaque groupe complet augmente le solde central persistant. Chaque impulsion
-validée ajoute en parallèle sa valeur monétaire au journal LittleFS, sans attendre
-qu'un groupe de crédit soit complet.
+chaque groupe complet augmente le solde central persistant. Chaque impulsion validée capture sa devise, sa valeur et son taux de change.
+La centrale prépare ensuite une transaction durable en NVS, ajoute la recette
+dans LittleFS, puis enregistre les crédits avec la même séquence. Une opération
+interrompue est reprise une seule fois au redémarrage.
 
 Valeurs par défaut :
 
@@ -198,8 +210,11 @@ agrège ce journal par heure pour un jour, par jour pour une semaine ou par jour
 pour un mois. Elle combine cartes de synthèse, graphique en barres et tableau,
 puis exporte le résultat en CSV ou en véritable fichier PDF.
 
-La valeur est figée dans chaque écriture : changer le réglage de l'impulsion ne
-modifie jamais l'historique. Les crédits simulés et corrections manuelles du
+La devise, la valeur d'origine et la conversion sont figées dans chaque écriture.
+La configuration permet de choisir le TND ou le DZD et de renseigner le taux
+« 1 DZD = X TND ». Recette affiche séparément les TND encaissés, les DZD encaissés
+et leur total général en TND au taux historique. Changer le réglage de l'impulsion
+ou le taux ne modifie jamais l'historique. Les crédits simulés et corrections manuelles du
 solde sont volontairement exclus de la recette.
 
 ### 8. Reprise après une coupure électrique
