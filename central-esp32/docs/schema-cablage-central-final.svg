@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1050" viewBox="0 0 1700 1050" role="img" aria-labelledby="title desc">
   <title id="title">Câblage minimal du monnayeur JY-133B vers la centrale ESP32</title>
-  <desc id="desc">Le monnayeur est alimenté en 12 volts. Sa sortie COIN est reliée au GPIO13 de l'ESP32, avec une résistance pull-down de 4,7 kilo-ohms vers la masse commune. L'ESP32 est alimenté séparément par USB.</desc>
+  <desc id="desc">Montage pour une sortie COIN à collecteur ouvert vers GND ou une interface compatible 0 à 3,3 volts vérifiée. Le monnayeur est alimenté en 12 volts. Sa sortie COIN est reliée au GPIO13 de l'ESP32, configuré en INPUT_PULLUP avec rappel interne vers 3V3. Aucune résistance externe vers GND. Une sortie à tension plus élevée nécessite une interface adaptée. L'ESP32 est alimenté séparément par USB.</desc>
   <defs>
     <linearGradient id="page" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fbfcfe"/><stop offset="1" stop-color="#edf2f7"/></linearGradient>
     <linearGradient id="board" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1678ad"/><stop offset="1" stop-color="#074d78"/></linearGradient>
@@ -15,7 +15,7 @@
   <rect x="0" y="0" width="1700" height="112" fill="#fff"/>
   <line x1="0" y1="112" x2="1700" y2="112" stroke="#d6dee7" stroke-width="2"/>
   <text x="50" y="50" class="title">Centrale PS TIME MANAGER — câblage minimal du monnayeur</text>
-  <text x="50" y="84" class="subtitle">JY-133B 12 V · sortie COIN vers GPIO13 · résistance pull-down 4,7 kΩ · masse commune</text>
+  <text x="50" y="84" class="subtitle">GPIO13 · INPUT_PULLUP vers 3V3 · sortie COIN compatible 0–3,3 V vérifiée · masse commune</text>
 
   <!-- Alimentation 12 V du monnayeur -->
   <g filter="url(#shadow)">
@@ -65,21 +65,18 @@
   <path d="M385 500 V835 H1080 V680 H1160" class="wire wireGnd"/>
   <circle cx="385" cy="500" r="8" fill="#20262c" class="junction"/><circle cx="1080" cy="835" r="8" fill="#20262c" class="junction"/>
   <path d="M920 570 H1160" class="wire wireCoin"/>
-  <circle cx="1040" cy="570" r="8" fill="#31a8dc" class="junction"/>
 
-  <!-- Résistance pull-down unique -->
-  <path d="M1040 570 V620" class="wire wireCoin"/>
-  <rect x="1018" y="620" width="44" height="125" rx="10" fill="#d8c38a" stroke="#725f30" stroke-width="2"/>
-  <path d="M1040 745 V835" class="wire wireGnd"/>
-  <path d="M1023 642 H1057 M1023 666 H1057 M1023 690 H1057 M1023 714 H1057" stroke="#8f3d78" stroke-width="7"/>
-  <rect x="930" y="655" width="80" height="64" rx="10" fill="#fff" stroke="#c6d1dc" stroke-width="2"/>
-  <text x="944" y="681" class="label">4,7 kΩ</text><text x="940" y="703" class="tiny">pull-down</text>
+  <!-- Le rappel est interne à l'ESP32 : aucune résistance externe vers GND. -->
+  <rect x="1175" y="785" width="465" height="82" class="callout"/>
+  <text x="1200" y="819" class="section">INPUT_PULLUP</text>
+  <text x="1200" y="846" class="small">Rappel interne vers 3V3 · sans résistance externe vers GND</text>
 
   <rect x="455" y="785" width="420" height="82" class="callout"/>
   <text x="485" y="819" class="section">Masse commune</text>
   <text x="485" y="846" class="small">GND monnayeur, alimentation 12 V et ESP32 reliés ensemble.</text>
 
   <rect x="45" y="915" width="1595" height="88" class="warning"/>
-  <text x="75" y="950" class="warningText">ATTENTION : ne jamais relier le +12 V au GPIO13.</text>
-  <text x="75" y="980" class="small">Avant raccordement, mesurer la sortie COIN et confirmer qu’elle ne dépasse jamais 3,3 V. Couper les alimentations avant toute modification.</text>
+  <text x="75" y="944" class="warningText">ATTENTION : ne jamais relier le +12 V au GPIO13. Le pull-up interne n'adapte pas une tension de 5 V ou 12 V.</text>
+  <text x="75" y="970" class="small">Retirer toute résistance entre GPIO13 et GND. Le signal COIN doit être compatible 3,3 V ou passer par une interface adaptée.</text>
+  <text x="75" y="993" class="small">Vérifier l’amplitude des impulsions avant raccordement. Couper les alimentations avant toute modification.</text>
 </svg>

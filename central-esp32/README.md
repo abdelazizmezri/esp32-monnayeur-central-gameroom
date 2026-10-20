@@ -143,15 +143,46 @@ qui seraient simultanément en mode configuration.
 
 ## Gestion des coins
 
-Le fil de signal `COIN` du monnayeur arrive sur le GPIO 13 configuré en `INPUT`.
-La masse du monnayeur et celle de l'ESP32 sont communes. Une résistance
-pull-down externe de 4,7 kΩ relie le GPIO 13 au GND afin de maintenir un niveau
-bas stable au repos. Avant raccordement, mesurer la sortie `COIN` et confirmer
-qu'elle ne dépasse jamais 3,3 V. Ne jamais relier le `+12 V` au GPIO13.
+Le signal `COIN`, adapté en logique 0–3,3 V, arrive sur le GPIO 13 configuré en
+`INPUT_PULLUP`. Le rappel interne vers **3V3** rétablit le niveau HIGH quand une
+sortie à collecteur ouvert vers GND est relâchée. Ce montage ne nécessite pas de
+résistance externe de rappel : retirer toute résistance de 2 kΩ ou 4,7 kΩ entre
+GPIO13 et GND, alimentations coupées. Pour une liaison non isolée, la masse du
+monnayeur et celle de l'ESP32 sont communes. Confirmer que la sortie ne fournit
+aucune tension supérieure à 3,3 V, ou utiliser une interface adaptée au monnayeur.
+Le nom JY-133B et le réglage NO/NC ne suffisent pas à garantir le type électrique
+de la sortie. Une résistance pull-down seule ne convertit pas du 5 V ou du 12 V
+en 3,3 V. Ne jamais relier le `+12 V` au GPIO13.
 
-Le firmware ne compte une impulsion qu'après avoir observé un niveau complet
-entre 10 et 250 ms. La polarité `NO`/`NC` est détectée automatiquement et un
-anti-rebond de 80 ms élimine les fronts parasites rapprochés.
+Comme dans le projet de référence fonctionnel, l'entrée est active à LOW.
+Le réglage **NO** est conseillé : repos HIGH, impulsion LOW. Le firmware compte
+un front descendant par interruption, sans attendre la fin de l'impulsion et
+sans limite de durée minimale ou maximale. Après un front accepté, un verrouillage
+anti-doublon de **320 ms** ignore les fronts suivants avant qu'ils n'alimentent
+les crédits ou la recette, sans attente bloquante. Les fronts ignorés ne prolongent
+pas ce verrouillage. Il reprend le délai effectif du projet de référence :
+`timer = 20` tours de boucle × 4 chiffres × `delay(4)`, soit environ 320 ms,
+et non 20 ms. Ce réglage vise une impulsion utile par pièce.
+Un niveau maintenu LOW ne crée pas de nouveaux crédits tant qu'il n'y a pas
+de nouveau passage de HIGH à LOW.
+
+Au démarrage du service, le comptage est désarmé pendant **5 secondes**, comme
+pendant l'animation du projet de référence. Les transitions électriques de
+mise en route ne créent ni crédit ni recette. Ensuite, l'entrée doit être
+revenue au repos HIGH avant l'armement. Cette protection est non bloquante :
+le serveur et les communications des postes continuent de fonctionner.
+
+Le journal web et le moniteur série à 115200 bauds affichent d'abord
+`Monnayeur en stabilisation`, avec le niveau GPIO et le solde initial, puis
+`Monnayeur prêt` après armement, avec la broche, `rappel=pull-up interne`,
+la détection sur front descendant, `repos=HIGH` et l'anti-doublon.
+Attendre ce second message avant d'introduire une pièce. Une interruption
+retardée est ignorée si la broche est déjà revenue à HIGH.
+Chaque lot d'impulsions comptées
+produit ensuite `Impulsions monnayeur validées`, avec les coins créés et le solde.
+La recette, le stockage et les logs sont traités dans la boucle principale,
+jamais dans l'interruption. Le reliquat d'impulsions n'a pas de délai
+d'expiration. Le mode de configuration Wi-Fi ne démarre pas le comptage.
 
 Il faut distinguer trois notions :
 
@@ -179,6 +210,9 @@ millimes : 500 millimes produit 1 impulsion, 1 TND en produit 2, 2 TND en
 produit 4 et 5 TND en produit 10. La centrale calcule alors correctement la
 recette de toutes ces pièces. La programmation physique du monnayeur doit rester
 cohérente avec la valeur d'impulsion choisie dans l'interface.
+Pour ces trains de véritables impulsions multiples, régler `COIN_DEBOUNCE_MS`
+en dessous de leur espacement mesuré. La valeur actuelle de 320 ms vise le
+monnayeur du projet de référence, avec une impulsion utile par pièce.
 
 Valeurs initiales :
 
@@ -239,11 +273,15 @@ le solde, les comptes et les postes ; LittleFS conserve les événements financi
 
 ## Câblage final de la centrale
 
+> Ce schéma utilise le pull-up interne de GPIO13 pour une sortie à collecteur
+> ouvert vers GND ou une interface compatible 0–3,3 V vérifiée. Une sortie à
+> tension plus élevée nécessite une adaptation avant raccordement.
+
 ![Schéma de câblage final de la centrale ESP32 sans module mémoire](docs/schema-cablage-central-final.svg)
 
 Le monnayeur reste alimenté en 12 V et l'ESP32 est alimenté séparément par USB.
-Le schéma ne conserve que le raccordement du monnayeur et la résistance
-pull-down 4,7 kΩ. NVS et LittleFS sont des zones de la flash intégrée à
+Le schéma utilise le rappel interne vers 3V3, sans résistance externe vers GND.
+NVS et LittleFS sont des zones de la flash intégrée à
 l'ESP32 : aucun module mémoire externe n'est nécessaire.
 
 Le schéma utilise des fils colorés et les noms sérigraphiés des broches, dans le
@@ -257,7 +295,7 @@ le dessin.
 | Alimentation `+12 V` | Fil rouge du monnayeur | Alimentation du monnayeur |
 | Alimentation `GND` | Fil noir du monnayeur et `GND` de l'ESP32 | Masse commune |
 | Fil blanc `COIN` du monnayeur | ESP32 `GPIO13` | Signal impulsionnel, mesuré à 3,3 V maximum |
-| Résistance pull-down `4,7 kΩ` | Entre `GPIO13` et `GND` | Niveau bas stable au repos |
+| Pull-up interne `INPUT_PULLUP` | GPIO13 vers 3V3, dans l'ESP32 | Activé par le firmware ; aucune résistance externe vers GND |
 
 Les broches SPI (`MOSI`, `MISO`, `SCK`, `CS`) restent libres : le journal de
 recette utilise LittleFS dans la flash interne et ne demande aucun câblage.
@@ -414,7 +452,7 @@ navigateur ne suffit donc pas à contourner les restrictions.
 | Catégorie | Éléments requis |
 |---|---|
 | Carte | ESP32 Dev Module avec 4 Mo de flash, câble USB de données. |
-| Monnayeur | JY-133B ou équivalent, alimentation 12 V et résistance pull-down 4,7 kΩ. L'ESP32 est alimenté séparément par USB. |
+| Monnayeur | JY-133B ou équivalent, alimentation 12 V et sortie compatible 3,3 V ou interface adaptée. Pull-up interne activé ; ESP32 alimenté séparément par USB. |
 | Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
 | Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
 | Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
@@ -745,7 +783,7 @@ et un fichier de secours rendent la compaction récupérable après une coupure.
 | `WebAssets.h` / `WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `*Asset.inc` | Données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `ui-assets/` | Logo maître, fond de connexion et variantes WebP HD documentées. |
-| `docs/schema-cablage-central-final.svg` | Schéma vectoriel minimal : monnayeur, GPIO13, masse commune et pull-down 4,7 kΩ. |
+| `docs/schema-cablage-central-final.svg` | Schéma vectoriel : monnayeur, GPIO13, masse commune et pull-up interne sans résistance externe vers GND. |
 | `partitions.csv` | Deux partitions OTA de 1,625 Mio, 640 Kio de LittleFS et NVS conservée. |
 
 ## Sécurité
@@ -790,10 +828,54 @@ déploiement.
 
 ### Les coins ne sont pas détectés
 
-- contrôler le câblage du GPIO 13, la masse commune et la résistance 4,7 kΩ ;
-- vérifier que la sortie `COIN` ne dépasse jamais 3,3 V ;
-- ajuster **Impulsions par coin** ;
-- utiliser **+1 coin** de simulation pour distinguer un problème matériel d'un problème logiciel.
+Le monnayeur peut reconnaître une pièce sans que l'ESP32 reçoive un signal
+électrique exploitable. Procéder dans cet ordre :
+
+1. Vérifier l'accès à l'interface normale après connexion Wi-Fi. Si le moniteur
+   série affiche `Monnayeur inactif`, terminer la configuration Wi-Fi.
+2. Utiliser **+1 coin** : ce bouton vérifie le solde et son affichage, mais ne
+   teste ni le GPIO ni l'interruption. Pour l'essai physique, régler **Impulsions par
+   coin** sur `1` ; changer ce réglage annule le reliquat incomplet existant.
+3. Ouvrir le moniteur série à **115200 bauds**, redémarrer et vérifier
+   `Monnayeur prêt: GPIO13, rappel=pull-up interne`. Sélectionner **NO** sur le
+   monnayeur, introduire une pièce puis lire `Impulsions monnayeur validées`.
+
+| Observation | Interprétation et contrôle |
+|---|---|
+| Une impulsion apparaît juste après le démarrage, sans pièce | Vérifier la présence de la phase `Monnayeur en stabilisation`, puis attendre `Monnayeur prêt`. Les fronts des 5 premières secondes et les interruptions retardées avec ligne HIGH sont ignorés. |
+| Le solde initial vaut déjà 1, sans nouveau log d'impulsion | Le solde chargé de NVS est conservé. Pour un essai à zéro, enregistrer `Coins disponibles = 0` dans Configuration ; le cache du navigateur ne modifie pas la NVS. |
+| Aucun log après la pièce, alors que `Monnayeur prêt` apparaît | Aucun front descendant n'a été compté. Vérifier GPIO13, le fil de sortie et la masse ; mesurer le signal. |
+| Niveau initial LOW en mode NO, sans pièce | Vérifier qu'aucune résistance ne relie GPIO13 à GND et que la sortie peut remonter à HIGH au repos. |
+| Deux coins sont ajoutés pour une pièce | Vérifier au démarrage `anti-doublon=320 ms` et **Impulsions par coin**. Deux fronts espacés de moins de 320 ms ne doivent produire qu'une impulsion utile. |
+| Certaines impulsions d'un train rapide manquent | Le réglage par défaut vise une impulsion utile par pièce. Pour de vraies impulsions multiples programmées, adapter `COIN_DEBOUNCE_MS` à leur espacement après mesure. |
+| Impulsions validées, mais `coins +0` | Vérifier **Impulsions par coin** et le reliquat : toutes les impulsions ne créent pas forcément un crédit entier. |
+
+**Résistance de 2 kΩ à la place de 4,7 kΩ :** vers GND, elle charge environ
+2,35 fois plus une sortie active à tension identique. Elle peut abaisser le
+niveau haut si la sortie est faible, sans être forcément la cause. Pour un
+ESP32 classique alimenté en 3,3 V, viser un niveau bas proche de 0 V et un
+niveau haut proche de 3,3 V ; le seuil haut garanti est d'environ 2,48 V
+([fiche Espressif, caractéristiques DC](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf)).
+Revenir à 4,7 kΩ ne corrige pas un mauvais type de rappel : un pull-down garde
+une sortie collecteur ouvert à GND dans ses deux états. Confirmer le type de
+sortie. Le firmware utilise maintenant un pull-up interne : le laisser agir
+sans résistance externe de 2 kΩ ou 4,7 kΩ vers GND, qui maintiendrait l'entrée LOW.
+
+Mesurer la sortie `COIN` **déconnectée de l'ESP32** avant tout raccordement.
+Un multimètre peut manquer une impulsion brève ou en afficher la moyenne :
+une lecture de 0 V ne prouve pas que le pic est sans danger. Pour connaître
+l'amplitude et la durée, utiliser un oscilloscope ou une interface de signal
+dont les niveaux de sortie sont garantis. Si la sortie délivre du 5 V ou du
+12 V, intercaler une adaptation de niveau, par exemple un optocoupleur adapté.
+
+Pour vérifier GPIO13 indépendamment du monnayeur, couper les alimentations,
+débrancher le fil `COIN` et retirer toute résistance externe vers GND. Alimenter
+ensuite l'ESP32 par USB, attendre `Monnayeur prêt` avec le niveau initial HIGH,
+relier brièvement **GPIO13 à GND**
+(environ 50 à 100 ms), puis retirer le fil. Le passage à LOW doit
+produire `Impulsions monnayeur validées: +1` ; avec une impulsion par coin, le
+solde augmente de 1. Un contact maintenu LOW reste une seule impulsion. Cet essai
+passe par le comptage réel et ajoute donc aussi une écriture de recette.
 
 ### La recette n'est pas enregistrée
 
@@ -840,7 +922,7 @@ répertoriées ci-dessous :
 | `POSTE_COMMAND_TOKEN` | valeur de développement | Secret partagé avec tous les postes. |
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai de connexion avant ouverture du portail. |
 | `SERVER_PORT` | `80` | Port HTTP de la centrale. |
-| `COIN_PIN` | GPIO 13 | Entrée du monnayeur avec pull-down 4,7 kΩ. |
+| `COIN_PIN` | GPIO 13 | Entrée du monnayeur avec pull-up interne `INPUT_PULLUP`. |
 | `DEFAULT_COIN_DURATION_SECONDS` | `1800` | Durée initiale d'un coin. |
 | `DEFAULT_PULSES_PER_COIN` | `1` | Impulsions nécessaires par coin. |
 | `DEFAULT_PULSE_VALUE_MILLIMES` | `1000` | Valeur financière d'une impulsion. |
@@ -850,9 +932,8 @@ répertoriées ci-dessous :
 | `TIMEZONE` | `CET-1` | Fuseau tunisien utilisé pour les rapports. |
 | `NTP_SERVER_1` | `pool.ntp.org` | Serveur NTP principal. |
 | `NTP_SERVER_2` | `time.nist.gov` | Serveur NTP secondaire. |
-| `COIN_MIN_PULSE_MS` | `10` | Durée minimale d'une impulsion acceptée. |
-| `COIN_MAX_PULSE_MS` | `250` | Durée maximale d'une impulsion acceptée. |
-| `COIN_DEBOUNCE_MS` | `80` | Anti-rebond entre impulsions. |
+| `COIN_DEBOUNCE_MS` | `320` | Verrouillage anti-doublon entre fronts descendants acceptés, sans attente bloquante. |
+| `COIN_STARTUP_IGNORE_MS` | `5000` | Impulsions ignorées au démarrage ; armement ensuite uniquement au repos HIGH. |
 | `POST_REFRESH_INTERVAL_MS` | `5000` | Intervalle de sondage des postes. |
 | `POST_OFFLINE_TIMEOUT_MS` | `10000` | Délai avant état hors ligne. |
 | `POSTE_STATUS_TIMEOUT_MS` | `1200` | Timeout de lecture de `/status`. |

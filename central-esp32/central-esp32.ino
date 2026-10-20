@@ -33,6 +33,7 @@ void setup() {
     WifiProvisioning::beginAccessPoint(server);
     server.begin();
     Serial.println("Provisioning server started.");
+    Serial.println("Monnayeur inactif: terminer la configuration Wi-Fi pour démarrer le comptage.");
     return;
   }
 

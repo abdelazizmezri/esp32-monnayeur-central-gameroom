@@ -123,10 +123,14 @@ disparaître un poste non encore configuré de la liste d'attente.
 
 ### 4. Réception d'une pièce
 
-Le monnayeur est lu sur le GPIO 13 de la centrale, en entrée simple, sur chaque
-changement d'état. Le firmware détecte automatiquement la polarité au repos
-(contact NO ou NC), applique un anti-rebond de 80 ms et ne compte que les
-impulsions complètes. Le nombre d'impulsions requis par coin est configurable ;
+Le monnayeur est lu sur le GPIO 13 de la centrale, avec pull-up interne et
+comptage par interruption de chaque front descendant (entrée active LOW,
+réglage NO conseillé). Au démarrage du service, les impulsions sont ignorées
+pendant 5 secondes, puis l'entrée doit être revenue à HIGH avant son armement.
+Le log `Monnayeur prêt` confirme que les pièces peuvent être introduites.
+Un verrouillage anti-doublon de 320 ms sépare ensuite les fronts acceptés,
+sans délai bloquant ni validation de durée d'impulsion. Le nombre d'impulsions
+requis par coin est configurable ;
 chaque groupe complet augmente le solde central persistant. Chaque impulsion
 validée ajoute en parallèle sa valeur monétaire au journal LittleFS, sans attendre
 qu'un groupe de crédit soit complet.
@@ -151,6 +155,9 @@ Avec une impulsion valant 1 TND, `Impulsions par coin = 1` crée un coin après
 1 TND, tandis que `Impulsions par coin = 2` crée un coin après 2 TND. Pour un
 monnayeur multi-pièces, une base de 500 millimes permet par exemple de programmer
 1, 2, 4 et 10 impulsions pour les pièces de 0,5, 1, 2 et 5 TND.
+Ces trains de véritables impulsions multiples nécessitent un réglage de
+`COIN_DEBOUNCE_MS` inférieur à leur espacement. Le réglage actuel de 320 ms
+reproduit la protection du projet de référence, avec une impulsion utile par pièce.
 
 ### 5. Affectation du temps à un poste
 
@@ -286,7 +293,7 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 - un ESP32 pour la centrale ;
 - un ESP32 par poste de jeu ;
 - un monnayeur à impulsions dont la sortie `COIN` ne dépasse pas 3,3 V ;
-- une résistance pull-down de 4,7 kΩ pour stabiliser le GPIO 13 ;
+- une sortie collecteur ouvert compatible 3,3 V ou une interface de signal adaptée ;
 - un module relais adapté à chaque charge ;
 - un afficheur quatre chiffres TM1637 à quatre broches pour chaque poste ;
 - un réseau Wi-Fi local ;
@@ -294,7 +301,7 @@ connexion. Le fichier contient des données sensibles et doit être protégé.
 
 | Partie | Éléments spécifiques |
 |---|---|
-| Centrale | ESP32 4 Mo, monnayeur JY-133B ou équivalent, alimentation 12 V du monnayeur et résistance pull-down 4,7 kΩ. L'ESP32 est alimenté séparément par USB. |
+| Centrale | ESP32 4 Mo, monnayeur JY-133B ou équivalent, alimentation 12 V du monnayeur, sortie compatible 3,3 V ou interface adaptée et pull-up interne activé. L'ESP32 est alimenté séparément par USB. |
 | Chaque poste | ESP32 4 Mo, module relais compatible avec une commande logique 3,3 V, afficheur TM1637 quatre broches, alimentation adaptée au relais et à la machine. |
 | Réseau | Point d'accès ou routeur Wi-Fi local sans isolation entre clients, avec mDNS si l'accès par `pstm.local` est souhaité. |
 
@@ -316,6 +323,14 @@ modifier un raccordement.
 
 ### Raccordement de la centrale
 
+Le firmware utilise le pull-up interne vers 3V3 pour une sortie `COIN` à
+collecteur ouvert vers GND ou une interface compatible 0–3,3 V vérifiée.
+Retirer toute résistance de 2 kΩ ou 4,7 kΩ entre GPIO13 et GND, alimentations
+coupées. Une sortie à tension plus élevée nécessite une interface adaptée ;
+le pull-up interne ne convertit pas du 5 V ou du 12 V en 3,3 V. Voir le
+[diagnostic du monnayeur](central-esp32/README.md#les-coins-ne-sont-pas-détectés)
+avant de modifier le câblage.
+
 La centrale utilise le GPIO 13 pour le monnayeur. NVS et LittleFS utilisent la
 flash interne et n'ajoutent aucun câblage. Le schéma final est disponible ici :
 
@@ -330,7 +345,7 @@ réel de l'ESP32.
 | Alimentation `+12 V` | Fil rouge du monnayeur | Alimentation du monnayeur. |
 | Alimentation `GND` | Fil noir du monnayeur et `GND` de l'ESP32 | Masse commune. |
 | Fil blanc `COIN` du monnayeur | ESP32 `GPIO13` | Signal impulsionnel, après contrôle qu'il reste inférieur ou égal à 3,3 V. |
-| Résistance pull-down `4,7 kΩ` | Entre `GPIO13` et `GND` | Maintient un niveau bas stable au repos. |
+| Pull-up interne `INPUT_PULLUP` | GPIO13 vers 3V3, dans l'ESP32 | Activé par le firmware ; aucune résistance externe vers GND. |
 
 L'ESP32 est alimenté séparément par USB. Avant de relier le fil blanc à
 `GPIO13`, mesurer la sortie `COIN` et vérifier qu'elle ne reçoit jamais plus de
@@ -681,7 +696,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/WebAssets.h` / `central-esp32/WebAssets.cpp` | Expose les images WebP HD intégrées au firmware. |
 | `central-esp32/*Asset.inc` | Contient les données binaires `PROGMEM` générées depuis les WebP embarqués. |
 | `central-esp32/ui-assets/` | Regroupe le logo maître et les variantes WebP HD documentées. |
-| `central-esp32/docs/schema-cablage-central-final.svg` | Schéma minimal du monnayeur vers GPIO13 avec résistance pull-down 4,7 kΩ. |
+| `central-esp32/docs/schema-cablage-central-final.svg` | Schéma du monnayeur vers GPIO13 avec pull-up interne sans résistance externe vers GND. |
 | `central-esp32/partitions.csv` | Réserve deux partitions OTA de 1,625 Mio et 640 Kio de LittleFS. |
 | `central-esp32/README.md` | Manuel détaillé du firmware central, de son interface et de son API. |
 

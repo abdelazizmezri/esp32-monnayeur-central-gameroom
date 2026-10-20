@@ -34,12 +34,16 @@ inline constexpr char TIMEZONE[] = "CET-1";
 inline constexpr char NTP_SERVER_1[] = "pool.ntp.org";
 inline constexpr char NTP_SERVER_2[] = "time.nist.gov";
 
-// Le JY-133B fournit une sortie impulsionnelle NO ou NC. Le GPIO doit recevoir
-// un signal conditionné en 3,3 V (optocoupleur recommandé). On valide une
-// impulsion complète pour ne pas créditer les fronts parasites.
-inline constexpr unsigned long COIN_MIN_PULSE_MS = 10;
-inline constexpr unsigned long COIN_MAX_PULSE_MS = 250;
-inline constexpr unsigned long COIN_DEBOUNCE_MS = 80;
+// Entrée active LOW en 3,3 V avec pull-up interne ; réglage NO conseillé.
+// Verrouillage anti-doublon équivalent au projet de référence : timer = 20 tours
+// de boucle x 4 chiffres x 4 ms d'affichage, soit environ 320 ms après une pièce.
+// Les fronts suivants sont ignorés pendant cet intervalle, sans attente bloquante.
+inline constexpr unsigned long COIN_DEBOUNCE_MS = 320;
+// Le projet de référence attend 5 s pendant son animation de démarrage.
+// Ignorer les transitions d'initialisation avant d'armer l'entrée au repos HIGH.
+inline constexpr unsigned long COIN_STARTUP_IGNORE_MS = 5000;
+
+// Délais réseau des postes, indépendants du comptage des impulsions.
 inline constexpr unsigned long POST_REFRESH_INTERVAL_MS = 5000;
 inline constexpr unsigned long POST_OFFLINE_TIMEOUT_MS = 10000;
 inline constexpr unsigned long POSTE_STATUS_TIMEOUT_MS = 1200;
