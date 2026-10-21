@@ -16,7 +16,6 @@ namespace {
 struct Pulse {
   uint8_t currency;
   uint32_t value, rate;
-  int divisor;
   uint32_t epoch;
 };
 constexpr uint16_t QUEUE_SIZE = 128;
@@ -29,8 +28,7 @@ uint32_t gLastFailureLog = 0;
 uint64_t gInFlightSequence = 0;
 uint16_t gInFlightEnd = 0;
 bool sameProfile(const Pulse& a, const Pulse& b) {
-  return a.currency == b.currency && a.value == b.value && a.rate == b.rate &&
-         a.divisor == b.divisor && a.epoch == b.epoch;
+  return a.currency == b.currency && a.value == b.value && a.rate == b.rate && a.epoch == b.epoch;
 }
 }
 
@@ -53,7 +51,7 @@ static void IRAM_ATTR coinInterruptHandler() {
   // Seulement une capture RAM : aucune allocation, NVS ni LittleFS dans l'ISR.
   Pulse& item = gQueue[gWrite];
   item.currency = gActive.currency; item.value = gActive.value;
-  item.rate = gActive.rate; item.divisor = gActive.divisor;
+  item.rate = gActive.rate;
   item.epoch = gEpoch ? gEpoch + (uint32_t)(now-gEpochMillis)/1000 : 0;
   gWrite = next;
   gCoinState->pulseCount = gCoinState->pulseCount + 1;
@@ -82,7 +80,7 @@ namespace CoinService {
     LogService::info(state, "Monnayeur en stabilisation: GPIO" + String(AppConfig::COIN_PIN) +
                      ", niveau initial=" + String(initialLevel == HIGH ? "HIGH" : "LOW") +
                      ", impulsions ignorées pendant " + String(AppConfig::COIN_STARTUP_IGNORE_MS) +
-                     " ms, solde initial=" + String(state.availableCoins));
+                     " ms, solde initial=" + String(state.availablePieces));
   }
 
   static bool armIfReady(AppState& state) {
@@ -112,14 +110,14 @@ namespace CoinService {
                      ", rappel=pull-up interne, détection=front descendant" +
                      ", repos=HIGH" +
                      ", anti-doublon=" + String(AppConfig::COIN_DEBOUNCE_MS) +
-                     " ms, impulsions/coin=" + String(state.pulsesPerCoin));
+                     " ms, 1 impulsion = 1 pièce disponible");
     return true;
   }
 
   void publishConfiguration(const AppState& state) {
     noInterrupts();
     gActive.currency = state.coinCurrency; gActive.value = state.pulseValueMinor;
-    gActive.rate = state.dzdToTndRateMicros; gActive.divisor = state.pulsesPerCoin;
+    gActive.rate = state.dzdToTndRateMicros;
     interrupts();
   }
 
@@ -162,7 +160,7 @@ namespace CoinService {
       }
       gInFlightSequence = state.lastRevenueSequence+1; gInFlightEnd = next;
       if (!RevenueService::recordPulses(state,count,profile.currency,profile.value,
-                                       profile.rate,profile.divisor,profile.epoch)) {
+                                       profile.rate,profile.epoch)) {
         if (millis()-gLastFailureLog >= 5000) {
           LogService::error(state,state.revenueStorageError); gLastFailureLog = millis();
         }
@@ -174,7 +172,7 @@ namespace CoinService {
       LogService::info(state,"Impulsions monnayeur validées: +" + String(count) +
         ", recette +" + RevenueService::formatMinor((uint64_t)count*profile.value,
           profile.currency == Money::DZD ? 2 : 3) + " " + Money::code(profile.currency) +
-        ", solde=" + String(state.availableCoins));
+        ", solde=" + String(state.availablePieces));
       if (state.revenueTransactionPending) return;
     }
   }

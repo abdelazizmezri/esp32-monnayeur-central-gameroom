@@ -19,11 +19,11 @@ namespace AppConfig {
   inline constexpr int COIN_PIN = 13;
 
   inline constexpr int DEFAULT_COIN_DURATION_SECONDS = 1800;
-  inline constexpr int DEFAULT_PULSES_PER_COIN = 1;
+  inline constexpr int DEFAULT_PIECES_REQUIRED = 1;
   // Valeur monétaire d'une impulsion validée, en millimes tunisiens.
   // 1000 millimes = 1 TND.
   inline constexpr int DEFAULT_PULSE_VALUE_MILLIMES = 1000;
-  inline constexpr int DEFAULT_AVAILABLE_COINS = 0;
+  inline constexpr int DEFAULT_AVAILABLE_PIECES = 0;
 
   // Journal financier binaire compact dans la partition LittleFS.
   inline constexpr char REVENUE_FILE[] = "/revenue.bin";

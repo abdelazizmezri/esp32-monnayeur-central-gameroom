@@ -14,8 +14,8 @@ namespace PostService {
                           bool recoveryPending, long recoveryRemaining,
                           String& error);
   bool configurePendingPost(AppState& state, const String& chipId,
-                            const String& name, String& error);
-  bool updatePost(AppState& state, const String& id, const String& name, String& error);
+                            const String& name, int piecesRequired, String& error);
+  bool updatePost(AppState& state, const String& id, const String& name, int piecesRequired, String& error);
   bool deletePost(AppState& state, const String& id, String& error);
 
   bool assignCoins(AppState& state, const String& postId, int coins, String& error);

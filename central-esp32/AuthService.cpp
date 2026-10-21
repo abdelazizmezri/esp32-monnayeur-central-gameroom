@@ -177,6 +177,8 @@ namespace AuthService {
   }
 
   void begin(AppState& state) {
+    // Une reprise d’import ou une NVS illisible ne doit pas créer/écraser des comptes.
+    if (!state.creditStorageReady) return;
     if (adminCount(state) == 0) {
       UserAccount* existingAdmin = findUser(state, AppConfig::DEFAULT_ADMIN_USERNAME);
       if (existingAdmin) {
@@ -311,6 +313,13 @@ namespace AuthService {
 
   bool requireAdminAuth(WebServer& server, AppState& state) {
     if (hasAdminAccess(server, state)) {
+      // Une restauration partielle doit être rejouée avant toute autre écriture
+      // de configuration, y compris les comptes et le Wi-Fi.
+      if (!state.creditStorageReady && server.method() != HTTP_GET &&
+          server.uri() != "/assignment/resolve" && server.uri() != "/post/ping" && server.uri() != "/logs/clear") {
+        server.send(503, "application/json", "{\"error\":\"Stockage en attente ; résoudre l’affectation interrompue ou redémarrer avant de modifier la configuration.\"}");
+        return false;
+      }
       return true;
     }
 

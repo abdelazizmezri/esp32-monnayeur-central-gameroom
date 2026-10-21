@@ -140,44 +140,46 @@ réglage NO conseillé). Au démarrage du service, les impulsions sont ignorées
 pendant 5 secondes, puis l'entrée doit être revenue à HIGH avant son armement.
 Le log `Monnayeur prêt` confirme que les pièces peuvent être introduites.
 Un verrouillage anti-doublon de 320 ms sépare ensuite les fronts acceptés,
-sans délai bloquant ni validation de durée d'impulsion. Le nombre d'impulsions
-requis par coin est configurable ;
-chaque groupe complet augmente le solde central persistant. Chaque impulsion validée capture sa devise, sa valeur et son taux de change.
-La centrale prépare ensuite une transaction durable en NVS, ajoute la recette
-dans LittleFS, puis enregistre les crédits avec la même séquence. Une opération
-interrompue est reprise une seule fois au redémarrage.
+sans délai bloquant ni validation de durée d'impulsion. Chaque impulsion validée
+ajoute une pièce au solde central persistant et capture sa devise, sa valeur et
+son taux de change. La centrale prépare une transaction durable en NVS, ajoute
+la recette dans LittleFS, puis enregistre les crédits avec la même séquence.
+Une opération interrompue est reprise une seule fois au redémarrage.
 
-Valeurs par défaut :
+Chaque poste possède un **Nombre de pièces requis**, configurable à sa création
+et dans **Gestion des postes → Modifier**. Le réglage global d'impulsions par
+coin est supprimé. Les nouveaux postes coûtent 1 pièce par défaut.
 
-| Paramètre | Valeur |
+| Paramètre | Valeur initiale |
 |---|---:|
-| Impulsions par coin | 1 |
+| Pièces requises par nouveau poste | 1 |
 | Valeur d'une impulsion | 1 000 millimes (1 TND) |
-| Durée par coin | 1 800 s, soit 30 min |
-| Solde initial | 0 coin |
-
-La règle est donc :
+| Durée par attribution | 1 800 s, soit 30 min |
+| Solde initial | 0 pièce |
 
 ```text
 recette = impulsions validées × valeur d'une impulsion
-coins créés = floor((reliquat + impulsions validées) / impulsions par coin)
+pièces disponibles ajoutées = impulsions validées
 ```
 
-Avec une impulsion valant 1 TND, `Impulsions par coin = 1` crée un coin après
-1 TND, tandis que `Impulsions par coin = 2` crée un coin après 2 TND. Pour un
-monnayeur multi-pièces, une base de 500 millimes permet par exemple de programmer
-1, 2, 4 et 10 impulsions pour les pièces de 0,5, 1, 2 et 5 TND.
-Ces trains de véritables impulsions multiples nécessitent un réglage de
-`COIN_DEBOUNCE_MS` inférieur à leur espacement. Le réglage actuel de 320 ms
-reproduit la protection du projet de référence, avec une impulsion utile par pièce.
+Une pièce physique peut générer plusieurs impulsions selon la programmation du
+monnayeur. La valeur monétaire choisie reste celle d'une impulsion. Pour les
+trains multiples, adapter `COIN_DEBOUNCE_MS` à leur espacement mesuré ; le réglage
+actuel de 320 ms vise une impulsion utile par pièce physique.
 
 ### 5. Affectation du temps à un poste
 
-Lorsqu'un utilisateur affecte des coins, la centrale calcule :
+Chaque carte affiche un seul bouton adapté au tarif du poste : **+1**,
+**+4**, etc. Un clic consomme ce tarif et ajoute une seule durée :
 
 ```text
-durée envoyée = coins affectés × durée d'un coin
+pièces débitées = nombre de pièces requis du poste
+durée envoyée = durée par attribution
 ```
+
+Le coût est calculé côté serveur ; les affectations impossibles sont refusées.
+Changer un tarif ne change ni le solde ni le temps en cours. Voir la
+[tarification par poste, la migration et les sauvegardes V4](docs/tarification-par-poste.md).
 
 Elle envoie ensuite au poste :
 
@@ -185,7 +187,7 @@ Elle envoie ensuite au poste :
 - `ADD_TIME` s'il est déjà actif ;
 - `STOP_SESSION` lors d'un arrêt manuel.
 
-Les coins ne sont débités qu'après une réponse HTTP réussie du poste. Sur le
+Les pièces ne sont débitées qu'après une réponse HTTP réussie du poste. Sur le
 poste, `START_SESSION` active le relais et fixe la date de fin ; `ADD_TIME`
 prolonge cette date. La tâche de contrôle coupe automatiquement le relais avec
 une granularité de 20 ms quand le temps arrive à zéro. Chaque poste affiche en
@@ -286,7 +288,7 @@ La centrale fournit une interface web responsive sur son IP et sur
 | Gérer les comptes, les logs et le token API | Oui | Non |
 
 Dans **Vue des postes**, le bouton **Masquer les cartes** / **Afficher les cartes**
-permet de replier collectivement les cinq indicateurs supérieurs (coins, durée,
+permet de replier collectivement les cinq indicateurs supérieurs (pièces, durée,
 postes actifs, postes hors ligne et reprises). Le choix est mémorisé dans le
 navigateur et ne suspend pas l'actualisation des données masquées.
 
@@ -295,7 +297,7 @@ Il doit être modifié immédiatement. Les mots de passe sont salés et hachés 
 SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
 La page **Configuration** permet aussi d'exporter et de restaurer une sauvegarde
-JSON complète : paramètres de coins, valeur de l'impulsion, solde, token API, utilisateurs avec leurs
+JSON V4 complète : tarifs par poste, valeur de l'impulsion, solde en pièces, token API, utilisateurs avec leurs
 identifiants chiffrés, postes configurés, réglages Wi-Fi/IP et préférence
 d'affichage des cartes d'indicateurs. Une restauration ferme les sessions web,
 applique cette préférence dans le navigateur courant et demande une nouvelle
@@ -658,7 +660,7 @@ Remplacer `PORT_CENTRALE` et `PORT_POSTE` par les valeurs retournées par
 | Appareil | Namespace NVS | Données conservées |
 |---|---|---|
 | Centrale | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
-| Centrale | `appcfg` | Durée, impulsions par coin, valeur en millimes, solde et reliquat. |
+| Centrale | `appcfg` | Paramètres V4, solde en pièces, tarifs des postes, journaux de restauration et de débit. |
 | Centrale | `auth` | Comptes, hashes salés et token API. |
 | Centrale | `posts` | Identité et dernière IP des postes configurés. |
 | Centrale | `revenue` | Marqueur d'initialisation de LittleFS ; aucune recette n'est stockée en NVS. |
@@ -690,7 +692,7 @@ centrale pour une relance ou une annulation explicite.
 | `central-esp32/AuthService.h` | Déclare l'API interne d'authentification et de gestion des utilisateurs. |
 | `central-esp32/AuthService.cpp` | Gère les comptes, rôles, hashes de mots de passe, cookies de session et tokens Bearer. |
 | `central-esp32/CoinService.h` | Déclare le service de lecture du monnayeur. |
-| `central-esp32/CoinService.cpp` | Traite l'interruption GPIO, l'anti-rebond et la conversion des impulsions en coins persistants. |
+| `central-esp32/CoinService.cpp` | Traite l'interruption GPIO, l'anti-rebond et la crédit des impulsions en pièces persistantes. |
 | `central-esp32/RevenueService.h` / `RevenueService.cpp` | Synchronise l'heure, écrit le journal LittleFS et agrège les recettes. |
 | `central-esp32/LogService.h` | Déclare le service de journalisation. |
 | `central-esp32/LogService.cpp` | Écrit sur le port série et conserve les 100 derniers événements en RAM. |

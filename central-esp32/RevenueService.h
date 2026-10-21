@@ -49,7 +49,7 @@ namespace RevenueService {
   bool recoverPending(AppState& state);
   // true = opération préparée durablement en NVS (finalisation éventuellement en attente).
   bool recordPulses(AppState& state, int pulses, uint8_t currency,
-                    uint32_t value, uint32_t rate, int pulsesPerCoin, uint32_t epoch);
+                    uint32_t value, uint32_t rate, uint32_t epoch);
   String formatMinor(uint64_t minor, unsigned decimals);
 
   bool buildReport(AppState& state, const String& period,

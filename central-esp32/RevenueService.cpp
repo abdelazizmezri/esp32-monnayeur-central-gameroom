@@ -273,8 +273,11 @@ bool recoverPending(AppState& state) {
   if (status < 0) return fail(state,"Transaction NVS illisible ; reprise suspendue.");
   if (!gFsReady) return false;
   if (!status) {
+    if (state.legacyRevenueSequence)
+      return fail(state,"Transaction historique attendue mais absente ; reprise suspendue.");
     if (gLastSequence > state.lastRevenueSequence)
       return fail(state,"Journal et crédits incohérents ; reprise automatique suspendue.");
+    state.revenueStorageReady = true; state.revenueStorageError = "";
     return true;
   }
   if (e.sequence > state.lastRevenueSequence && e.sequence != state.lastRevenueSequence+1)
@@ -282,12 +285,25 @@ bool recoverPending(AppState& state) {
   if (!appendEntry(state,e)) return false;
   if (e.sequence > state.lastRevenueSequence) {
     AppState next = state;
-    next.availableCoins = e.balanceAfter; next.pendingPulses = e.pendingAfter;
-    next.pendingPulsesPerCoin = e.pulsesPerCoin; next.lastRevenueSequence = e.sequence;
+    if (e.balanceAfter > INT32_MAX || e.pendingAfter > INT32_MAX || e.pulsesPerCoin > INT32_MAX)
+      return fail(state,"Transaction hors limite ; crédits conservés.");
+    if (state.legacyRevenueSequence == e.sequence) {
+      // Le solde initial V4 contient déjà tous les anciens reliquats. Seules
+      // les impulsions de cette préparation sont encore à créditer, une fois.
+      if ((uint64_t)state.availablePieces + e.pulses > INT32_MAX)
+        return fail(state,"Migration de transaction hors limite.");
+      next.availablePieces = state.availablePieces + e.pulses;
+    } else {
+      if (e.pulsesPerCoin != 1 || e.pendingAfter != 0)
+        return fail(state,"Unité de transaction incompatible avec le solde V4.");
+      next.availablePieces = e.balanceAfter;
+    }
+    next.legacyRevenueSequence = 0;
+    next.lastRevenueSequence = e.sequence;
     if (!StorageService::saveCredits(next))
       return fail(state,"Échec NVS des crédits ; transaction conservée pour reprise.");
-    state.availableCoins = next.availableCoins; state.pendingPulses = next.pendingPulses;
-    state.pendingPulsesPerCoin = next.pendingPulsesPerCoin;
+    state.availablePieces = next.availablePieces;
+    state.legacyRevenueSequence = 0;
     state.lastRevenueSequence = next.lastRevenueSequence;
   }
   if (!StorageService::clearRevenueTransaction()) return fail(state,"Finalisation NVS en attente.");
@@ -324,13 +340,11 @@ void update(AppState& state) {
 }
 
 bool recordPulses(AppState& state, int pulses, uint8_t currency,
-                  uint32_t value, uint32_t rate, int pulsesPerCoin, uint32_t epoch) {
+                  uint32_t value, uint32_t rate, uint32_t epoch) {
   if (pulses <= 0 || !recoverPending(state) || !Money::validValue(currency,value) ||
-      pulsesPerCoin <= 0 || (currency == Money::DZD && !Money::validRate(rate))) return false;
-  int64_t grouped = (state.pendingPulsesPerCoin == pulsesPerCoin ? state.pendingPulses : 0);
-  grouped += pulses;
-  uint64_t credits = grouped / pulsesPerCoin;
-  if (credits + state.availableCoins > INT32_MAX || state.lastRevenueSequence == UINT64_MAX)
+      (currency == Money::DZD && !Money::validRate(rate))) return false;
+  uint64_t credits = pulses;
+  if (credits + state.availablePieces > INT32_MAX || state.lastRevenueSequence == UINT64_MAX)
     return fail(state,"Solde ou séquence hors limite.");
   Entry e;
   e.epoch = epoch; e.currency = currency; e.pulseValue = value;
@@ -338,8 +352,8 @@ bool recordPulses(AppState& state, int pulses, uint8_t currency,
   e.nativeAmount = (uint64_t)pulses*value;
   e.convertedMillimes = (uint64_t)pulses*Money::toMillimes(currency,value,rate);
   e.pulses = pulses; e.credits = credits; e.sequence = state.lastRevenueSequence+1;
-  e.balanceAfter = state.availableCoins+credits; e.pendingAfter = grouped % pulsesPerCoin;
-  e.pulsesPerCoin = pulsesPerCoin;
+  e.balanceAfter = state.availablePieces+credits; e.pendingAfter = 0;
+  e.pulsesPerCoin = 1; // Compatibilité binaire REV2, les nouveaux crédits sont des impulsions.
   if (!StorageService::stageRevenueTransaction(e))
     return fail(state,"Échec NVS de préparation ; impulsions encore en mémoire vive.");
   state.revenueTransactionPending = true;
@@ -491,7 +505,7 @@ String buildCsv(const RevenueReport& report) {
   csv += "Total général TND;"+formatMinor(report.totalMillimes,3)+"\r\n";
   csv += "Taux actuel (1 DZD en TND);"+(report.currentRateMicros ? formatMinor(report.currentRateMicros,6) : String("Non renseigné"))+"\r\n";
   csv += "Conversion;Taux historique enregistré par encaissement - arrondi au millime par impulsion\r\n";
-  csv += "Clé;Libellé;Encaissé TND;Encaissé DZD;Total général TND;Impulsions;Coins;Événements\r\n";
+  csv += "Clé;Libellé;Encaissé TND;Encaissé DZD;Total général TND;Impulsions;Crédits historiques / pièces;Événements\r\n";
   for (const auto& b : report.buckets) {
     csv += "\""+b.key+"\";\""+b.label+"\";"+formatMinor(b.tndMillimes,3)+";"+
            formatMinor(b.dzdCentimes,2)+";"+formatMinor(b.amountMillimes,3)+";"+

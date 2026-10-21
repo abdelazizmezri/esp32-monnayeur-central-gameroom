@@ -29,12 +29,12 @@ aucun taux fictif n'est choisi : le TND fonctionne, mais le DZD ne peut être
 activé avant saisie d'un taux positif. La page Recette affiche le taux actuel
 et un lien pour le modifier.
 
-Chaque impulsion capture sa devise, sa valeur, son taux et son diviseur de
-crédit dans une file RAM, avant son traitement. Les impulsions reçues avant un
-changement gardent donc leur ancien profil. Le reliquat garde aussi son ancien
-diviseur pour ces impulsions ; un reliquat incomplet est abandonné à la première
-impulsion portant un nouveau diviseur. Le taux de change sert uniquement à la
-comptabilité : il ne change ni les impulsions par crédit ni le temps de jeu.
+Chaque impulsion capture sa devise, sa valeur et son taux dans une file RAM
+avant traitement. Les impulsions reçues avant un changement gardent leur ancien
+profil monétaire. Chaque impulsion validée ajoute une pièce disponible ; chaque
+poste possède son propre nombre de pièces requis pour une durée de jeu. Le taux
+de change sert uniquement à la comptabilité et ne modifie ni le tarif du poste
+ni le temps attribué.
 
 ## Calcul et rapports
 
@@ -64,9 +64,9 @@ périodes calendaires. Les fichiers exportés indiquent aussi ces montants non d
 
 ## Persistance et reprise
 
-La NVS `appcfg` conserve deux blobs CRC : `configV3` (devise, valeur, taux, durée,
-impulsions par crédit) et `creditsV3` (solde, reliquat, diviseur du reliquat,
-dernière séquence). Chaque blob est écrit en une seule opération NVS puis relu.
+La NVS `appcfg` conserve les instantanés CRC `configV4` (devise, valeur, taux,
+durée), `creditsV4` (solde en pièces, dernière séquence) et `postsV4` (identités
+et tarifs individuels). Chaque instantané est écrit en une opération puis relu.
 
 Pour un encaissement :
 
@@ -74,7 +74,7 @@ Pour un encaissement :
    les montants, une séquence unique et l'état des crédits après application.
 2. Ajouter son enregistrement de 72 octets au journal LittleFS REV2, fermer et
    relire les octets écrits.
-3. Enregistrer atomiquement les crédits et la séquence dans `creditsV3`.
+3. Enregistrer atomiquement les crédits et la séquence dans `creditsV4`.
 4. Effacer la préparation NVS.
 
 Au démarrage, une préparation présente est rejouée : si sa séquence est déjà
@@ -102,19 +102,22 @@ une opération financière non finalisée. Le statut explique le problème.
 ## Migration et sauvegardes
 
 Les anciennes clés NVS sont lues avec leur type d'origine, puis migrées vers les
-instantanés V3. Les journaux REV1 sont convertis vers REV2 : tous leurs montants
+instantanés V4, avec migration du tarif et du solde décrite dans
+[Tarification par poste](tarification-par-poste.md). Les journaux REV1 sont convertis vers REV2 : tous leurs montants
 sont des TND, sans conversion ni application rétroactive d'un taux DZD.
 Ne pas effacer la flash ou formater LittleFS pour installer cette mise à jour.
 Prévoir de la place libre pour la copie de migration ; si elle échoue, le fichier
 original reste conservé. Le retour à l'ancien firmware ne lit pas les nouvelles
 données : garder une sauvegarde préalable avant une mise à jour de production.
 
-L'export de configuration devient `pstm-backup` version 3 et contient
-`coinCurrency`, `pulseValueMinor`, `dzdToTndRateMicros` et
-`pendingPulsesPerCoin`. Les sauvegardes V1 et V2 restent acceptées en TND.
+L'export de configuration est `pstm-backup` version 4 : `creditUnit: "pulse"`,
+`availablePieces`, `posts[].piecesRequired`, `coinCurrency`, `pulseValueMinor` et
+`dzdToTndRateMicros`. Les sauvegardes V1/V2 restent acceptées en TND ; V3 conserve
+sa devise et son taux. Leur solde et leurs postes sont migrés vers les unités V4.
 `pulseValueMillimes` reste un alias API en mode TND. La séquence financière est
-locale et n'est jamais restaurée depuis un fichier de configuration.
-Comme auparavant, le JSON de configuration ne contient pas le journal financier.
+locale et n'est jamais restaurée depuis un fichier de configuration. Le JSON
+ne contient pas le journal financier. Un journal NVS permet de terminer une
+restauration interrompue au redémarrage.
 
 Exemple de modification par l'API administrateur authentifiée :
 
@@ -122,13 +125,12 @@ Exemple de modification par l'API administrateur authentifiée :
 {
   "coinCurrency": "DZD",
   "pulseValueMinor": 10000,
-  "dzdToTndRateMicros": 20000,
-  "pulsesPerCoin": 1
+  "dzdToTndRateMicros": 20000
 }
 ```
 
 Cet exemple définit une impulsion de 100 DZD et un taux **fictif** de 0,020000.
-`availableCoins` est facultatif ; l'interface ne l'envoie que si l'opérateur
+`availablePieces` est facultatif ; l'interface ne l'envoie que si l'opérateur
 modifie effectivement le solde, pour éviter d'écraser des crédits reçus entretemps.
 
 `GET /revenue/data` conserve `totalMillimes` / `items[].amountMillimes` pour le
@@ -158,6 +160,6 @@ pendant les cinq secondes de démarrage restent ceux du projet existant.
 
 Sur une centrale réelle, vérifier le profil électrique et chaque valeur de
 pièce, puis couper et rétablir l'alimentation pendant des encaissements, avant
-et après modification du taux. Contrôler l'absence de doublons, le solde, le
-reliquat et les trois totaux après plusieurs redémarrages. Répéter autour d'une
+et après modification du taux. Contrôler l'absence de doublons, le solde, les
+tarifs des postes et les trois totaux après plusieurs redémarrages. Répéter autour d'une
 migration/compaction et avec le réseau/NTP indisponible.

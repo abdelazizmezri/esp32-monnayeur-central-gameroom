@@ -72,6 +72,7 @@ DEMO_POSTS = [
     {
         "chipId": "DEMO-A001",
         "id": "poste-demo-1",
+        "piecesRequired": 1,
         "name": "Poste Démo 1",
         "ip": "192.168.50.31",
         "status": "active",
@@ -83,6 +84,7 @@ DEMO_POSTS = [
     {
         "chipId": "DEMO-A002",
         "id": "poste-demo-2",
+        "piecesRequired": 4,
         "name": "Poste Démo 2",
         "ip": "192.168.50.32",
         "status": "idle",
@@ -94,6 +96,7 @@ DEMO_POSTS = [
     {
         "chipId": "DEMO-A003",
         "id": "poste-demo-3",
+        "piecesRequired": 1,
         "name": "Poste Démo 3",
         "ip": "192.168.50.33",
         "status": "offline",
@@ -105,6 +108,7 @@ DEMO_POSTS = [
     {
         "chipId": "DEMO-A004",
         "id": "poste-demo-4",
+        "piecesRequired": 2,
         "name": "Poste Démo 4",
         "ip": "192.168.50.34",
         "status": "recovery_pending",
@@ -140,15 +144,16 @@ def demo_posts(role: str) -> dict:
             if is_admin
             else []
         ),
-        "availableCoins": 18,
+        "availablePieces": 18,
         "coinDurationSeconds": 1800,
-        "pulsesPerCoin": 1,
         "pulseValueMillimes": 1000,
         "coinCurrency": "TND",
         "pulseValueMinor": 1000,
         "dzdToTndRateMicros": 20000,
-        "pendingPulsesPerCoin": 1,
-        "pendingPulses": 0,
+        "creditUnit": "pulse",
+        "assignmentsReady": True,
+        "assignmentRecoveryPending": False,
+        "creditStorageError": "",
         "accessRole": role,
         "currentUser": identity,
     }

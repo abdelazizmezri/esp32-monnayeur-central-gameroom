@@ -884,7 +884,7 @@ def build_technical_story() -> list[Flowable]:
     add_screenshot_page(
         story,
         "Regler les coins et creer la sauvegarde initiale",
-        "Dans Configuration, definir la duree par coin, le nombre d'impulsions par coin, la valeur monetaire et le solde. Enregistrer, effectuer une piece de test puis exporter une sauvegarde JSON protegee.",
+        "Dans Gestion des postes, definir le nombre de pieces requis a la creation ou via Modifier. Dans Configuration, definir la duree par attribution, la valeur monetaire et le solde en pieces. Enregistrer puis exporter une sauvegarde JSON V4 protegee.",
         "05-configuration.jpg",
         [
             ("Reglages metier", "Valider la duree, les impulsions et la valeur avec le client avant l'ouverture au public."),
@@ -1047,7 +1047,7 @@ def build_user_story() -> list[Flowable]:
                 ["Demarrer", "Connexion, roles, premiere securisation et navigation", "Administrateur et utilisateur simple"],
                 ["Exploiter", "Vue des postes, affectation de coins, prolongation, arret et reprise", "Administrateur et utilisateur simple"],
                 ["Controler", "Recette, graphique, tableau, CSV et PDF", "Administrateur"],
-                ["Configurer", "Duree, impulsions, valeur, solde, sauvegarde et restauration", "Administrateur"],
+                ["Configurer", "Duree, tarifs par poste, valeur, solde, sauvegarde V4 et restauration", "Administrateur"],
                 ["Administrer", "Postes, utilisateurs, mot de passe, token et journal", "Administrateur"],
                 ["Raccorder au LAN", "Wi-Fi de la centrale puis Wi-Fi de chaque poste", "Administrateur accompagne de l'installateur"],
                 ["Maintenir", "Ouverture/fermeture quotidienne, protection des donnees et depannage", "Responsable de site"],
@@ -1106,12 +1106,12 @@ def build_user_story() -> list[Flowable]:
             ["Etape", "Menu", "Action a terminer"],
             [
                 ["1", "Mot de passe / Token", "Changer immediatement le mot de passe admin par defaut"],
-                ["2", "Configuration", "Definir duree, impulsions par coin, valeur et solde initial"],
+                ["2", "Configuration", "Definir duree, valeur et solde ; regler le tarif dans Gestion des postes"],
                 ["3", "Gestion des postes", "Attendre chaque decouverte, donner un nom clair, utiliser Ping"],
                 ["4", "Utilisateurs", "Creer un compte nominatif par personne et choisir le bon role"],
                 ["5", "Mot de passe / Token", "Regenerer le token API seulement si une integration externe est prevue"],
                 ["6", "Configuration", "Exporter la sauvegarde JSON initiale et la stocker de facon protegee"],
-                ["7", "Vue des postes", "Tester +1, +2, arret, expiration, hors ligne et reprise"],
+                ["7", "Vue des postes", "Tester +N, arret, expiration, hors ligne et reprise"],
                 ["8", "Recette + Journal", "Tester une piece reelle, les periodes, CSV/PDF et les messages"],
             ],
             [2.0 * cm, 7.0 * cm, 17.1 * cm],
@@ -1130,7 +1130,7 @@ def build_user_story() -> list[Flowable]:
         "02-tableau-de-bord-admin.jpg",
         [
             ("Indicateurs", "Solde, duree par coin, actifs, hors ligne et reprises. Le bouton Masquer les cartes replie ces cinq indicateurs."),
-            ("Sessions", "+1 et +2 affectent des coins. Arreter coupe le relais et perd le temps restant apres confirmation."),
+            ("Sessions", "Le bouton +N applique le tarif du poste et ajoute une seule duree. Arreter coupe le relais et perd le temps restant apres confirmation."),
             ("Etats", "Vert : actif. Gris : inactif. Rouge : hors ligne. Jaune : reprise en attente."),
         ],
         "4 - Tableau de bord",
@@ -1143,7 +1143,7 @@ def build_user_story() -> list[Flowable]:
         "03-tableau-de-bord-utilisateur.jpg",
         [
             ("Menu limite", "Seule la Vue des postes est disponible."),
-            ("Temps", "Sur un poste inactif, +1 demarre une session. Sur un poste actif, +1 ou +2 ajoute du temps."),
+            ("Temps", "Le bouton +N demarre une session ou ajoute une duree sur un poste actif, en debitant son tarif."),
             ("Reprise", "Reprendre relance le temps sauvegarde. Annuler l'efface definitivement apres confirmation."),
         ],
         "5 - Tableau de bord",
@@ -1154,8 +1154,8 @@ def build_user_story() -> list[Flowable]:
         make_table(
             ["Situation", "Action", "Effet"],
             [
-                ["Poste inactif", "Cliquer +1 ou +2", "La centrale envoie START_SESSION et debite les coins apres reponse du poste"],
-                ["Poste actif", "Cliquer +1 ou +2", "La centrale envoie ADD_TIME et prolonge l'heure de fin"],
+                ["Poste inactif", "Cliquer +N pieces", "La centrale envoie START_SESSION et debite les coins apres reponse du poste"],
+                ["Poste actif", "Cliquer +N pieces", "La centrale envoie ADD_TIME et prolonge l'heure de fin"],
                 ["Arret demande", "Cliquer Arreter la session puis confirmer", "Le relais passe OFF et le temps restant est perdu"],
                 ["Poste hors ligne", "Verifier alimentation et reseau", "Aucune nouvelle session ne peut etre envoyee"],
                 ["Reprise en attente", "Choisir Reprendre", "Le relais redemarre avec le temps sauvegarde"],
@@ -1186,7 +1186,7 @@ def build_user_story() -> list[Flowable]:
     add_screenshot_page(
         story,
         "Modifier la configuration et gerer les sauvegardes",
-        "Cette page regroupe la duree par coin, les impulsions par coin, la valeur monetaire et le solde. Elle permet aussi l'export et la restauration de la configuration complete.",
+        "Cette page regroupe la duree par attribution, la valeur monetaire et le solde en pieces. Le nombre de pieces requis se regle par poste dans Gestion des postes. Elle permet aussi l'export et la restauration de la configuration complete.",
         "05-configuration.jpg",
         [
             ("Reglages", "Modifier une valeur, puis cliquer Enregistrer les modifications."),
@@ -1338,8 +1338,8 @@ def build_user_story() -> list[Flowable]:
     story.extend(page_title("Fiche reflexe pour l'operateur", "18 - Resume"))
     daily = [
         ["Ouvrir", "pstm.local, se connecter, verifier solde et postes hors ligne"],
-        ["Demarrer", "Sur le poste choisi, cliquer +1 ou +2"],
-        ["Prolonger", "Sur un poste actif, cliquer +1 ou +2"],
+        ["Demarrer", "Sur le poste choisi, cliquer sur le bouton +N"],
+        ["Prolonger", "Sur un poste actif, cliquer sur le bouton +N"],
         ["Arreter", "Cliquer Arreter la session et confirmer la perte du temps restant"],
         ["Coupure", "Choisir Reprendre ou Annuler uniquement pour le poste concerne"],
         ["Fin de service", "Verifier les alertes, exporter la recette si prevu et se deconnecter"],
@@ -1359,7 +1359,7 @@ def build_user_story() -> list[Flowable]:
     handover = [
         ["Acces", "URL/IP locale documentee ; mot de passe admin par defaut remplace", "OK / NOK"],
         ["Roles", "Comptes nominatifs crees ; utilisateur simple teste sans menu admin", "OK / NOK"],
-        ["Postes", "Noms conformes au plan de salle ; Ping, +1, +2, arret et expiration testes", "OK / NOK"],
+        ["Postes", "Noms conformes au plan de salle ; Ping, +N, arret et expiration testes", "OK / NOK"],
         ["Reprise", "Reprendre et Annuler expliques sur une coupure de demonstration", "OK / NOK"],
         ["Recette", "Jour/semaine/mois et exports CSV/PDF expliques", "OK / NOK"],
         ["Sauvegarde", "Export JSON initial protege ; responsable et emplacement consignes", "OK / NOK"],

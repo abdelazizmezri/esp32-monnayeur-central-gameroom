@@ -19,7 +19,7 @@ compte, mot de passe, token ou historique provenant d'une centrale réelle.
 ## Prise en charge TND / DZD
 
 La nouvelle [notice multidevise](../docs/multidevise.md) décrit les pièces,
-le taux historique, le format REV2, la migration, les sauvegardes V3 et les tests
+le taux historique, le format REV2, la migration, les sauvegardes V4 et les tests
 de reprise après coupure. Le taux ne modifie pas les crédits ou la durée de jeu.
 Les anciens exemples en millimes de ce manuel décrivent le mode TND.
 
@@ -49,7 +49,7 @@ Les anciens exemples en millimes de ce manuel décrivent le mode TND.
 - configuration Wi-Fi par point d'accès et portail captif ;
 - accès local par adresse IP ou `http://pstm.local` ;
 - lecture du monnayeur sur le GPIO 13 ;
-- conversion configurable des impulsions en coins ;
+- une pièce disponible par impulsion et un tarif configurable pour chaque poste ;
 - devise active TND ou DZD, valeur d'impulsion configurable et taux manuel DZD vers TND ;
 - crédit disponible sauvegardé en mémoire NVS ;
 - journal monétaire binaire compact dans LittleFS ;
@@ -186,57 +186,41 @@ la détection sur front descendant, `repos=HIGH` et l'anti-doublon.
 Attendre ce second message avant d'introduire une pièce. Une interruption
 retardée est ignorée si la broche est déjà revenue à HIGH.
 Chaque lot d'impulsions comptées
-produit ensuite `Impulsions monnayeur validées`, avec les coins créés et le solde.
+produit ensuite `Impulsions monnayeur validées`, avec les pièces créditées et le solde.
 La recette, le stockage et les logs sont traités dans la boucle principale,
-jamais dans l'interruption. Le reliquat d'impulsions n'a pas de délai
-d'expiration. Le mode de configuration Wi-Fi ne démarre pas le comptage.
+jamais dans l'interruption. Chaque impulsion finalisée est persistée sans
+attendre d'autres impulsions. Le mode de configuration Wi-Fi ne démarre pas le comptage.
 
-Il faut distinguer trois notions :
+Il faut distinguer quatre notions :
 
-- une **impulsion** est le signal électrique validé et correspond à une valeur
-  monétaire configurée ;
-- un **coin** est un crédit de jeu créé après le nombre configuré d'impulsions ;
-- la **recette** compte l'argent encaissé à chaque impulsion, que le crédit soit
-  déjà complet ou non.
+- une **impulsion** est le signal électrique validé et correspond à une valeur monétaire ;
+- une **pièce disponible** est une unité de crédit ajoutée par une impulsion ;
+- le **tarif du poste** est son nombre de pièces requis pour une attribution ;
+- la **recette** compte uniquement l'argent des impulsions physiques validées.
 
 ```text
 recette ajoutée = impulsions validées × valeur d'une impulsion
-nouveaux coins = floor((reliquat + impulsions validées) / impulsions par coin)
-durée attribuée = nombre de coins x durée par coin
+pièces disponibles ajoutées = impulsions validées
+pièces débitées par clic = tarif du poste
+durée attribuée par clic = durée par attribution
 ```
 
-Exemple demandé : avec une impulsion valant `1 000` millimes :
+Un poste à 1 pièce affiche **+1** et un poste à 4 affiche **+4**.
+Chaque clic ajoute une seule durée de jeu, même lorsqu'il consomme 4 pièces.
+Le tarif se configure lors de l'ajout du poste puis dans sa liste de gestion.
+Il reste modifiable en cours de session sans toucher au temps déjà attribué.
+La durée commune reste dans **Configuration**, avec la devise, la valeur par
+impulsion et le taux de change. Il n'existe plus de conversion globale des coins.
 
-| Impulsions par coin | Encaissement nécessaire | Crédit créé |
-|---:|---:|---:|
-| 1 | 1,000 TND | 1 coin |
-| 2 | 2,000 TND | 1 coin |
+Les nouveaux postes coûtent 1 pièce ; la durée initiale est de 1 800 secondes et
+le solde de 0 pièce. Les tarifs et le solde sont persistants. Les anciens coins
+et reliquats sont migrés une seule fois, sans modifier la recette historique.
+Voir les [règles de migration, sauvegardes V4 et reprise après coupure](../docs/tarification-par-poste.md).
 
-Un monnayeur multi-pièces peut aussi être programmé avec une base de 500
-millimes : 500 millimes produit 1 impulsion, 1 TND en produit 2, 2 TND en
-produit 4 et 5 TND en produit 10. La centrale calcule alors correctement la
-recette de toutes ces pièces. La programmation physique du monnayeur doit rester
-cohérente avec la valeur d'impulsion choisie dans l'interface.
-Pour ces trains de véritables impulsions multiples, régler `COIN_DEBOUNCE_MS`
-en dessous de leur espacement mesuré. La valeur actuelle de 320 ms vise le
-monnayeur du projet de référence, avec une impulsion utile par pièce.
-
-Valeurs initiales :
-
-| Paramètre | Valeur |
-|---|---:|
-| Impulsions par coin | 1 |
-| Valeur d'une impulsion | 1 000 millimes (1 TND) |
-| Durée d'un coin | 1800 secondes (30 minutes) |
-| Coins disponibles | 0 |
-
-Le solde et le reliquat d'impulsions sont sauvegardés après chaque détection ou
-attribution. Une coupure entre deux impulsions ne fait donc pas perdre la
-progression vers le prochain coin. Lors d'une
-affectation, les coins ne sont retirés qu'après une réponse HTTP réussie du
-poste. Un changement de **Impulsions par coin** annule le reliquat incomplet à la première nouvelle impulsion
-pour éviter de le convertir rétroactivement avec une nouvelle règle. Les
-impulsions déjà encaissées restent dans la recette.
+Un monnayeur multi-pièces peut produire plusieurs impulsions par pièce physique.
+La valeur monétaire choisie représente une impulsion. Pour ces trains multiples,
+adapter `COIN_DEBOUNCE_MS` à l'espacement mesuré ; les 320 ms actuelles visent une
+impulsion utile par pièce physique.
 
 > Attention : les GPIO de l'ESP32 fonctionnent en 3,3 V. Ne jamais injecter
 > directement une tension supérieure. Mesurer la sortie réelle et confirmer le
@@ -434,7 +418,7 @@ résolution de l'écran.
 
 ### Pages accessibles à tous les comptes connectés
 
-- `/` : tableau de bord, état des postes, coins disponibles et commandes autorisées ;
+- `/` : tableau de bord, état des postes, pièces disponibles et commandes autorisées ;
 - `/login` : connexion ;
 - déconnexion depuis la barre supérieure.
 
@@ -446,7 +430,7 @@ actualisées en arrière-plan.
 
 ### Pages réservées aux administrateurs
 
-- `/config` : durée d'un coin, impulsions par coin, solde et sauvegarde/restauration complète ;
+- `/config` : durée par attribution, solde en pièces et sauvegarde/restauration V4 ;
 - `/recette` : recette du jour, de la semaine ou du mois et exports PDF/CSV ;
 - `/logs` : journal des événements ;
 - `/postes` : postes configurés et postes découverts ;
@@ -589,7 +573,7 @@ maintenance importante.
 
 1. Vérifier le crédit disponible en haut du tableau de bord.
 2. Repérer le poste voulu.
-3. Cliquer sur **+1 coin** ou **+2 coins**.
+3. Cliquer sur le bouton du poste, par exemple **+1** ou **+4** : une seule durée est ajoutée.
 4. Vérifier le passage à l'état `active`, le relais `ON` et le décompte local sur
    l'afficheur TM1637 du poste.
 
@@ -615,8 +599,8 @@ Après le redémarrage d'un poste qui était actif :
 
 Dans **Configuration** :
 
-- **Durée par coin** : nombre de minutes attribuées par coin ;
-- **Impulsions par coin** : impulsions électriques nécessaires pour un coin ;
+- **Durée par attribution** : nombre de minutes ajoutées par clic ;
+- le **Nombre de pièces requis** se règle dans **Gestion des postes**, à la création et dans **Modifier** ;
 - **Devise et valeur d'une impulsion** : valeurs TND existantes ou pièces DZD ;
 - **Taux de change** : 1 DZD = X TND, strictement positif, jusqu'à six décimales ;
 - **Crédit disponible** : correction administrative du solde.
@@ -635,10 +619,10 @@ Cliquer sur **Enregistrer** après modification.
 Dans **Configuration**, cliquer sur **Exporter JSON** pour télécharger une
 sauvegarde complète. Le fichier contient :
 
-- la durée par coin, les impulsions, leur valeur monétaire et le solde disponible ;
+- la durée par attribution, la valeur monétaire des impulsions et le solde en pièces ;
 - le token API ;
 - tous les utilisateurs, leurs rôles et leurs identifiants chiffrés ;
-- tous les postes configurés ;
+- tous les postes configurés et leurs tarifs individuels ;
 - le réseau Wi-Fi enregistré et la configuration IP.
 - la préférence d'affichage des cartes d'indicateurs (`ui.statsHidden`).
 
@@ -690,7 +674,8 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 
 | Méthode | Route | Description |
 |---|---|---|
-| POST | `/coins/simulate` | Ajoute un coin de test. |
+| POST | `/pieces/simulate` | Ajoute une pièce de test sans recette ; alias historique `/coins/simulate`. |
+| POST | `/assignment/resolve` | Confirme ou annule un débit interrompu après vérification administrateur. |
 | POST | `/config` | Modifie la configuration générale. |
 | GET | `/config/export` | Télécharge la sauvegarde JSON complète. |
 | POST | `/config/import` | Restaure directement une sauvegarde JSON complète. |
@@ -718,13 +703,13 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 
 ### Exemples
 
-Affecter deux coins :
+Affecter une durée au tarif enregistré du poste :
 
 ```bash
 curl -X POST http://pstm.local/assign \
   -H 'Authorization: Bearer VOTRE_TOKEN_API' \
   -H 'Content-Type: application/json' \
-  -d '{"post_id":"post1","coins":2}'
+  -d '{"post_id":"post1"}'
 ```
 
 Créer un utilisateur simple :
@@ -743,7 +728,7 @@ La classe `Preferences` enregistre les données dans plusieurs espaces NVS :
 | Namespace | Données |
 |---|---|
 | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
-| `appcfg` | Instantanés atomiques `configV3` (durée, impulsions, devise, valeur, taux) et `creditsV3` (solde, reliquat, diviseur, séquence), avec CRC. |
+| `appcfg` | Instantanés V4 `configV4`, `creditsV4` et `postsV4`, avec CRC ; journaux `restoreV4` et `assignmentV4`. |
 | `auth` | Token API et comptes avec hash des mots de passe. |
 | `posts` | Identité et adresse IP des postes configurés. |
 | `revenue` | Marqueur anti-formatage LittleFS et transaction financière `pending` permettant une reprise sans doublon. |
@@ -773,7 +758,7 @@ et un fichier de secours rendent la compaction récupérable après une coupure.
 | `AuthService.h` | Interface du service d'authentification et de gestion des comptes. |
 | `AuthService.cpp` | Hash des mots de passe, connexion, sessions, rôles et CRUD utilisateurs. |
 | `CoinService.h` | Interface du gestionnaire de monnayeur. |
-| `CoinService.cpp` | Interruption GPIO, anti-rebond et conversion en coins. |
+| `CoinService.cpp` | Interruption GPIO, anti-rebond et crédit des impulsions en pièces. |
 | `RevenueService.h` | Structures et interface des rapports de recette. |
 | `RevenueService.cpp` | NTP, LittleFS, journal binaire CRC16, agrégations jour/semaine/mois et CSV. |
 | `LogService.h` | Interface du journal d'événements. |
@@ -845,9 +830,9 @@ Le monnayeur peut reconnaître une pièce sans que l'ESP32 reçoive un signal
 
 1. Vérifier l'accès à l'interface normale après connexion Wi-Fi. Si le moniteur
    série affiche `Monnayeur inactif`, terminer la configuration Wi-Fi.
-2. Utiliser **+1 coin** : ce bouton vérifie le solde et son affichage, mais ne
-   teste ni le GPIO ni l'interruption. Pour l'essai physique, régler **Impulsions par
-   coin** sur `1` ; le reliquat précédent est abandonné à la première nouvelle impulsion.
+2. Utiliser **+1 pièce** : cette simulation vérifie le solde, sans tester le
+   GPIO ni ajouter de recette. Chaque impulsion physique validée doit ajouter
+   une pièce disponible, indépendamment du tarif des postes.
 3. Ouvrir le moniteur série à **115200 bauds**, redémarrer et vérifier
    `Monnayeur prêt: GPIO13, rappel=pull-up interne`. Sélectionner **NO** sur le
    monnayeur, introduire une pièce puis lire `Impulsions monnayeur validées`.
@@ -855,12 +840,12 @@ Le monnayeur peut reconnaître une pièce sans que l'ESP32 reçoive un signal
 | Observation | Interprétation et contrôle |
 |---|---|
 | Une impulsion apparaît juste après le démarrage, sans pièce | Vérifier la présence de la phase `Monnayeur en stabilisation`, puis attendre `Monnayeur prêt`. Les fronts des 5 premières secondes et les interruptions retardées avec ligne HIGH sont ignorés. |
-| Le solde initial vaut déjà 1, sans nouveau log d'impulsion | Le solde chargé de NVS est conservé. Pour un essai à zéro, enregistrer `Coins disponibles = 0` dans Configuration ; le cache du navigateur ne modifie pas la NVS. |
+| Le solde initial vaut déjà 1, sans nouveau log d'impulsion | Le solde chargé de NVS est conservé. Pour un essai à zéro, enregistrer `Pièces disponibles = 0` dans Configuration ; le cache du navigateur ne modifie pas la NVS. |
 | Aucun log après la pièce, alors que `Monnayeur prêt` apparaît | Aucun front descendant n'a été compté. Vérifier GPIO13, le fil de sortie et la masse ; mesurer le signal. |
 | Niveau initial LOW en mode NO, sans pièce | Vérifier qu'aucune résistance ne relie GPIO13 à GND et que la sortie peut remonter à HIGH au repos. |
-| Deux coins sont ajoutés pour une pièce | Vérifier au démarrage `anti-doublon=320 ms` et **Impulsions par coin**. Deux fronts espacés de moins de 320 ms ne doivent produire qu'une impulsion utile. |
+| Deux unités sont ajoutées pour une pièce physique | Vérifier au démarrage `anti-doublon=320 ms` et la programmation physique du monnayeur. Deux fronts espacés de moins de 320 ms ne doivent produire qu'une impulsion utile. |
 | Certaines impulsions d'un train rapide manquent | Le réglage par défaut vise une impulsion utile par pièce. Pour de vraies impulsions multiples programmées, adapter `COIN_DEBOUNCE_MS` à leur espacement après mesure. |
-| Impulsions validées, mais `coins +0` | Vérifier **Impulsions par coin** et le reliquat : toutes les impulsions ne créent pas forcément un crédit entier. |
+| Impulsions validées mais solde inchangé | Vérifier l’état NVS/LittleFS et les transactions en attente ; chaque impulsion finalisée ajoute une pièce. |
 
 **Résistance de 2 kΩ à la place de 4,7 kΩ :** vers GND, elle charge environ
 2,35 fois plus une sortie active à tension identique. Elle peut abaisser le
@@ -885,8 +870,8 @@ débrancher le fil `COIN` et retirer toute résistance externe vers GND. Aliment
 ensuite l'ESP32 par USB, attendre `Monnayeur prêt` avec le niveau initial HIGH,
 relier brièvement **GPIO13 à GND**
 (environ 50 à 100 ms), puis retirer le fil. Le passage à LOW doit
-produire `Impulsions monnayeur validées: +1` ; avec une impulsion par coin, le
-solde augmente de 1. Un contact maintenu LOW reste une seule impulsion. Cet essai
+produire `Impulsions monnayeur validées: +1` ; le
+solde augmente de 1 pièce. Un contact maintenu LOW reste une seule impulsion. Cet essai
 passe par le comptage réel et ajoute donc aussi une écriture de recette.
 
 ### La recette n'est pas enregistrée
@@ -894,7 +879,7 @@ passe par le comptage réel et ajoute donc aussi une écriture de recette.
 - faire un téléversement USB complet pour appliquer le nouveau `partitions.csv` ;
 - ouvrir **Recette** et lire l'état LittleFS/NTP affiché en haut de la page ;
 - vérifier que le Wi-Fi dispose d'un accès NTP pour obtenir les dates réelles ;
-- ne pas utiliser **+1 coin** comme test financier : la simulation est exclue de la recette.
+- ne pas utiliser **+1 pièce** comme test financier : la simulation est exclue de la recette.
 
 ### Connexion refusée après mise à jour
 

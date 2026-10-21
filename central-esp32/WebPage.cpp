@@ -12,14 +12,14 @@ namespace WebPage {
 Réinitialiser le Wi-Fi
 </button><button class="sidebar-action" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
 Déconnexion
-</button></div></aside><div class="workspace"><header class="topbar"><button class="mobile-menu" type="button" aria-label="Ouvrir le menu" aria-controls="appSidebar" aria-expanded="false" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="topbar-title"><div class="eyebrow">Console centrale</div><h1 id="pageHeading">Vue des postes</h1></div><div class="topbar-meta"><div class="live-pill"><span class="live-dot"></span>En ligne</div><div class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="currentClock">--:--:--</span></div></div></header><main class="content"><section class="view" id="view-home"><h2 class="page-title">Vue des postes</h2><div class="stats-toolbar"><button class="action secondary stats-toggle" id="statsToggle" type="button" aria-controls="stats" aria-expanded="true" onclick="toggleStats()">Masquer les indicateurs</button></div><div class="stats" id="stats"></div><div class="section-heading"><div><h2 class="posts-list-title">Liste des postes</h2><p class="section-kicker">État et contrôle des stations en temps réel</p></div></div><div id="posts" class="posts-grid"></div></section><section class="view" id="view-config"><h2 class="page-title">Configuration et import/export</h2><div class="page-grid"><div class="panel"><h2>Configuration générale</h2><div class="form-group"><label for="coinDurationMinutes">Durée par coin (minutes)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par coin (minutes)" /></div><div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" placeholder="Impulsions par coin" /></div><div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" placeholder="Crédit disponible" /></div><button class="action primary" onclick="saveConfig()">Enregistrer</button><div class="message" id="configMessage"></div></div><div class="panel"><h2>Export / Import</h2><div class="actions"><button class="action primary" onclick="exportConfig()">Exporter JSON</button><button class="action secondary" onclick="importConfig()">Importer JSON</button></div><div class="form-group" style="margin-top:12px;"><textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea></div><div class="message" id="importExportMessage"></div></div></div></section><section class="view" id="view-logs"><h2 class="page-title">Logs</h2><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Journal d'événements</h2><div class="actions"><button class="action primary" onclick="loadLogs()">Actualiser</button><button class="action danger" onclick="clearLogs()">Vider</button></div></div><div id="logs" class="logs"></div></div></section><section class="view" id="view-postes"><h2 class="page-title">Gestion des postes</h2><div class="page-grid"><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Postes configurés</h2><button class="action primary" onclick="load()">Actualiser</button></div><div id="managedPosts" class="pending-list"></div><div class="message" id="managedMessage"></div></div><div class="panel"><h2>Postes découverts</h2><div id="pendingPosts" class="pending-list"></div><div class="message" id="pendingMessage"></div></div></div></section><section class="view" id="view-users"><h2 class="page-title">Gestion des utilisateurs</h2><div class="page-grid"><div class="panel"><h2>Ajouter un utilisateur</h2><div class="form-group"><label for="createUsername">Nom d'utilisateur</label><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div><div class="form-group"><label for="createFirstName">Prénom</label><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div><div class="form-group"><label for="createLastName">Nom</label><input id="createLastName" maxlength="64" placeholder="Nom" /></div><div class="form-group"><label for="createPassword">Mot de passe</label><input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" /></div><div class="form-group"><label for="createRole">Rôle</label><select id="createRole"><option value="user">Utilisateur simple</option><option value="admin">Administrateur</option></select></div><button class="action primary" onclick="createUser()">Ajouter</button><div class="message" id="createUserMessage"></div></div><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Comptes existants</h2><button class="action primary" onclick="loadUsers()">Actualiser</button></div><div id="usersList" class="pending-list"></div><div class="message" id="usersMessage"></div></div></div></section><section class="view" id="view-security"><h2 class="page-title">Mot de passe et API token</h2><div class="page-grid"><div class="panel"><h2>Votre mot de passe administrateur</h2><div class="form-group"><input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" /></div><button class="action primary" onclick="changePassword()">Changer mot de passe</button><div class="message" id="authMessage"></div></div><div class="panel"><h2>Token API</h2><div id="authInfo" style="font-size:13px;color:#8fa3bd;"></div><button class="action warn" style="margin-top:14px;" onclick="regenerateToken()">Régénérer token API</button><div class="message" id="tokenMessage"></div></div></div></section></main></div></div><div class="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
+</button></div></aside><div class="workspace"><header class="topbar"><button class="mobile-menu" type="button" aria-label="Ouvrir le menu" aria-controls="appSidebar" aria-expanded="false" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="topbar-title"><div class="eyebrow">Console centrale</div><h1 id="pageHeading">Vue des postes</h1></div><div class="topbar-meta"><div class="live-pill"><span class="live-dot"></span>En ligne</div><div class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="currentClock">--:--:--</span></div></div></header><main class="content"><section class="view" id="view-home"><h2 class="page-title">Vue des postes</h2><div class="stats-toolbar"><button class="action secondary stats-toggle" id="statsToggle" type="button" aria-controls="stats" aria-expanded="true" onclick="toggleStats()">Masquer les indicateurs</button></div><div class="stats" id="stats"></div><div class="section-heading"><div><h2 class="posts-list-title">Liste des postes</h2><p class="section-kicker">État et contrôle des stations en temps réel</p></div></div><div id="posts" class="posts-grid"></div></section><section class="view" id="view-config"><h2 class="page-title">Configuration et import/export</h2><div class="page-grid"><div class="panel"><h2>Configuration générale</h2><div class="form-group"><label for="coinDurationMinutes">Durée par attribution (minutes)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="Durée par attribution (minutes)" /></div><div class="form-group"><label for="availablePieces">Pièces disponibles</label><input id="availablePieces" type="number" min="0" placeholder="Crédit disponible" /></div><button class="action primary" onclick="saveConfig()">Enregistrer</button><div class="message" id="configMessage"></div></div><div class="panel"><h2>Export / Import</h2><div class="actions"><button class="action primary" onclick="exportConfig()">Exporter JSON</button><button class="action secondary" onclick="importConfig()">Importer JSON</button></div><div class="form-group" style="margin-top:12px;"><textarea id="configJson" placeholder="Colle ici le JSON d'export/import"></textarea></div><div class="message" id="importExportMessage"></div></div></div></section><section class="view" id="view-logs"><h2 class="page-title">Logs</h2><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Journal d'événements</h2><div class="actions"><button class="action primary" onclick="loadLogs()">Actualiser</button><button class="action danger" onclick="clearLogs()">Vider</button></div></div><div id="logs" class="logs"></div></div></section><section class="view" id="view-postes"><h2 class="page-title">Gestion des postes</h2><div class="page-grid"><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Postes configurés</h2><button class="action primary" onclick="load()">Actualiser</button></div><div id="managedPosts" class="pending-list"></div><div class="message" id="managedMessage"></div></div><div class="panel"><h2>Postes découverts</h2><div id="pendingPosts" class="pending-list"></div><div class="message" id="pendingMessage"></div></div></div></section><section class="view" id="view-users"><h2 class="page-title">Gestion des utilisateurs</h2><div class="page-grid"><div class="panel"><h2>Ajouter un utilisateur</h2><div class="form-group"><label for="createUsername">Nom d'utilisateur</label><input id="createUsername" maxlength="32" placeholder="Nom d'utilisateur unique" /></div><div class="form-group"><label for="createFirstName">Prénom</label><input id="createFirstName" maxlength="64" placeholder="Prénom" /></div><div class="form-group"><label for="createLastName">Nom</label><input id="createLastName" maxlength="64" placeholder="Nom" /></div><div class="form-group"><label for="createPassword">Mot de passe</label><input id="createPassword" type="password" minlength="6" placeholder="6 caractères minimum" /></div><div class="form-group"><label for="createRole">Rôle</label><select id="createRole"><option value="user">Utilisateur simple</option><option value="admin">Administrateur</option></select></div><button class="action primary" onclick="createUser()">Ajouter</button><div class="message" id="createUserMessage"></div></div><div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><h2 style="margin:0;">Comptes existants</h2><button class="action primary" onclick="loadUsers()">Actualiser</button></div><div id="usersList" class="pending-list"></div><div class="message" id="usersMessage"></div></div></div></section><section class="view" id="view-security"><h2 class="page-title">Mot de passe et API token</h2><div class="page-grid"><div class="panel"><h2>Votre mot de passe administrateur</h2><div class="form-group"><input id="newPassword" type="password" minlength="6" placeholder="Nouveau mot de passe (6 caractères minimum)" /></div><button class="action primary" onclick="changePassword()">Changer mot de passe</button><div class="message" id="authMessage"></div></div><div class="panel"><h2>Token API</h2><div id="authInfo" style="font-size:13px;color:#8fa3bd;"></div><button class="action warn" style="margin-top:14px;" onclick="regenerateToken()">Régénérer token API</button><div class="message" id="tokenMessage"></div></div></div></section></main></div></div><div class="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
 
 <style>
 .playstation-mark img{width:27px;height:27px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.42));user-select:none;-webkit-user-drag:none}
-#view-postes>.page-grid{grid-template-columns:minmax(0,2.15fr) minmax(270px,.72fr);gap:16px}#view-postes .panel{padding:20px;overflow:hidden}#view-postes .panel:first-child{background:linear-gradient(145deg,rgba(8,25,45,.98),rgba(4,15,29,.98))}#view-postes .panel:last-child{background:radial-gradient(circle at 50% 15%,rgba(112,54,255,.1),transparent 34%),linear-gradient(160deg,#09172d,#050f20)}#view-postes .panel:first-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:14px;border-bottom:1px solid rgba(54,81,108,.55)}#view-postes .panel h2{font-size:17px}#managedPosts{gap:0}.managed-post{display:grid;grid-template-columns:minmax(175px,1fr) minmax(110px,.7fr) 92px auto auto;gap:14px;align-items:center;padding:15px 5px;border-bottom:1px solid rgba(47,73,99,.5);transition:background .16s ease}.managed-post:hover{background:rgba(8,51,76,.22)}.managed-main{display:flex;align-items:center;gap:11px;min-width:0}.managed-device{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;border:1px solid #205b9b;border-radius:9px;color:#64bdff;background:#092343}.managed-device img{width:27px;height:27px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.42));user-select:none;-webkit-user-drag:none}.managed-name{display:block;overflow:hidden;color:#f5f8ff;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.managed-id{margin-top:3px;color:#68809b;font-size:9px}.managed-fact{min-width:0}.managed-fact small{display:block;margin-bottom:4px;color:#6e85a0;font-size:9px;text-transform:uppercase;letter-spacing:.09em}.managed-fact span,.managed-fact strong{display:block;overflow:hidden;color:#d7e4f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.managed-fact strong{color:var(--cyan);font-family:"SFMono-Regular",Consolas,monospace;font-size:14px}.managed-actions{display:flex;gap:5px}.managed-actions .action{min-height:34px;padding:7px 9px;font-size:10px}.managed-post>.editor,.managed-lock{grid-column:1/-1}.managed-lock{margin:0;color:#71869e;font-size:10px}.managed-post .editor{margin:0;padding:13px;border:1px solid #28435e;border-radius:8px;background:#061427}#pendingPosts{display:grid;gap:12px;margin-top:15px}.discovered-card{position:relative;padding:15px;overflow:hidden;border:1px solid #6843c9;border-radius:12px;text-align:center;background:radial-gradient(circle at 50% 40%,rgba(31,105,197,.18),transparent 42%),linear-gradient(160deg,#0b1630,#0b0d24);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 28px rgba(0,0,0,.22)}.discovered-card:before{content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:12px;box-shadow:inset 0 0 24px rgba(119,60,255,.09)}.discovered-tag{display:inline-flex;padding:5px 8px;border-radius:6px;color:#cfbaff;background:rgba(101,50,210,.28);font-size:9px;font-weight:750}.discovered-logo{display:block;width:96px;height:73px;margin:16px auto 10px;object-fit:contain;filter:drop-shadow(0 8px 13px rgba(0,0,0,.45))}.discovered-ip{color:#f2f7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;font-weight:700}.discovered-id{margin:5px 0 14px;color:#6e84a0;font-size:9px}.discover-add{position:relative;width:100%;min-height:42px;border:0!important;color:#fff!important;background:linear-gradient(105deg,#176eff,#7c38f1)!important;box-shadow:0 10px 22px rgba(59,63,240,.25)}#view-postes .panel:last-child>.message{margin:12px 0 0;color:#8194ae;font-size:10px;text-align:center}#pendingPosts>.empty{min-height:155px;display:grid;place-items:center;text-align:center}@media(max-width:1180px){#view-postes>.page-grid{grid-template-columns:1fr}#pendingPosts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}@media(max-width:760px){.managed-post{grid-template-columns:minmax(0,1fr) auto}.managed-main{grid-column:1/-1}.managed-actions{grid-column:1/-1}.managed-actions .action{flex:1}.managed-fact strong{font-size:13px}}
+#view-postes>.page-grid{grid-template-columns:minmax(0,2.15fr) minmax(270px,.72fr);gap:16px}#view-postes .panel{padding:20px;overflow:hidden}#view-postes .panel:first-child{background:linear-gradient(145deg,rgba(8,25,45,.98),rgba(4,15,29,.98))}#view-postes .panel:last-child{background:radial-gradient(circle at 50% 15%,rgba(112,54,255,.1),transparent 34%),linear-gradient(160deg,#09172d,#050f20)}#view-postes .panel:first-child>div:first-child{align-items:center!important;margin-bottom:0!important;padding-bottom:14px;border-bottom:1px solid rgba(54,81,108,.55)}#view-postes .panel h2{font-size:17px}#managedPosts{gap:0}.managed-post{display:grid;grid-template-columns:minmax(140px,1fr) max-content max-content max-content;gap:14px;align-items:center;padding:15px 5px;border-bottom:1px solid rgba(47,73,99,.5);transition:background .16s ease}.managed-post:hover{background:rgba(8,51,76,.22)}.managed-main{display:flex;align-items:center;gap:11px;min-width:0}.managed-device{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;border:1px solid #205b9b;border-radius:9px;color:#64bdff;background:#092343}.managed-device img{width:27px;height:27px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.42));user-select:none;-webkit-user-drag:none}.managed-name{display:block;overflow:hidden;color:#f5f8ff;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.managed-id{margin-top:3px;color:#68809b;font-size:9px}.managed-fact{min-width:0}.managed-fact small{display:block;margin-bottom:4px;color:#6e85a0;font-size:9px;text-transform:uppercase;letter-spacing:.09em}.managed-fact span,.managed-fact strong{display:block;overflow:hidden;color:#d7e4f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.managed-fact strong{color:var(--cyan);font-family:"SFMono-Regular",Consolas,monospace;font-size:14px}.managed-status-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}.managed-actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}.managed-actions .action{flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:10px;white-space:nowrap}.managed-session span,.managed-session strong{overflow:visible;text-overflow:clip}.managed-session .managed-price{margin-top:4px;color:var(--cyan);font-size:11px}.managed-post>.editor,.managed-lock{grid-column:1/-1}.managed-lock{margin:0;color:#71869e;font-size:10px}.managed-post .editor{margin:0;padding:13px;border:1px solid #28435e;border-radius:8px;background:#061427}#pendingPosts{display:grid;gap:12px;margin-top:15px}.discovered-card{position:relative;padding:15px;overflow:hidden;border:1px solid #6843c9;border-radius:12px;text-align:center;background:radial-gradient(circle at 50% 40%,rgba(31,105,197,.18),transparent 42%),linear-gradient(160deg,#0b1630,#0b0d24);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 28px rgba(0,0,0,.22)}.discovered-card:before{content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:12px;box-shadow:inset 0 0 24px rgba(119,60,255,.09)}.discovered-tag{display:inline-flex;padding:5px 8px;border-radius:6px;color:#cfbaff;background:rgba(101,50,210,.28);font-size:9px;font-weight:750}.discovered-logo{display:block;width:96px;height:73px;margin:16px auto 10px;object-fit:contain;filter:drop-shadow(0 8px 13px rgba(0,0,0,.45))}.discovered-ip{color:#f2f7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;font-weight:700}.discovered-id{margin:5px 0 14px;color:#6e84a0;font-size:9px}.discover-add{position:relative;width:100%;min-height:42px;border:0!important;color:#fff!important;background:linear-gradient(105deg,#176eff,#7c38f1)!important;box-shadow:0 10px 22px rgba(59,63,240,.25)}#view-postes .panel:last-child>.message{margin:12px 0 0;color:#8194ae;font-size:10px;text-align:center}#pendingPosts>.empty{min-height:155px;display:grid;place-items:center;text-align:center}@media(max-width:1180px){#view-postes>.page-grid{grid-template-columns:1fr}#pendingPosts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 </style>
 <style>
-.managed-post{grid-template-columns:27% 20% 13% 17% 23%;column-gap:0}.managed-main,.managed-fact,.managed-post>.badge{margin-right:24px}.managed-post>.badge{justify-self:start}.managed-actions{justify-content:flex-end;flex-wrap:wrap}@media(max-width:1300px){.managed-post{grid-template-columns:32% 24% 18% 26%}.managed-actions{grid-column:1/-1;margin-top:2px}}@media(max-width:760px){.managed-post{grid-template-columns:1fr 1fr}.managed-main{grid-column:1/-1}.managed-post>.badge{grid-column:2;justify-self:end;margin-right:0}.managed-actions{grid-column:1/-1}.managed-main,.managed-fact{margin-right:16px}}
+@media(max-width:1300px){.managed-post{grid-template-columns:minmax(0,1fr) max-content max-content}.managed-status-actions{grid-column:1/-1}}@media(max-width:760px){.managed-post{grid-template-columns:minmax(0,1fr) max-content}.managed-main{grid-column:1/-1}.managed-status-actions{justify-content:flex-start;flex-wrap:wrap}.managed-fact strong{font-size:13px}}
 </style>
 <style>
 #view-logs .panel{padding:22px;background:radial-gradient(circle at 85% 8%,rgba(38,80,160,.1),transparent 30%),linear-gradient(145deg,#09172b,#050f20)}#view-logs .panel>div:first-child{align-items:flex-start!important;margin-bottom:20px!important}#view-logs .panel>div:first-child h2{font-size:20px}#view-logs .panel>div:first-child h2:after{content:"Suivi en temps réel de l’activité de la Centrale et des postes";display:block;margin-top:7px;color:#8295b3;font-size:11px;font-weight:400}#view-logs .actions .primary{border:1px solid #176ecd;color:#79bfff;background:#071b35;box-shadow:none}#view-logs .actions .danger{color:#ff707b;border-color:#d93448!important;background:#190d19}.logs{height:62vh;min-height:360px;padding:0;overflow:auto;border:1px solid #263d58;border-radius:10px;color:#dbe6f3;background:#030c1b;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px}.log-table-head,.log-row{display:grid;grid-template-columns:110px 160px minmax(0,1fr);align-items:center}.log-table-head{position:sticky;top:0;z-index:2;min-height:46px;padding:0 18px;border-bottom:1px solid #263d58;color:#aab9cc;background:#0b172b;font-size:11px;font-weight:750}.log-row{min-height:50px;padding:8px 18px;border-bottom:1px solid rgba(43,65,90,.42);background:#040e1e}.log-row:nth-child(odd){background:#091528}.log-time{color:#e8eef7;font-family:"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}.log-level{justify-self:start;padding:5px 8px;border:1px solid;border-radius:6px;font-size:9px;font-weight:850}.log-level.info{color:#64b3ff;border-color:#145ca8;background:#082850}.log-level.warn{color:#ffc333;border-color:#8e6106;background:#392707}.log-level.error{color:#ff646d;border-color:#a9212a;background:#3d1218}.log-message{min-width:0;color:#d9e3f0;line-height:1.35;overflow-wrap:anywhere}.log-empty{grid-column:1/-1;padding:40px;text-align:center;color:#71859e}#view-logs .panel:after{content:"●  Actualisation automatique toutes les 5 secondes";display:block;margin:14px 8px 0;color:#7f91a9;font-size:10px}#view-logs .panel:after{color:#8295b3}#view-logs .panel:after::first-letter{color:var(--cyan)}@media(max-width:680px){#view-logs .panel{padding:15px}.log-table-head,.log-row{grid-template-columns:68px 100px minmax(0,1fr);padding-left:11px;padding-right:11px}.log-table-head{font-size:9px}.log-row{font-size:10px}.log-level{padding:4px 6px;font-size:8px}#view-logs .panel>div:first-child h2:after{max-width:230px}}
@@ -74,6 +74,7 @@ Déconnexion
 <style>
 .config-toolbar{display:flex;justify-content:flex-end;margin-bottom:14px}.config-toolbar .action{display:inline-flex;align-items:center;gap:8px;color:#d9e8f8;border-color:#49627e!important;background:#071426;box-shadow:none}.config-toolbar svg{width:17px;height:17px}.config-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);align-items:stretch}.config-grid>.panel{min-height:585px;padding:25px;background:radial-gradient(circle at 88% 7%,rgba(57,82,182,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.panel-heading{display:flex;align-items:center;gap:13px;margin-bottom:24px}.panel-heading-icon{display:grid;place-items:center;flex:0 0 auto;width:46px;height:46px;border:1px solid #314bd8;border-radius:12px;color:#6381ff;background:rgba(36,53,154,.18);box-shadow:0 0 22px rgba(70,81,255,.1)}.panel-heading-icon.purple{color:#8b67ff;border-color:#6243cb;background:rgba(84,45,175,.17)}.panel-heading-icon svg{width:27px;height:27px}.panel-heading h2{margin:0 0 5px;font-size:19px}.panel-heading p{margin:0;color:#8ea1ba;font-size:11px;line-height:1.4}.config-grid .form-group{margin:0}.config-grid input,.config-grid select{height:49px;min-height:49px}.field-help{margin:7px 0 16px;color:#8295ae;font-size:10px}.field-divider{height:1px;margin:0 0 16px;background:rgba(43,67,92,.55)}.config-save,.config-import{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;margin-top:18px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 25px rgba(50,64,238,.22)}.config-save svg,.config-import svg{width:19px;height:19px}.backup-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0 23px;border-bottom:1px solid rgba(43,67,92,.6)}.backup-row strong,.import-label{color:#eef5ff;font-size:12px}.export-file{display:flex;align-items:center;gap:8px;min-width:134px;justify-content:center;color:#e8f0ff;border-color:#7156f2!important;background:#071426;box-shadow:none}.export-file svg{width:17px;height:17px}.import-label{display:block;margin:23px 0 12px}.file-drop{display:flex;min-height:172px;flex-direction:column;align-items:center;justify-content:center;padding:22px;border:1px dashed #4a557f;border-radius:10px;color:#9fa9c9;background:radial-gradient(circle at 50% 45%,rgba(76,62,182,.12),transparent 55%),rgba(5,16,34,.7);text-align:center;transition:border-color .18s ease,background .18s ease}.file-drop.dragging{border-color:#8b67ff;background:rgba(71,48,158,.18)}.file-drop svg{width:33px;height:33px;margin-bottom:12px;color:#a99af1}.file-drop p{margin:0 0 14px;font-size:11px}.file-picker{color:#e8efff;border-color:#7156f2!important;background:#08172c;box-shadow:none}.selected-file{display:flex;align-items:center;gap:8px;max-width:100%;margin-top:12px;color:#80d8ff;font-size:10px}.selected-file svg{width:15px;height:15px;margin:0}.selected-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.config-warning,.token-warning{display:flex;align-items:center;gap:11px;margin-top:14px;padding:13px 15px;border:1px solid #9b6706;border-radius:8px;color:#ffc34a;background:rgba(72,45,3,.4);font-size:10px;line-height:1.4}.config-warning svg,.token-warning svg{flex:0 0 auto;width:22px;height:22px}.config-import:disabled{opacity:.38}.security-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px}.security-layout>.panel{padding:25px;background:radial-gradient(circle at 86% 8%,rgba(61,81,181,.08),transparent 31%),linear-gradient(145deg,#09172b,#050f20)}.security-password,.security-token{min-height:430px}.secret-field{position:relative}.secret-field input{min-height:48px;padding-right:48px}.secret-toggle{position:absolute;right:7px;bottom:7px;display:grid;place-items:center;width:35px;height:35px;padding:0;border:0;color:#a5b8d0;background:transparent;cursor:pointer}.secret-toggle:hover{color:#fff}.secret-toggle svg{width:20px;height:20px}.password-strength{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:14px 0 18px}.strength-bars{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.strength-segment{height:5px;border-radius:4px;background:#26384d;transition:background .18s ease,box-shadow .18s ease}.strength-label{min-width:54px;color:#7f93ac;font-size:10px;text-align:right}.password-strength.strength-1{--strength-color:#ff5967}.password-strength.strength-2{--strength-color:#ff9c37}.password-strength.strength-3{--strength-color:#ffc43d}.password-strength.strength-4{--strength-color:#68d985}.password-strength.strength-5{--strength-color:#35e79a}.password-strength.strength-1 .strength-segment:nth-child(-n+1),.password-strength.strength-2 .strength-segment:nth-child(-n+2),.password-strength.strength-3 .strength-segment:nth-child(-n+3),.password-strength.strength-4 .strength-segment:nth-child(-n+4),.password-strength.strength-5 .strength-segment:nth-child(-n+5){background:var(--strength-color);box-shadow:0 0 8px color-mix(in srgb,var(--strength-color) 30%,transparent)}.password-strength[class*="strength-"] .strength-label{color:var(--strength-color)}.password-match{min-height:17px;margin:-6px 0 4px;color:#8295ae;font-size:10px}.password-match.ok{color:var(--green)}.password-match.error{color:var(--red)}.security-primary{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;margin-top:18px;color:#fff;background:linear-gradient(105deg,#176eff,#7c38f1);box-shadow:0 12px 25px rgba(50,64,238,.22)}.token-box{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 13px;border:1px solid #49617c;border-radius:8px;background:#071426}.token-box code{min-width:0;flex:1;overflow:hidden;color:#d6e3f4;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.token-copy{display:grid;place-items:center;flex:0 0 auto;width:35px;height:35px;padding:0;border:0;color:#d6e3f4;background:transparent;cursor:pointer}.token-copy:hover{color:#fff}.token-copy svg{width:21px;height:21px}.token-example{margin:12px 0 0;color:#9aacbf;font-size:10px}.token-example code{color:#9fc3ec}.token-regenerate{width:100%;min-height:48px;margin-top:26px;color:#ffc34a;border-color:#b27405!important;background:#071426;box-shadow:none}.security-status{grid-column:1/-1;min-height:134px}.security-status h2{margin-bottom:20px}.security-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.security-check{display:flex;align-items:center;gap:12px;color:#d7e2ef;font-size:11px}.security-check-icon{display:grid;place-items:center;flex:0 0 auto;width:31px;height:31px;border:1px solid #42d872;border-radius:50%;color:#54e883;background:rgba(36,138,70,.08)}.security-check-icon svg{width:18px;height:18px}.security-message{min-height:18px;margin-top:10px;font-size:10px;color:#8fa3bd}@media(max-width:1050px){.config-grid,.security-layout{grid-template-columns:1fr}.config-grid>.panel{min-height:auto}.security-status{grid-column:1}.security-password,.security-token{min-height:auto}}@media(max-width:680px){.config-grid>.panel,.security-layout>.panel{padding:18px}.backup-row{align-items:flex-start;flex-direction:column}.export-file{width:100%}.security-checks{grid-template-columns:1fr}.config-toolbar .action{width:100%;justify-content:center}}
 .config-grid>.panel{min-height:0}.config-grid>.panel>.message:empty{display:none}.stats-toolbar{text-align:right;margin-bottom:12px}
+.post-card .post-actions{align-items:center;flex-wrap:nowrap;gap:8px}.post-card .piece-assign{width:auto;min-width:44px;padding:8px 12px;margin-left:auto;flex:0 0 auto;white-space:nowrap;font-variant-numeric:tabular-nums}.discovered-card .form-group{text-align:left;width:100%;margin-top:12px}.discovered-card label{display:block;margin-bottom:6px}.managed-post .editor{grid-column:1/-1}
 #view-revenue{--revenue-accent:#38d9ff}.revenue-toolbar{display:grid;grid-template-columns:minmax(150px,210px) minmax(150px,210px) auto;gap:12px;align-items:end;margin-bottom:18px}.revenue-toolbar .form-group{margin:0}.revenue-toolbar input,.revenue-toolbar select{height:40px;min-height:40px}.revenue-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.revenue-actions .action{display:inline-flex;align-items:center;gap:7px}.revenue-status{display:flex;align-items:center;gap:9px;margin:0 0 15px;padding:11px 13px;border:1px solid #24435d;border-radius:9px;color:#9eb5ca;background:#07172a;font-size:11px}.revenue-status.ok{color:#70e3ad;border-color:#227652}.revenue-status.error{color:#ff8a94;border-color:#8c3040}.revenue-status.warn{color:#ffd276;border-color:#80611e}.revenue-dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}.revenue-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}.revenue-card{padding:17px;border:1px solid #27445d;border-radius:11px;background:linear-gradient(145deg,#091b31,#061223)}.revenue-card small{display:block;margin-bottom:9px;color:#8299b2;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.revenue-card strong{display:block;color:#edf7ff;font-family:"SFMono-Regular",Consolas,monospace;font-size:24px;font-variant-numeric:tabular-nums}.revenue-card.primary strong{color:var(--revenue-accent);text-shadow:0 0 16px rgba(56,217,255,.22)}.revenue-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.revenue-grid>.panel{min-width:0}.revenue-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.revenue-panel-head h2{margin:0}.revenue-range{color:#8ba0b8;font-size:11px}.revenue-chart{display:grid;gap:8px}.revenue-bar-row{display:grid;grid-template-columns:66px minmax(80px,1fr) 92px;gap:9px;align-items:center;min-height:27px;font-size:10px}.revenue-bar-label{overflow:hidden;color:#9fb2c7;text-overflow:ellipsis;white-space:nowrap}.revenue-bar-track{height:9px;overflow:hidden;border-radius:10px;background:#122b42}.revenue-bar-fill{height:100%;min-width:0;border-radius:10px;background:linear-gradient(90deg,#0b79ff,#31d8ff);box-shadow:0 0 12px rgba(24,183,255,.25)}.revenue-bar-value{color:#dff7ff;font-family:monospace;text-align:right}.revenue-table-wrap{overflow-x:auto;border:1px solid #223c54;border-radius:9px}.revenue-table{width:100%;min-width:650px;border-collapse:collapse;font-size:11px}.revenue-table th{position:sticky;top:0;padding:12px 10px;color:#8fa7bf;background:#0b1c30;text-align:left}.revenue-table td{padding:11px 10px;border-top:1px solid rgba(43,70,94,.55);color:#cbd8e5}.revenue-table td:nth-child(n+2),.revenue-table th:nth-child(n+2){text-align:right}.revenue-empty{padding:35px;color:#788da5;text-align:center}.revenue-note{margin:13px 0 0;color:#7f94aa;font-size:10px;line-height:1.5}@media(max-width:1450px){.revenue-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:680px){.revenue-toolbar{grid-template-columns:1fr}.revenue-actions{justify-content:stretch}.revenue-actions .action{flex:1;justify-content:center}.revenue-cards{grid-template-columns:1fr 1fr}.revenue-card strong{font-size:19px}.revenue-bar-row{grid-template-columns:58px minmax(60px,1fr) 78px}.revenue-grid>.panel{padding:15px}}
 </style>
 <script>
@@ -118,12 +119,13 @@ configView.innerHTML = `
 <div class="page-grid config-grid">
 <section class="panel config-general-panel">
 <div class="panel-heading"><span class="panel-heading-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34A1.7 1.7 0 0 0 14 20.91V21h-4v-.09A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14v-4h.09A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.09V3h4v.09A1.7 1.7 0 0 0 15.06 4.6a1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06A1.7 1.7 0 0 0 19.43 9 1.7 1.7 0 0 0 20.91 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg></span><div><h2>Configuration générale</h2><p>Paramètres de crédit et de durée des sessions.</p></div></div>
-<div class="form-group"><label for="coinDurationMinutes">Durée par coin (minute)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="30" /></div><p class="field-help">Durée de jeu en minutes accordée pour chaque coin inséré.</p><div class="field-divider"></div>
-<div class="form-group"><label for="pulsesPerCoin">Impulsions par coin</label><input id="pulsesPerCoin" type="number" min="1" step="1" placeholder="1" /></div><p class="field-help">Nombre d’impulsions nécessaires pour créditer un coin. Un changement abandonne le reliquat de l’ancien groupe à la première nouvelle impulsion. <span id="pulseProgress"></span></p><div class="field-divider"></div>
+<div class="form-group"><label for="coinDurationMinutes">Durée par attribution (minutes)</label><input id="coinDurationMinutes" type="number" min="1" step="1" placeholder="30" /></div><p class="field-help">Durée ajoutée par clic sur le bouton du poste. Le nombre de pièces requis se règle dans Gestion des postes.</p><div class="field-divider"></div>
+
 <div class="form-group"><label for="coinCurrency">Devise du monnayeur</label><select id="coinCurrency" onchange="updateCoinCurrency()"><option value="TND">Dinar tunisien (TND)</option><option value="DZD">Dinar algérien (DZD)</option></select></div>
 <div class="form-group"><label for="pulseValueMinor" id="pulseValueLabel">Valeur d’une impulsion (TND)</label><select id="pulseValueMinor"></select></div><p class="field-help">Choisissez la valeur réellement encaissée par impulsion selon la programmation physique du monnayeur. La devise n’est pas détectée automatiquement.</p>
 <div class="form-group"><label for="dzdToTndRate">Taux de change · 1 DZD = X TND</label><input id="dzdToTndRate" type="text" inputmode="decimal" maxlength="11" placeholder="À renseigner avant d’activer le DZD" /></div><p class="field-help">Jusqu’à 6 décimales, taux strictement positif. Le nouveau taux s’applique aux prochains encaissements ; les recettes historiques gardent leur conversion.</p><div class="field-divider"></div>
-<div class="form-group"><label for="availableCoins">Coins disponibles</label><input id="availableCoins" type="number" min="0" step="1" placeholder="0" /></div><p class="field-help">Nombre total de coins actuellement disponibles dans le système.</p>
+<div class="form-group"><label for="availablePieces">Pièces disponibles</label><input id="availablePieces" type="number" min="0" step="1" placeholder="0" /></div><p class="field-help">Solde partagé : une impulsion validée ajoute une pièce disponible. Chaque poste possède son propre tarif.</p>
+<div id="assignmentRecovery" hidden></div>
 <button class="action config-save" type="button" onclick="saveConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h12l2 2v16H5Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg>Enregistrer les modifications</button><div class="message" id="configMessage"></div>
 </section>
 <section class="panel config-backup-panel">
@@ -150,7 +152,7 @@ revenueView.innerHTML = `
 <div class="revenue-cards" id="revenueCards"></div>
 <div class="revenue-grid">
   <section class="panel"><div class="revenue-panel-head"><h2>Total général en TND</h2><span class="revenue-range" id="revenueChartRange"></span></div><div class="revenue-chart" id="revenueChart"></div></section>
-  <section class="panel"><div class="revenue-panel-head"><h2>Détail</h2><span class="revenue-range" id="revenueTableRange"></span></div><div class="revenue-table-wrap"><table class="revenue-table"><thead><tr><th>Période</th><th>Encaissé TND</th><th>Encaissé DZD</th><th>Total TND</th><th>Imp.</th><th>Coins</th></tr></thead><tbody id="revenueRows"></tbody></table><div class="revenue-empty" id="revenueEmpty" hidden>Aucune recette sur cette période.</div></div><p class="revenue-note">Le total général additionne les TND et les DZD convertis au taux historique de chaque encaissement (arrondi au millime par impulsion). La recette compte les impulsions physiques validées. Les crédits de simulation et les corrections manuelles du solde ne sont pas inclus.</p></section>
+  <section class="panel"><div class="revenue-panel-head"><h2>Détail</h2><span class="revenue-range" id="revenueTableRange"></span></div><div class="revenue-table-wrap"><table class="revenue-table"><thead><tr><th>Période</th><th>Encaissé TND</th><th>Encaissé DZD</th><th>Total TND</th><th>Imp.</th><th>Crédits / pièces</th></tr></thead><tbody id="revenueRows"></tbody></table><div class="revenue-empty" id="revenueEmpty" hidden>Aucune recette sur cette période.</div></div><p class="revenue-note">Le total général additionne les TND et les DZD convertis au taux historique de chaque encaissement (arrondi au millime par impulsion). La recette compte les impulsions physiques validées. Les crédits de simulation et les corrections manuelles du solde ne sont pas inclus.</p></section>
 </div>`;
 configView.parentElement.insertBefore(revenueView, configView);
 const securityView = document.getElementById('view-security');
@@ -193,7 +195,9 @@ let logsTimer = null;
 let currentRole = 'user';
 let currentUsername = '';
 let postNames = {};
-let lastLoadedConfig = { coinDurationMinutes:30, pulsesPerCoin:1, coinCurrency:"TND", pulseValueMinor:1000, dzdToTndRateMicros:0, availableCoins:0 };
+let assignmentBusy = false;
+let loadVersion = 0;
+let lastLoadedConfig = { coinDurationMinutes:30, coinCurrency:"TND", pulseValueMinor:1000, dzdToTndRateMicros:0, availablePieces:0 };
 let selectedConfigJson = '';
 let currentDisplayedApiToken = '';
 let currentRevenueReport = null;
@@ -373,8 +377,32 @@ button.classList.add('loading');
 try { await load(); }
 finally { button.disabled = false; button.classList.remove('loading'); }
 }
+function assignmentReason(post, data) {
+if (assignmentBusy) return 'Affectation en cours…';
+if (!data.assignmentsReady) return data.creditStorageError || 'Stockage ou encaissement en attente.';
+if (post.recoveryPending) return 'Reprendre ou annuler le temps sauvegardé avant une affectation.';
+if (!['idle','active'].includes(post.status)) return 'Poste indisponible.';
+if (!Number.isInteger(post.piecesRequired) || post.piecesRequired < 1) return 'Tarif invalide.';
+if (Number(data.availablePieces) < post.piecesRequired) return 'Solde de pièces insuffisant.';
+if (Number(post.remaining || 0) + Number(data.coinDurationSeconds) > 2147483647) return 'Durée maximale atteinte.';
+return '';
+}
+function pieceLabel(count) { return `${count} ${count === 1 ? 'pièce' : 'pièces'}`; }
+function readPiecesRequired(inputId) {
+const value = Number(document.getElementById(inputId).value);
+if (!Number.isInteger(value) || value < 1 || value > 2147483647) {
+throw new Error('Le nombre de pièces requis doit être un entier entre 1 et 2 147 483 647.');
+}
+return value;
+}
+function inputDraft(id, fallback) {
+const input = document.getElementById(id);
+return input && input.value !== input.defaultValue ? input.value : fallback;
+}
 async function load() {
+const version = ++loadVersion;
 const data = await api('/posts');
+if (version !== loadVersion) return;
 applyPermissions(data);
 const realPosts = data.posts || [];
 const posts = realPosts;
@@ -386,13 +414,13 @@ document.getElementById('stats').innerHTML = `
 <div class="stat-card coins">
 <div class="stat-top">
 <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v5c0 1.66 3.13 3 7 3s7-1.34 7-3V6M5 11v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5"/></svg></span>
-<span>Coins disponibles</span>
+<span>Pièces disponibles</span>
 </div>
-<div class="stat-value">${data.availableCoins}</div>
-${currentRole === 'admin' ? '<button class="action stat-action" title="Simuler un coin" aria-label="Simuler un coin" onclick="simulateCoin()">+1</button>' : ''}
+<div class="stat-value">${data.availablePieces}</div>
+${currentRole === 'admin' ? `<button class="action stat-action" title="Simuler une pièce (sans recette)" aria-label="Simuler une pièce (sans recette)" ${!data.assignmentsReady || Number(data.availablePieces) >= 2147483647 ? 'disabled' : ''} onclick="simulateCoin()">+1 pièce</button>` : ''}
 </div>
 <div class="stat-card duration">
-<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></span><span>Durée par coin (minutes)</span></div>
+<div class="stat-top"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></span><span>Durée par attribution (minutes)</span></div>
 <div class="stat-value">${formatTime(data.coinDurationSeconds)}</div>
 </div>
 <div class="stat-card online">
@@ -410,19 +438,21 @@ ${currentRole === 'admin' ? '<button class="action stat-action" title="Simuler u
 `;
 lastLoadedConfig = {
 coinDurationMinutes:Number(data.coinDurationSeconds || 1800) / 60,
-pulsesPerCoin:Number(data.pulsesPerCoin || 1),
 coinCurrency:data.coinCurrency || 'TND',
 pulseValueMinor:Number(data.pulseValueMinor || data.pulseValueMillimes || 1000),
 dzdToTndRateMicros:Number(data.dzdToTndRateMicros || 0),
-availableCoins:Number(data.availableCoins || 0)
+availablePieces:Number(data.availablePieces || 0)
 };
 document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
-document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
 document.getElementById('coinCurrency').value = lastLoadedConfig.coinCurrency;
 updateCoinCurrency(lastLoadedConfig.pulseValueMinor);
 document.getElementById('dzdToTndRate').value = lastLoadedConfig.dzdToTndRateMicros ? (lastLoadedConfig.dzdToTndRateMicros / 1000000).toFixed(6).replace('.', ',') : '';
-document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
-document.getElementById('pulseProgress').textContent = Number(data.pendingPulses || 0) > 0 ? `Reliquat mémorisé : ${data.pendingPulses}/${data.pendingPulsesPerCoin || data.pulsesPerCoin}.` : 'Aucun reliquat en attente.';
+document.getElementById('availablePieces').value = lastLoadedConfig.availablePieces;
+const recoveryPanel = document.getElementById('assignmentRecovery');
+if (recoveryPanel) {
+recoveryPanel.hidden = currentRole !== 'admin' || !data.assignmentRecoveryPending;
+recoveryPanel.innerHTML = data.assignmentRecoveryPending ? `<p class="field-help">${esc(data.creditStorageError)} Vérifiez si le temps a été ajouté au poste avant de choisir.</p><div class="actions"><button class="action warn" onclick="resolveAssignment(true)">Confirmer le débit</button><button class="action secondary" onclick="resolveAssignment(false)">Annuler le débit</button></div>` : '';
+}
 currentDisplayedApiToken = data.apiTokenMasked || '';
 const tokenDisplay = document.getElementById('apiTokenMasked');
 if (tokenDisplay) tokenDisplay.textContent = currentDisplayedApiToken || 'Token indisponible';
@@ -437,6 +467,8 @@ document.getElementById('pendingPosts').innerHTML = pendingPosts.length ? pendin
 <img class="discovered-logo" src="/assets/playstation-mark-v2.webp" alt="Logo PlayStation" />
 <div class="discovered-ip">${esc(p.ip)}</div>
 <div class="discovered-id">Identifiant ${esc(p.chipId)}</div>
+<div class="form-group"><label for="create-name-${esc(p.chipId)}">Nom du poste</label><input id="create-name-${esc(p.chipId)}" value="${esc(inputDraft(`create-name-${p.chipId}`, ''))}" maxlength="64" placeholder="Ex. PS1" required /></div>
+<div class="form-group"><label for="create-pieces-${esc(p.chipId)}">Nombre de pièces requis</label><input id="create-pieces-${esc(p.chipId)}" type="number" min="1" max="2147483647" step="1" value="${esc(inputDraft(`create-pieces-${p.chipId}`, 1))}" required /></div>
 <button class="action discover-add" onclick="configurePending('${esc(p.chipId)}')">＋ Ajouter ce poste</button>
 </article>
 `).join('') : '<div class="empty">✓<br>Aucun nouveau poste en attente.</div>';
@@ -449,6 +481,7 @@ document.getElementById('posts').innerHTML = posts.length ? posts.map(p => `
 <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
 </div>
 <div class="meta"><b>IP :</b> ${esc(p.ip)}</div>
+<div class="meta"><b>Tarif :</b> ${esc(pieceLabel(p.piecesRequired))} pour ${formatTime(data.coinDurationSeconds)} de jeu</div>
 ${p.recoveryPending ? `
 <div class="recovery-box">
 <div class="recovery-copy">
@@ -458,19 +491,12 @@ ${p.recoveryPending ? `
 <div class="recovery-time">${formatTime(p.recoveryRemaining)}</div>
 </div>
 <div class="relay off">Relais : OFF</div>
-<div class="actions">
-<button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
-<button class="action warn" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
-</div>
 ` : p.status === 'offline' ? `
 <div class="offline-state">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" aria-hidden="true"><path d="M12 2v10M6.34 5.34a8 8 0 1 0 11.32 0"/></svg>
 <span>Poste indisponible</span>
 </div>
 <div class="relay off">Relais : OFF</div>
-<div class="actions">
-<button class="action secondary" disabled>Arrêter</button>
-</div>
 ` : `
 <div class="session-row" style="grid-template-columns:minmax(0,1fr);">
 <div class="timer">
@@ -479,15 +505,15 @@ ${p.recoveryPending ? `
 </div>
 </div>
 <div class="relay ${p.relay ? 'on' : 'off'}">Relais : ${p.relay ? 'ON' : 'OFF'}</div>
-<div class="actions">
-<button class="action danger" title="Arrêter ce poste" ${(p.status !== 'active' && Number(p.remaining || 0) <= 0) ? 'disabled' : ''} onclick="stopPost('${esc(p.id)}')">Arrêter la session</button>
-<div class="coin-controls" style="margin-left:auto;">
-<div class="coin-label">Coins</div>
-<button class="action coin-action" title="Affecter 1 coin de plus pour ce poste" aria-label="Affecter 1 coin de plus pour ce poste" onclick="assign('${esc(p.id)}',1)">+1</button>
-<button class="action coin-action" title="Affecter 2 coins de plus pour ce poste" aria-label="Affecter 2 coins de plus pour ce poste" onclick="assign('${esc(p.id)}',2)">+2</button>
-</div>
-</div>
 `}
+<div class="actions post-actions">
+${p.recoveryPending ? `
+<button class="action primary" onclick="resumeRecovery('${esc(p.id)}')">Reprendre</button>
+<button class="action warn" onclick="cancelRecovery('${esc(p.id)}')">Annuler</button>
+` : `<button class="action danger" title="Arrêter ce poste" ${(p.status !== 'active' && Number(p.remaining || 0) <= 0) ? 'disabled' : ''} onclick="stopPost('${esc(p.id)}')">Arrêter la session</button>`}
+<button class="action coin-action piece-assign" ${assignmentReason(p,data) ? 'disabled' : ''} aria-label="${esc(`Ajouter une durée de jeu pour ${pieceLabel(p.piecesRequired)}`)}" title="${esc(assignmentReason(p,data) || `Ajouter ${formatTime(data.coinDurationSeconds)} de jeu pour ${pieceLabel(p.piecesRequired)}`)}" onclick="assign('${esc(p.id)}')">+${p.piecesRequired}</button>
+</div>
+${assignmentReason(p,data) ? `<p class="field-help">${esc(assignmentReason(p,data))}</p>` : ''}
 </div>
 `).join('') : '<p class="posts-empty">Aucun poste configuré.</p>';
 const managedPostsEl = document.getElementById('managedPosts');
@@ -502,17 +528,20 @@ return `
 <div><strong class="managed-name">${esc(p.name)}</strong><div class="managed-id">${esc(p.id)}</div></div>
 </div>
 <div class="managed-fact"><small>Adresse IP</small><span>${esc(p.ip)}</span></div>
-<div class="managed-fact"><small>Temps restant</small><strong>${formatTime(p.remaining)}</strong></div>
+<div class="managed-fact managed-session"><small>Temps restant / Tarif</small><strong>${formatTime(p.remaining)}</strong><span class="managed-price">${esc(pieceLabel(p.piecesRequired))}</span></div>
+<div class="managed-status-actions">
 <span class="badge ${badgeClass(p.status)}">${esc(statusLabel(p.status))}</span>
 <div class="managed-actions">
 <button class="action warn" onclick="pingPost('${esc(p.id)}')">Ping</button>
-<button class="action warn" ${locked ? 'disabled' : ''} onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
+<button class="action warn" onclick="toggleEdit('${esc(p.id)}')">Modifier</button>
 <button class="action danger" ${locked ? 'disabled' : ''} onclick="deletePost('${esc(p.id)}')">Supprimer</button>
 </div>
+</div>
 ${p.recoveryPending ? `<p class="managed-lock">Temps récupérable : ${formatTime(p.recoveryRemaining)}</p>` : ''}
-${locked ? '<p class="managed-lock">Modification et suppression disponibles lorsque le poste est inactif et le timer à zéro.</p>' : ''}
+${locked ? '<p class="managed-lock">Le tarif reste modifiable. Renommage et suppression disponibles lorsque le poste est inactif et le timer à zéro.</p>' : ''}
 <div class="editor" id="editor-${esc(p.id)}">
-<div class="form-group"><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" /></div>
+<div class="form-group"><label for="edit-name-${esc(p.id)}">Nom du poste</label><input id="edit-name-${esc(p.id)}" value="${esc(p.name)}" maxlength="64" ${locked ? 'disabled' : ''} /></div>
+<div class="form-group"><label for="edit-pieces-${esc(p.id)}">Nombre de pièces requis</label><input id="edit-pieces-${esc(p.id)}" type="number" min="1" max="2147483647" step="1" value="${p.piecesRequired}" required /></div>
 <button class="action primary" onclick="updatePost('${esc(p.id)}')">Enregistrer modification</button>
 </div>
 </article>
@@ -520,15 +549,20 @@ ${locked ? '<p class="managed-lock">Modification et suppression disponibles lors
 }).join('') : '<div class="empty">Aucun poste configuré.</div>';
 }
 }
-async function assign(postId, coins) {
+async function assign(postId) {
+if (assignmentBusy) return;
+assignmentBusy = true;
+document.querySelectorAll('.piece-assign').forEach(button => { button.disabled = true; });
 try {
 await api('/assign', {
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ post_id: postId, coins })
+method:'POST', headers:{'Content-Type':'application/json'},
+body:JSON.stringify({ post_id: postId })
 });
-load();
 } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
+finally {
+assignmentBusy = false;
+await load();
+}
 }
 async function resumeRecovery(postId) {
 if (!confirm(`Reprendre le temps sauvegardé pour ${postLabel(postId)} ?`)) return;
@@ -552,21 +586,30 @@ body:JSON.stringify({ post_id: postId })
 load();
 } catch(e) { if (e.message !== 'unauthorized') alert(friendlyError(e.message)); }
 }
+async function resolveAssignment(debit) {
+if (!confirm(debit ? 'Après vérification du poste : confirmer que le temps a été ajouté et débiter les pièces ?' : 'Après vérification du poste : confirmer que le temps n’a pas été ajouté et conserver les pièces ?')) return;
+try {
+await api('/assignment/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ debit }) });
+setMessage('configMessage', 'Affectation interrompue résolue.');
+await load();
+} catch(e) { if (e.message !== 'unauthorized') setMessage('configMessage', e.message, true); }
+}
 async function simulateCoin() {
 try {
-await api('/coins/simulate', { method:'POST' });
+await api('/pieces/simulate', { method:'POST' });
 load();
 loadLogs();
 } catch(e) { if (e.message !== 'unauthorized') alert(e.message); }
 }
 async function configurePending(chipId) {
-const name = prompt('Nom affiché du poste, ex: Poste 1');
-if (!name) return;
 try {
+const name = document.getElementById(`create-name-${chipId}`).value.trim();
+const piecesRequired = readPiecesRequired(`create-pieces-${chipId}`);
+if (!name) throw new Error('Saisissez le nom du poste.');
 await api('/poste/configure', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ chipId, name: name.trim() })
+body:JSON.stringify({ chipId, name, piecesRequired })
 });
 setMessage('pendingMessage', 'Poste configuré avec succès.');
 load();
@@ -575,10 +618,12 @@ load();
 async function updatePost(id) {
 const name = document.getElementById(`edit-name-${id}`).value.trim();
 try {
+const piecesRequired = readPiecesRequired(`edit-pieces-${id}`);
+if (!name) throw new Error('Saisissez le nom du poste.');
 await api('/post/update', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ id, name })
+body:JSON.stringify({ id, name, piecesRequired })
 });
 setMessage('managedMessage', 'Poste modifié avec succès.');
 load();
@@ -631,11 +676,10 @@ if (button) button.disabled = true;
 }
 function resetConfigurationForm() {
 document.getElementById('coinDurationMinutes').value = lastLoadedConfig.coinDurationMinutes;
-document.getElementById('pulsesPerCoin').value = lastLoadedConfig.pulsesPerCoin;
 document.getElementById('coinCurrency').value = lastLoadedConfig.coinCurrency;
 updateCoinCurrency(lastLoadedConfig.pulseValueMinor);
 document.getElementById('dzdToTndRate').value = lastLoadedConfig.dzdToTndRateMicros ? (lastLoadedConfig.dzdToTndRateMicros / 1000000).toFixed(6).replace('.', ',') : '';
-document.getElementById('availableCoins').value = lastLoadedConfig.availableCoins;
+document.getElementById('availablePieces').value = lastLoadedConfig.availablePieces;
 clearSelectedConfigFile();
 setMessage('configMessage', 'Valeurs restaurées depuis la dernière configuration chargée.');
 setMessage('importExportMessage', '');
@@ -694,21 +738,20 @@ return Number.isSafeInteger(value) && value > 0 && value <= 1000000000 ? value :
 async function saveConfig() {
 const coinDurationMinutes = Number(document.getElementById('coinDurationMinutes').value || 0);
 const coinDurationSeconds = Math.round(coinDurationMinutes * 60);
-const pulsesPerCoin = Number(document.getElementById('pulsesPerCoin').value || 0);
 const coinCurrency = document.getElementById('coinCurrency').value;
 const pulseValueMinor = Number(document.getElementById('pulseValueMinor').value || 0);
-const availableCoins = Number(document.getElementById('availableCoins').value || 0);
+const availablePieces = Number(document.getElementById('availablePieces').value || 0);
 const rateText = document.getElementById('dzdToTndRate').value.trim();
 const dzdToTndRateMicros = rateText ? parseRateMicros(rateText) : null;
-if (!Number.isFinite(coinDurationMinutes) || coinDurationMinutes < 1 || coinDurationSeconds > 2147483647 || !Number.isInteger(pulsesPerCoin) || pulsesPerCoin < 1 || pulsesPerCoin > 2147483647 || !coinValues[coinCurrency]?.includes(pulseValueMinor) || !Number.isInteger(availableCoins) || availableCoins < 0 || availableCoins > 2147483647) {
-setMessage('configMessage', 'Vérifiez la durée, les impulsions, la devise, la valeur et le solde.', true); return;
+if (!Number.isFinite(coinDurationMinutes) || coinDurationMinutes < 1 || coinDurationSeconds > 2147483647 || !coinValues[coinCurrency]?.includes(pulseValueMinor) || !Number.isInteger(availablePieces) || availablePieces < 0 || availablePieces > 2147483647) {
+setMessage('configMessage', 'Vérifiez la durée, la devise, la valeur et le solde de pièces.', true); return;
 }
 if ((rateText && dzdToTndRateMicros === null) || (coinCurrency === 'DZD' && dzdToTndRateMicros === null) || (!rateText && lastLoadedConfig.dzdToTndRateMicros)) {
 setMessage('configMessage', 'Renseignez un taux positif : 1 DZD = X TND (6 décimales maximum, jusqu’à 1000 TND).', true); return;
 }
 try {
-const settings = { coinDurationSeconds, pulsesPerCoin, coinCurrency, pulseValueMinor };
-if (availableCoins !== lastLoadedConfig.availableCoins) settings.availableCoins = availableCoins;
+const settings = { coinDurationSeconds, coinCurrency, pulseValueMinor };
+if (availablePieces !== lastLoadedConfig.availablePieces) settings.availablePieces = availablePieces;
 if (dzdToTndRateMicros !== null) settings.dzdToTndRateMicros = dzdToTndRateMicros;
 await api('/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings) });
 setMessage('configMessage', 'Configuration enregistrée.');
@@ -963,7 +1006,7 @@ document.getElementById('revenueCards').innerHTML = `
 <article class="revenue-card"><small>Total encaissé en TND</small><strong>${formatRevenueMoney(report.totalTndMillimes)}</strong></article>
 <article class="revenue-card"><small>Total encaissé en DZD</small><strong>${formatRevenueMoney(report.totalDzdCentimes, 'DZD')}</strong></article>
 <article class="revenue-card"><small>Impulsions encaissées</small><strong>${Number(report.pulses || 0).toLocaleString('fr-FR')}</strong></article>
-<article class="revenue-card"><small>Coins générés</small><strong>${Number(report.credits || 0).toLocaleString('fr-FR')}</strong></article>
+<article class="revenue-card"><small>Crédits historiques / pièces</small><strong>${Number(report.credits || 0).toLocaleString('fr-FR')}</strong></article>
 <article class="revenue-card"><small>Écritures persistées</small><strong>${Number(report.events || 0).toLocaleString('fr-FR')}</strong></article>`;
 document.getElementById('revenueChartRange').textContent = report.rangeLabel || '';
 document.getElementById('revenueTableRange').textContent = report.rangeLabel || '';
@@ -1048,9 +1091,9 @@ const lines = [
 `Total general TND : ${formatRevenueMoney(report.totalMillimes)}`,
 revenueRateText(report),
 'Conversion au taux historique, arrondi au millime par impulsion.',
-`Impulsions : ${report.pulses || 0}   Coins : ${report.credits || 0}   Ecritures : ${report.events || 0}`,
+`Impulsions : ${report.pulses || 0}   Crédits / pièces : ${report.credits || 0}   Ecritures : ${report.events || 0}`,
 '',
-'Periode          Encaisse TND      Encaisse DZD        Total TND     Imp. / Coins',
+'Periode          Encaisse TND      Encaisse DZD        Total TND     Imp. / Crédits',
 ...(report.items || []).map(item => `${String(item.label || '').padEnd(12)} ${formatRevenueMoney(item.tndMillimes).padStart(16)} ${formatRevenueMoney(item.dzdCentimes,'DZD').padStart(16)} ${formatRevenueMoney(item.amountMillimes).padStart(16)}   ${item.pulses || 0} / ${item.credits || 0}`),
 '',
 ...(report.undatedEvents ? [

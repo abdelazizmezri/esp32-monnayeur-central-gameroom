@@ -3,10 +3,19 @@
 #include "StorageService.h"
 #include "LogService.h"
 #include "AppConfig.h"
+#include "CreditMath.h"
 
 #include <Arduino.h>
 
 namespace PostService {
+  static bool persistPosts(AppState& state, String& error) {
+    if (StorageService::savePosts(state)) return true;
+    state.creditStorageReady = false;
+    state.creditStorageError = "Échec de sauvegarde des postes NVS ; redémarrer avant de continuer.";
+    error = state.creditStorageError;
+    return false;
+  }
+
   void begin(AppState& state) {
     LogService::info(state, "Gestion des postes prête. Les nouveaux postes s'annoncent automatiquement.");
   }
@@ -36,6 +45,7 @@ namespace PostService {
   }
 
   bool upsertDiscoveredPost(AppState& state, const Post& discovered, bool& added, String& error) {
+    if (!state.creditStorageReady) { error = state.creditStorageError; return false; }
     added = false;
     String cleanId = trimmedCopy(discovered.id);
     String cleanName = trimmedCopy(discovered.name);
@@ -47,6 +57,13 @@ namespace PostService {
     }
 
     Post* existingById = findById(state, cleanId);
+    // L'identité matérielle reste stable lorsque l'IP ou l'ID annoncé change.
+    for (auto& post : state.posts) {
+      if (!discovered.chipId.isEmpty() && post.chipId == discovered.chipId) {
+        existingById = &post;
+        break;
+      }
+    }
     if (existingById) {
       existingById->chipId = discovered.chipId;
       existingById->ip = cleanIp;
@@ -56,7 +73,7 @@ namespace PostService {
       existingById->recoveryPending = discovered.recoveryPending;
       existingById->recoveryRemaining = discovered.recoveryRemaining;
       existingById->lastSeen = millis();
-      StorageService::savePosts(state);
+      if (!persistPosts(state, error)) return false;
       LogService::info(state, "Poste découvert mis à jour: " + cleanId + " (" + cleanIp + ")");
       return true;
     }
@@ -72,7 +89,7 @@ namespace PostService {
         post.recoveryPending = discovered.recoveryPending;
         post.recoveryRemaining = discovered.recoveryRemaining;
         post.lastSeen = millis();
-        StorageService::savePosts(state);
+        if (!persistPosts(state, error)) return false;
         LogService::warn(state, "Poste découvert remplace l'ancien ID sur IP " + cleanIp + ": " + cleanId);
         return true;
       }
@@ -91,7 +108,7 @@ namespace PostService {
     post.lastSeen = millis();
 
     state.posts.push_back(post);
-    StorageService::savePosts(state);
+    if (!persistPosts(state, error)) { state.posts.pop_back(); return false; }
     added = true;
     LogService::info(state, "Poste découvert ajouté: " + cleanId + " (" + cleanIp + ")");
     return true;
@@ -159,7 +176,9 @@ namespace PostService {
   }
 
   bool configurePendingPost(AppState& state, const String& chipId,
-                            const String& name, String& error) {
+                            const String& name, int piecesRequired, String& error) {
+    if (!state.creditStorageReady) { error = state.creditStorageError; return false; }
+    if (piecesRequired <= 0) { error = "Nombre de pièces requis invalide."; return false; }
     String cleanChipId = trimmedCopy(chipId);
     // Le chipId matériel est déjà unique : il sert d'identifiant technique sans
     // demander à l'administrateur d'en inventer ou d'en saisir un.
@@ -194,13 +213,14 @@ namespace PostService {
     post.id = cleanId;
     post.name = cleanName;
     post.ip = ip;
+    post.piecesRequired = piecesRequired;
     post.status = "idle";
     post.relay = false;
     post.remaining = 0;
     post.lastSeen = millis();
 
     state.posts.push_back(post);
-    StorageService::savePosts(state);
+    if (!persistPosts(state, error)) { state.posts.pop_back(); return false; }
 
     for (size_t i = 0; i < state.pendingPosts.size(); i++) {
       if (state.pendingPosts[i].chipId == cleanChipId) {
@@ -213,7 +233,9 @@ namespace PostService {
     return true;
   }
 
-  bool updatePost(AppState& state, const String& id, const String& name, String& error) {
+  bool updatePost(AppState& state, const String& id, const String& name, int piecesRequired, String& error) {
+    if (!state.creditStorageReady) { error = state.creditStorageError; return false; }
+    if (piecesRequired <= 0) { error = "Nombre de pièces requis invalide."; return false; }
     String cleanId = trimmedCopy(id);
     String cleanName = trimmedCopy(name);
 
@@ -228,25 +250,32 @@ namespace PostService {
       return false;
     }
 
-    if (post->status == "active" || post->remaining > 0 || post->recoveryPending) {
+    bool rename = cleanName != post->name;
+    if (rename && (post->status == "active" || post->remaining > 0 || post->recoveryPending)) {
       error = "post active";
       return false;
     }
 
-    if (!PosteClient::configurePost(post->ip, cleanId, cleanName)) {
+    if (rename && !PosteClient::configurePost(post->ip, cleanId, cleanName)) {
       error = "poste unreachable";
       LogService::error(state, "Impossible de modifier l'identité du poste: " + cleanId);
       return false;
     }
 
+    String oldName = post->name;
+    int oldPrice = post->piecesRequired;
     post->name = cleanName;
-
-    StorageService::savePosts(state);
-    LogService::info(state, "Nom du poste modifié: " + cleanId);
+    post->piecesRequired = piecesRequired;
+    if (!persistPosts(state, error)) {
+      post->name = oldName; post->piecesRequired = oldPrice;
+      return false;
+    }
+    LogService::info(state, "Poste modifié: " + cleanId + ", pièces requises=" + String(piecesRequired));
     return true;
   }
 
   bool deletePost(AppState& state, const String& id, String& error) {
+    if (!state.creditStorageReady) { error = state.creditStorageError; return false; }
     String cleanId = trimmedCopy(id);
 
     for (size_t i = 0; i < state.posts.size(); i++) {
@@ -280,7 +309,7 @@ namespace PostService {
             state.pendingPosts.push_back(item);
           }
         }
-        StorageService::savePosts(state);
+        if (!persistPosts(state, error)) return false;
         if (identityCleared) {
           LogService::warn(state, "Poste supprimé et remis en découverte: " + cleanId);
         } else {
@@ -295,13 +324,11 @@ namespace PostService {
   }
 
   bool assignCoins(AppState& state, const String& postId, int coins, String& error) {
+    if (!state.creditStorageReady || state.revenueTransactionPending) {
+      error = "Stockage ou encaissement en attente ; affectation suspendue."; return false;
+    }
     if (coins <= 0) {
       error = "invalid coins";
-      return false;
-    }
-
-    if (state.availableCoins < coins) {
-      error = "not enough coins";
       return false;
     }
 
@@ -315,24 +342,54 @@ namespace PostService {
       error = "recovery pending";
       return false;
     }
-
-    long duration = (long)coins * state.coinDurationSeconds;
+    if (post->status != "idle" && post->status != "active") {
+      error = "Poste indisponible."; return false;
+    }
+    int cost;
+    long duration;
+    if (!CreditMath::assignment(post->piecesRequired, coins, state.coinDurationSeconds,
+                                post->status == "active" ? post->remaining : 0, cost, duration)) {
+      error = "Coût ou durée hors limite."; return false;
+    }
+    if (state.availablePieces < cost) { error = "Solde de pièces insuffisant."; return false; }
+    if (!StorageService::stageAssignment(postId, state.availablePieces,
+                                         state.availablePieces - cost, state.lastRevenueSequence)) {
+      state.creditStorageReady = false;
+      state.creditStorageError = error = "Préparation du débit NVS impossible ; redémarrer.";
+      return false;
+    }
     String action = post->status == "active" ? "ADD_TIME" : "START_SESSION";
 
     if (!PosteClient::sendCommand(post->ip, action, duration)) {
+      if (!StorageService::clearAssignment()) {
+        state.creditStorageReady = false;
+        state.assignmentRecoveryPending = true;
+        state.creditStorageError = "Échec de finalisation NVS après erreur réseau ; redémarrer.";
+      }
       error = "poste unreachable";
       LogService::error(state, "Échec d'envoi commande vers " + postId);
       return false;
     }
 
-    state.availableCoins -= coins;
+    state.availablePieces -= cost;
+    post->remaining = action == "ADD_TIME" ? post->remaining + duration : duration;
+    post->status = "active";
+    post->relay = true;
     if (!StorageService::saveCredits(state)) {
       state.creditStorageReady = false;
+      state.assignmentRecoveryPending = true;
       error = "Crédits affectés au poste, mais sauvegarde NVS échouée ; vérification opérateur nécessaire.";
+      state.creditStorageError = error;
       LogService::error(state,error);
       return false;
     }
-    LogService::info(state, "Crédits affectés à " + postId + ": " + String(coins) + " coin(s)");
+    if (!StorageService::clearAssignment()) {
+      state.creditStorageReady = false;
+      state.assignmentRecoveryPending = true;
+      state.creditStorageError = error = "Débit enregistré, finalisation NVS en attente ; redémarrer.";
+      return false;
+    }
+    LogService::info(state, "Affectation à " + postId + ": " + String(cost) + " pièce(s), +" + String(duration) + " s");
     return true;
   }
 

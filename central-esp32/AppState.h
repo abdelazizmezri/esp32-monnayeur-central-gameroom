@@ -39,18 +39,19 @@ struct AppState {
   std::vector<UserAccount> users;
   std::vector<UserSession> sessions;
 
-  int pulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
   uint8_t coinCurrency = Money::TND;
   uint32_t pulseValueMinor = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
   uint32_t dzdToTndRateMicros = 0; // Non renseigné ; interdit en mode DZD.
-  int availableCoins = AppConfig::DEFAULT_AVAILABLE_COINS;
+  int availablePieces = AppConfig::DEFAULT_AVAILABLE_PIECES;
   int coinDurationSeconds = AppConfig::DEFAULT_COIN_DURATION_SECONDS;
 
   volatile int pulseCount = 0;
-  int pendingPulses = 0;
-  int pendingPulsesPerCoin = AppConfig::DEFAULT_PULSES_PER_COIN;
+  // Uniquement pour finaliser une transaction REV2 préparée avant la migration.
+  uint64_t legacyRevenueSequence = 0;
   uint64_t lastRevenueSequence = 0;
   bool creditStorageReady = true;
+  String creditStorageError;
+  bool assignmentRecoveryPending = false;
   bool revenueTransactionPending = false;
 
   bool revenueStorageReady = false;

@@ -33,7 +33,7 @@ static void sendJsonError(int code, const String& message) {
   gServer->send(code, "application/json", json);
 }
 
-static bool parseJsonBody(DynamicJsonDocument& doc) {
+static bool parseJsonBody(JsonDocument& doc) {
   if (!gServer->hasArg("plain")) {
     sendJsonError(400, "missing body");
     return false;
@@ -153,6 +153,7 @@ static void handleGetPosts() {
     p["id"] = post.id;
     p["name"] = post.name;
     p["ip"] = post.ip;
+    p["piecesRequired"] = post.piecesRequired;
     p["status"] = post.status;
     p["relay"] = post.relay;
     p["remaining"] = post.remaining;
@@ -163,6 +164,7 @@ static void handleGetPosts() {
   JsonArray pendingArr = doc.createNestedArray("pendingPosts");
   bool adminAccess = AuthService::hasAdminAccess(*gServer, *gState);
   if (adminAccess) {
+    doc["assignmentRecoveryPending"] = gState->assignmentRecoveryPending;
     for (auto& pending : gState->pendingPosts) {
       JsonObject p = pendingArr.createNestedObject();
       p["chipId"] = pending.chipId;
@@ -171,15 +173,15 @@ static void handleGetPosts() {
     }
   }
 
-  doc["availableCoins"] = gState->availableCoins;
+  doc["availablePieces"] = gState->availablePieces;
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
-  doc["pulsesPerCoin"] = gState->pulsesPerCoin;
   doc["coinCurrency"] = Money::code(gState->coinCurrency);
   doc["pulseValueMinor"] = gState->pulseValueMinor;
   doc["dzdToTndRateMicros"] = gState->dzdToTndRateMicros;
   if (gState->coinCurrency == Money::TND) doc["pulseValueMillimes"] = gState->pulseValueMinor;
-  doc["pendingPulsesPerCoin"] = gState->pendingPulsesPerCoin;
-  doc["pendingPulses"] = gState->pendingPulses;
+  doc["creditUnit"] = "pulse";
+  doc["assignmentsReady"] = gState->creditStorageReady && gState->revenueStorageReady && !gState->revenueTransactionPending;
+  doc["creditStorageError"] = gState->creditStorageError;
   doc["accessRole"] = adminAccess ? "admin" : "user";
 
   UserAccount* currentUser = AuthService::currentUser(*gServer, *gState);
@@ -210,8 +212,11 @@ static void handleUpdatePost() {
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
 
+  if (!doc["piecesRequired"].is<int>() || doc["piecesRequired"].as<int>() <= 0) {
+    sendJsonError(400, "Nombre de pièces requis invalide."); return;
+  }
   String error;
-  bool ok = PostService::updatePost(*gState, doc["id"] | "", doc["name"] | "", error);
+  bool ok = PostService::updatePost(*gState, doc["id"] | "", doc["name"] | "", doc["piecesRequired"].as<int>(), error);
 
   if (!ok) {
     int code = 400;
@@ -253,7 +258,11 @@ static void handleAssign() {
   if (!CoinService::settle(*gState)) {
     sendJsonError(503,"Comptage en attente de sauvegarde ; réessayez après rétablissement du stockage."); return;
   }
-  bool ok = PostService::assignCoins(*gState, doc["post_id"] | "", doc["coins"] | 0, error);
+  // Une requête = une durée. Le coût provient exclusivement du tarif du poste.
+  if (doc.containsKey("coins") && (!doc["coins"].is<int>() || doc["coins"].as<int>() != 1)) {
+    sendJsonError(400, "Une affectation ajoute une seule durée de jeu."); return;
+  }
+  bool ok = PostService::assignCoins(*gState, doc["post_id"] | "", 1, error);
 
   if (!ok) {
     int code = 400;
@@ -269,24 +278,38 @@ static void handleAssign() {
 static void handleSimulateCoin() {
   if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
 
-  if (!CoinService::settle(*gState) || gState->availableCoins == INT32_MAX) {
+  if (!CoinService::settle(*gState) || gState->availablePieces == INT32_MAX) {
     sendJsonError(503,"Crédits indisponibles ou solde maximal atteint."); return;
   }
-  gState->availableCoins += 1;
+  gState->availablePieces += 1;
   if (!StorageService::saveCredits(*gState)) {
-    --gState->availableCoins;
+    --gState->availablePieces;
     gState->creditStorageReady = false;
     sendJsonError(503,"Échec d'enregistrement des crédits NVS."); return;
   }
-  LogService::info(*gState, "Simulation monnayeur: +1 coin, total=" + String(gState->availableCoins));
+  LogService::info(*gState, "Simulation monnayeur: +1 pièce (sans recette), total=" + String(gState->availablePieces));
 
   DynamicJsonDocument doc(128);
   doc["ok"] = true;
-  doc["availableCoins"] = gState->availableCoins;
+  doc["availablePieces"] = gState->availablePieces;
 
   String json;
   serializeJson(doc, json);
   gServer->send(200, "application/json", json);
+}
+
+static void handleResolveAssignment() {
+  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
+  JsonDocument doc;
+  if (!parseJsonBody(doc)) return;
+  if (!doc["debit"].is<bool>()) { sendJsonError(400, "Choisir explicitement de confirmer ou annuler le débit."); return; }
+  String error;
+  if (!StorageService::resolveAssignment(*gState, doc["debit"].as<bool>(), error)) {
+    sendJsonError(gState->assignmentRecoveryPending ? 503 : 400, error); return;
+  }
+  LogService::warn(*gState, doc["debit"].as<bool>() ? "Débit interrompu confirmé par l'administrateur." :
+    "Débit interrompu annulé par l'administrateur après vérification du poste.");
+  gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
 static void handleConfig() {
@@ -300,11 +323,8 @@ static void handleConfig() {
     }
     next.coinDurationSeconds = doc["coinDurationSeconds"].as<int>();
   }
-  if (doc.containsKey("pulsesPerCoin")) {
-    if (!doc["pulsesPerCoin"].is<int>() || doc["pulsesPerCoin"].as<int>() <= 0) {
-      sendJsonError(400,"Nombre d'impulsions invalide."); return;
-    }
-    next.pulsesPerCoin = doc["pulsesPerCoin"].as<int>();
+  if (doc.containsKey("pulsesPerCoin") || doc.containsKey("availableCoins")) {
+    sendJsonError(400,"Configurer le tarif de chaque poste et utiliser le solde availablePieces."); return;
   }
   if (doc.containsKey("coinCurrency")) {
     String currency = doc["coinCurrency"] | "";
@@ -339,28 +359,24 @@ static void handleConfig() {
       (next.coinCurrency == Money::DZD && !Money::validRate(next.dzdToTndRateMicros))) {
     sendJsonError(400,"Choisir une valeur de pièce valide et renseigner un taux positif avant d'activer le DZD."); return;
   }
-  if (doc.containsKey("availableCoins") &&
-      (!doc["availableCoins"].is<int>() || doc["availableCoins"].as<int>() < 0)) {
+  if (doc.containsKey("availablePieces") &&
+      (!doc["availablePieces"].is<int>() || doc["availablePieces"].as<int>() < 0)) {
     sendJsonError(400,"Solde invalide."); return;
   }
   if (!CoinService::settle(*gState)) {
     sendJsonError(503,"Sauvegarde des encaissements en attente ; configuration non modifiée."); return;
   }
   // settle a pu créditer des impulsions : ne jamais restaurer un ancien solde.
-  next.availableCoins = doc.containsKey("availableCoins") ? doc["availableCoins"].as<int>() : gState->availableCoins;
-  next.pendingPulses = gState->pendingPulses;
-  next.pendingPulsesPerCoin = gState->pendingPulsesPerCoin;
+  next.availablePieces = doc.containsKey("availablePieces") ? doc["availablePieces"].as<int>() : gState->availablePieces;
   next.lastRevenueSequence = gState->lastRevenueSequence;
-  // Le reliquat garde son ancien diviseur pour les impulsions déjà en file.
-  // Il sera abandonné à la première impulsion du nouveau réglage.
+  next.legacyRevenueSequence = gState->legacyRevenueSequence;
   if (!StorageService::saveConfig(next) || !StorageService::saveCredits(next)) {
     gState->creditStorageReady = false;
     sendJsonError(503,"Échec NVS ; redémarrer pour recharger le dernier instantané enregistré."); return;
   }
-  gState->coinDurationSeconds = next.coinDurationSeconds; gState->pulsesPerCoin = next.pulsesPerCoin;
+  gState->coinDurationSeconds = next.coinDurationSeconds;
   gState->coinCurrency = next.coinCurrency; gState->pulseValueMinor = next.pulseValueMinor;
-  gState->dzdToTndRateMicros = next.dzdToTndRateMicros; gState->availableCoins = next.availableCoins;
-  gState->pendingPulses = next.pendingPulses; gState->pendingPulsesPerCoin = next.pendingPulsesPerCoin;
+  gState->dzdToTndRateMicros = next.dzdToTndRateMicros; gState->availablePieces = next.availablePieces;
   CoinService::publishConfiguration(*gState);
   LogService::info(*gState,"Configuration enregistrée (" + String(Money::code(next.coinCurrency)) + ").");
   gServer->send(200,"application/json","{\"ok\":true}");
@@ -493,7 +509,9 @@ static void handleExportConfig() {
     sendJsonError(503,"Encaissements en attente ; sauvegarde de configuration temporairement indisponible."); return;
   }
   String configJson;
-  StorageService::exportConfigJson(*gState, configJson);
+  if (!StorageService::exportConfigJson(*gState, configJson)) {
+    sendJsonError(503, "Sauvegarde trop volumineuse ou mémoire insuffisante."); return;
+  }
   gServer->sendHeader("Cache-Control", "no-store");
   gServer->send(200, "application/json", configJson);
 }
@@ -789,11 +807,18 @@ static void handleConfigurePendingPost() {
   DynamicJsonDocument doc(256);
   if (!parseJsonBody(doc)) return;
 
+  int piecesRequired = AppConfig::DEFAULT_PIECES_REQUIRED;
+  if (doc.containsKey("piecesRequired")) {
+    if (!doc["piecesRequired"].is<int>() || doc["piecesRequired"].as<int>() <= 0) {
+      sendJsonError(400, "Nombre de pièces requis invalide."); return;
+    }
+    piecesRequired = doc["piecesRequired"].as<int>();
+  }
   String error;
   bool ok = PostService::configurePendingPost(*gState,
                                               doc["chipId"] | "",
                                               doc["name"] | "",
-                                              error);
+                                              piecesRequired, error);
   if (!ok) {
     int code = error == "pending post not found" ? 404 : 400;
     if (error == "poste unreachable") code = 502;
@@ -832,7 +857,9 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/poste/announce", HTTP_POST, handlePosteAnnounce);
   server.on("/poste/configure", HTTP_POST, handleConfigurePendingPost);
   server.on("/assign", HTTP_POST, handleAssign);
-  server.on("/coins/simulate", HTTP_POST, handleSimulateCoin);
+  server.on("/pieces/simulate", HTTP_POST, handleSimulateCoin);
+  server.on("/assignment/resolve", HTTP_POST, handleResolveAssignment);
+  server.on("/coins/simulate", HTTP_POST, handleSimulateCoin); // Alias historique : +1 pièce, sans recette.
   server.on("/config", HTTP_POST, handleConfig);
   server.on("/config/export", HTTP_GET, handleExportConfig);
   server.on("/config/import", HTTP_POST, handleImportConfig);
