@@ -4,7 +4,7 @@ Ce dépôt contient les deux firmwares Arduino qui composent un système local d
 gestion de postes de jeu à monnayeur :
 
 - **`central-esp32`** : la centrale reçoit les impulsions du monnayeur, conserve
-  le solde de coins, journalise la recette dans LittleFS et distribue du temps de
+  le solde de pièces disponibles, journalise la recette dans LittleFS et distribue du temps de
   jeu depuis une interface web ;
 - **`poste-esp32`** : le contrôleur installé sur chaque poste reçoit la durée de
   jeu, commande un relais, affiche le temps restant sur un TM1637 et renvoie son
@@ -25,7 +25,11 @@ le même firmware, avec une identité propre enregistrée en mémoire.
   écrans de connexion, postes, recette, comptes, sécurité, journal et Wi-Fi ;
 - [Manuel complet de la centrale](central-esp32/README.md)
 - [Manuel complet d'un poste](poste-esp32/README.md)
-- [Sources de la documentation illustrée](docs/manuals/README.md)
+- [Guide technique en français, source du PDF](docs/manuals/guide-technique.md)
+- [Manuel illustré en français, source du PDF](docs/manuals/manuel-utilisation.md)
+- [Tarification par poste et sauvegardes V4](docs/tarification-par-poste.md)
+- [Recettes multidevises](docs/multidevise.md)
+- [Sources, couverture et reproduction des captures](docs/manuals/README.md)
 
 Les README de la centrale et du poste détaillent la mise en service, toutes les
 routes HTTP, les exemples `curl`, la persistance, le dépannage et les limites
@@ -38,7 +42,7 @@ uniquement des postes, comptes, réseaux Wi-Fi, événements et valeurs de recet
 fictifs : aucune donnée NVS, adresse ou identité issue d'une installation réelle
 n'est utilisée.
 
-## Évolution TND / DZD — 20 octobre 2026
+## Recettes TND / DZD et tarification par poste
 
 La centrale prend en charge une devise active par monnayeur, un taux manuel
 DZD vers TND à six décimales, trois totaux de recette et des exports adaptés.
@@ -46,28 +50,49 @@ Les anciennes données TND sont migrées sans effacement. La reprise des
 encaissements utilise une transaction NVS et un journal LittleFS vérifiés.
 
 Voir [le fonctionnement et la migration](docs/multidevise.md).
-Les PDF illustrés existants décrivent la version antérieure du 25 août 2026 ;
-les réglages multidevises sont documentés dans cette nouvelle notice.
+Les guides couvrent également la tarification par poste, les sauvegardes V4,
+les formulaires et les interfaces du poste. Le
+[manuel illustré](docs/manuals/manuel-utilisation.md) détaille les procédures
+pour chaque rôle ; le [guide technique](docs/manuals/guide-technique.md)
+décrit l'installation et la mise en service.
 
-## Référence de compilation précédente
+## Environnement de référence
 
-Cette version a été auditée et recompilée le **25 août 2026** avec la chaîne
-d'outils suivante :
+Utiliser les versions et les réglages ci-dessous pour suivre les commandes
+de compilation et le parcours d'installation du guide technique.
 
-| Élément | Version ou valeur validée |
+| Élément | Version ou valeur de référence |
 |---|---|
 | Arduino IDE | 2.3.10 |
 | `arduino-cli` | 1.5.1 |
-| Cœur de cartes | `esp32 by Espressif Systems` 3.3.11 |
+| Cœur de cartes | `esp32 by Espressif Systems` 3.3.12 |
 | Bibliothèque externe | ArduinoJson 7.4.3 |
 | Carte de référence | `ESP32 Dev Module`, flash 4 Mo, PSRAM désactivée |
 | Moniteur série | 115200 bauds |
 
-Les deux sketches compilent avec cette configuration. La centrale occupe
-1 560 932 octets et le poste 1 134 216 octets dans la compilation de référence.
-Ces tailles peuvent légèrement varier avec une autre version du compilateur ;
-il faut donc conserver les versions ci-dessus pour reproduire exactement la
-validation finale.
+Avant chaque téléversement, vérifier la taille obtenue à la compilation :
+au plus **1 703 936 octets** pour la centrale avec sa table de partitions locale,
+et **1 310 720 octets** pour le poste avec le profil `default`.
+
+## Aperçu des applications
+
+La centrale fournit sept modules : vue des postes, recette, gestion des postes,
+utilisateurs, sécurité, journal et configuration. L’utilisateur simple accède à
+la vue des postes. Le poste fournit un portail Wi-Fi, une réponse `Poste OK` à
+sa racine et un état JSON via `/status` ; ses sessions sont pilotées depuis la
+centrale. Les captures ci-dessous sont des rendus réels du HTML du dépôt, avec
+une API locale de démonstration, sans validation du matériel.
+
+![Vue des postes : cinq indicateurs et quatre états de session](output/screenshots/02-tableau-de-bord-admin.jpg)
+
+*Vue administrateur : pièces disponibles, durée commune, postes actifs, hors
+ligne et reprises ; un bouton d’attribution au tarif propre à chaque poste.*
+
+![Configuration Wi-Fi d’un poste](output/screenshots/11-wifi-poste.jpg)
+
+*Portail du poste : scan, SSID, mot de passe et choix DHCP/IP fixe. Les réseaux
+affichés sont fictifs. Le [manuel illustré](docs/manuals/manuel-utilisation.md)
+couvre tous les modules, formulaires et vues mobiles capturés.*
 
 ## Architecture générale
 
@@ -124,7 +149,8 @@ après une transition de session.
 
 Un poste neuf n'a pas encore de nom. Son annonce le place dans la liste des
 postes découverts de la centrale. Depuis l'interface d'administration, on lui
-attribue uniquement un nom visible, par exemple `Poste 1`. La centrale utilise
+attribue un nom visible, par exemple `Poste 1`, et un **Nombre de pièces requis**
+(entier positif, 1 par défaut). La centrale utilise
 automatiquement le `chipId` matériel comme identifiant technique unique et ne le
 demande pas à l'utilisateur.
 
@@ -187,7 +213,11 @@ Elle envoie ensuite au poste :
 - `ADD_TIME` s'il est déjà actif ;
 - `STOP_SESSION` lors d'un arrêt manuel.
 
-Les pièces ne sont débitées qu'après une réponse HTTP réussie du poste. Sur le
+Le débit est préparé durablement avant la commande et engagé après une réponse
+HTTP réussie. Une interruption ambiguë bloque les opérations : l’administrateur
+vérifie le poste puis choisit **Confirmer le débit** ou **Annuler le débit** dans
+Configuration. Un timeout peut suivre une commande exécutée : vérifier le poste
+avant de recommencer. Sur le
 poste, `START_SESSION` active le relais et fixe la date de fin ; `ADD_TIME`
 prolonge cette date. La tâche de contrôle coupe automatiquement le relais avec
 une granularité de 20 ms quand le temps arrive à zéro. Chaque poste affiche en
@@ -298,7 +328,7 @@ SHA-256 avant leur stockage ; les sessions web restent uniquement en RAM.
 
 La page **Configuration** permet aussi d'exporter et de restaurer une sauvegarde
 JSON V4 complète : tarifs par poste, valeur de l'impulsion, solde en pièces, token API, utilisateurs avec leurs
-identifiants chiffrés, postes configurés, réglages Wi-Fi/IP et préférence
+hashs salés de mots de passe, postes configurés, réglages Wi-Fi/IP et préférence
 d'affichage des cartes d'indicateurs. Une restauration ferme les sessions web,
 applique cette préférence dans le navigateur courant et demande une nouvelle
 connexion. Le fichier contient des données sensibles et doit être protégé.
@@ -396,14 +426,14 @@ est inclus dans le firmware et ne nécessite aucune bibliothèque supplémentair
 ## Installation de l'environnement et téléversement
 
 Cette procédure part d'une installation neuve d'Arduino IDE 2 et va jusqu'au
-premier démarrage des deux firmwares. Le projet a été vérifié avec le cœur ESP32
-3.3.11 et ArduinoJson 7.4.3.
+premier démarrage des deux firmwares. Les commandes retiennent le cœur ESP32
+3.3.12 et ArduinoJson 7.4.3 ; recompiler les sources actuelles avant déploiement.
 
 ### Dépendances par firmware
 
 | Élément | Centrale | Poste | Installation |
 |---|:---:|:---:|---|
-| `esp32 by Espressif Systems` 3.3.11 | Oui | Oui | Gestionnaire de cartes Arduino ou `arduino-cli core install esp32:esp32@3.3.11`. |
+| `esp32 by Espressif Systems` 3.3.12 | Oui | Oui | Gestionnaire de cartes Arduino ou `arduino-cli core install esp32:esp32@3.3.12`. |
 | ArduinoJson 7.4.3 | Oui | Oui | Gestionnaire de bibliothèques ou `arduino-cli lib install ArduinoJson@7.4.3`. |
 | `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient` | Oui | Oui | Inclus automatiquement dans le cœur ESP32. |
 | `FS`, `LittleFS`, mbedTLS | Oui | Non | Inclus automatiquement dans le cœur ESP32. |
@@ -412,13 +442,13 @@ premier démarrage des deux firmwares. Le projet a été vérifié avec le cœur
 
 Ne pas installer séparément des bibliothèques homonymes à `WiFi`, `WebServer`,
 `Preferences` ou `LittleFS` : le projet doit utiliser celles fournies avec le
-cœur ESP32 3.3.11.
+cœur ESP32 3.3.12.
 
 Avec ArduinoJson 7.4.3 et le niveau d'avertissement maximal, le compilateur peut
 signaler les anciennes formes `StaticJsonDocument`, `DynamicJsonDocument`,
 `createNestedArray` ou `createNestedObject` comme dépréciées. Ces avertissements
 de compatibilité ne bloquent ni la compilation ni le téléversement de cette
-version finale.
+version du code ; la compilation actuelle reste à effectuer.
 
 ### 1. Installer Arduino IDE
 
@@ -498,13 +528,14 @@ Pour changer le schéma de la **centrale** dans Arduino IDE 2 :
 2. Aller dans **Tools/Outils → Board/Type de carte → esp32 → ESP32 Dev Module**.
 3. Aller dans **Tools/Outils → Flash Size → 4MB (32Mb)**.
 4. Aller dans **Tools/Outils → Partition Scheme/Schéma de partition** et choisir
-   **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+   **Minimal SPIFFS**, profil `min_spiffs`. Le suffixe du libellé peut varier
+   selon la version du paquet de cartes.
 5. Régler **Erase All Flash Before Sketch Upload → Disabled** pour conserver la
    configuration NVS existante.
 6. Choisir le port USB de la centrale, puis lancer **Verify/Vérifier** et
    **Upload/Téléverser**.
 
-Le texte « 128KB SPIFFS » est seulement le nom du profil Arduino sélectionné.
+La capacité SPIFFS annoncée dans ce menu décrit le profil Arduino standard.
 Lors de la compilation de ce sketch, le fichier local `partitions.csv` remplace
 ce découpage standard et réserve réellement **640 Kio à LittleFS**. Ne pas
 renommer, déplacer ou supprimer ce fichier. Ne pas choisir **Default** pour la
@@ -523,8 +554,8 @@ Table réellement écrite depuis `central-esp32/partitions.csv` :
 
 Le profil **Minimal SPIFFS** est requis pour que l'outil accepte la taille de la
 centrale, mais la limite physique à respecter reste celle de `app0`, soit
-**1 703 936 octets**. La version finale utilise environ 91,6 % de cet espace et
-laisse approximativement 143 004 octets. Le pourcentage affiché par Arduino IDE
+**1 703 936 octets**. Calculer la marge à partir de la taille obtenue à chaque
+compilation. Le pourcentage affiché par Arduino IDE
 est calculé avec le profil de menu et peut donc être plus optimiste. Après toute
 extension du firmware, comparer impérativement la taille compilée à 1 703 936.
 
@@ -577,7 +608,7 @@ saisis dans les portails de configuration puis conservés en NVS.
 
 1. Ouvrir [`central-esp32/central-esp32.ino`](central-esp32/central-esp32.ino).
 2. Vérifier de nouveau **Tools/Outils → Partition Scheme/Schéma de partition →
-   Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+   Minimal SPIFFS** (`min_spiffs`).
 3. Cliquer sur **Verify** pour compiler.
 4. Cliquer sur **Upload** pour téléverser le firmware.
 5. Si Arduino reste sur `Connecting...`, maintenir le bouton **BOOT** de
@@ -605,7 +636,7 @@ La centrale démarre soit sur le réseau enregistré, soit avec le point d'accè
 ```bash
 arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core update-index
-arduino-cli core install esp32:esp32@3.3.11
+arduino-cli core install esp32:esp32@3.3.12
 arduino-cli lib install ArduinoJson@7.4.3
 arduino-cli board list
 ```

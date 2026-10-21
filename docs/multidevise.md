@@ -1,7 +1,7 @@
 # Recettes TND / DZD
 
-Évolution du 20 octobre 2026, centrale ESP32. Les postes conservent leur firmware
-et leurs règles d'attribution de temps.
+La centrale gère les encaissements en TND ou DZD. Le réglage monétaire ne change
+pas les règles d'attribution de temps des postes.
 
 ## Réglages et utilisation
 
@@ -138,16 +138,16 @@ total général et ajoute `totalTndMillimes`, `totalDzdCentimes`,
 `currentRateMicros`, `items[].tndMillimes`, `items[].dzdCentimes` et les équivalents
 non datés. La politique de conversion est `historical-per-pulse-half-up`.
 
-## Compilation et aperçu
+## Guides d'installation et d'utilisation
 
-Les deux firmwares ont été compilés avec Arduino CLI 1.5.1, le cœur ESP32 3.3.12
-et ArduinoJson 7.4.3, avec `-Wall -Wextra`. Les écrans Configuration/Recette ont
-été contrôlés dans le navigateur, y compris le refus d'un taux nul. Les PDF
-exportés ont été rendus pour vérifier leurs colonnes et leur pagination.
+Le [manuel d'utilisation](manuals/manuel-utilisation.md) détaille la configuration
+TND/DZD, les champs et leurs contraintes, les six indicateurs de recette,
+les regroupements jour/semaine/mois et les exports CSV et PDF par le navigateur.
+Les données des captures sont fictives ; le taux 0,020000 est un exemple,
+pas un taux de change réel.
 
-Le serveur `docs/manuals/mock_server.py` sert les écrans embarqués avec des
-montants TND/DZD fictifs et un taux de démonstration, sans accéder aux ESP32.
-Les PDF illustrés précédemment publiés restent ceux du 25 août 2026.
+Le [guide technique](manuals/guide-technique.md) décrit l'installation des outils,
+les bibliothèques nécessaires, le câblage et les vérifications de mise en service.
 
 ## Limites matérielles et essais sur appareil
 

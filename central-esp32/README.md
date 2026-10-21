@@ -18,10 +18,27 @@ compte, mot de passe, token ou historique provenant d'une centrale réelle.
 
 ## Prise en charge TND / DZD
 
-La nouvelle [notice multidevise](../docs/multidevise.md) décrit les pièces,
-le taux historique, le format REV2, la migration, les sauvegardes V4 et les tests
-de reprise après coupure. Le taux ne modifie pas les crédits ou la durée de jeu.
+La [notice multidevise](../docs/multidevise.md) décrit les pièces,
+le taux historique, le format REV2, la migration, les sauvegardes V4 et les
+vérifications sur appareil restant à effectuer. Le taux ne modifie pas les crédits ou la durée de jeu.
 Les anciens exemples en millimes de ce manuel décrivent le mode TND.
+
+## Documentation actuelle et captures
+
+Le [manuel illustré](../docs/manuals/manuel-utilisation.md) décrit les tâches
+de l'utilisateur simple et de l'administrateur, avec des procédures numérotées.
+Le [guide technique](../docs/manuals/guide-technique.md) accompagne l'installation
+des outils, le câblage, la programmation et la mise en réseau.
+
+![Tableau de bord actuel de la centrale](../output/screenshots/02-tableau-de-bord-admin.jpg)
+
+*Rendu navigateur réel des pages embarquées, données de démonstration : tarifs
+1/4/1/2, cinq widgets et quatre états de poste.*
+
+![Configuration monétaire et sauvegarde](../output/screenshots/05-configuration.jpg)
+
+*La durée est commune ; le tarif se règle dans Gestion des postes. Le panneau
+voisin exporte ou sélectionne un fichier JSON V4.*
 
 ## Sommaire
 
@@ -245,7 +262,7 @@ recette.
 La page administrateur `/recette` propose :
 
 - une sélection **Jour**, **Semaine** ou **Mois**, avec date de référence ;
-- six cartes de synthèse : TND encaissés, DZD encaissés, total général TND, impulsions, coins créés et écritures ;
+- six cartes de synthèse : total général TND, TND encaissés, DZD encaissés, impulsions, crédits historiques / pièces et écritures ;
 - un graphique en barres et un tableau détaillé ;
 - un export CSV agrégé côté ESP32 ;
 - un export PDF généré localement dans le navigateur.
@@ -308,16 +325,18 @@ Chaque ESP32 de poste annonce périodiquement son identité à la centrale avec
 
 ### Configuration d'un nouveau poste
 
-L'administrateur choisit **Ajouter**, puis fournit uniquement un nom visible,
-par exemple `Poste 1`. La centrale reprend automatiquement le `chipId` matériel
-comme identifiant technique unique ; cet identifiant n'est ni affiché ni saisi.
+L’administrateur renseigne **Nom du poste** et **Nombre de pièces requis** dans
+la carte découverte, puis clique sur **Ajouter ce poste**. Le tarif vaut 1 par
+défaut et doit être un entier positif. La centrale reprend automatiquement le
+`chipId` matériel comme identifiant technique ; la carte découverte l’affiche
+à titre d’information, sans champ de saisie de cet identifiant.
 
 La centrale envoie l'identité technique et le nom à `POST http://IP/configure`.
 Le poste est ensuite sauvegardé dans la NVS de la centrale.
 
 ### Sessions de jeu
 
-Lors de l'affectation de coins :
+Lors de l’attribution de temps :
 
 - la centrale envoie `START_SESSION` si le poste est inactif ;
 - elle envoie `ADD_TIME` si le poste est déjà actif ;
@@ -392,10 +411,10 @@ conservé dans un emplacement sûr.
 | Fonction | Administrateur | Utilisateur simple |
 |---|:---:|:---:|
 | Consulter les postes et leur état | Oui | Oui |
-| Affecter des coins | Oui | Oui |
+| Attribuer du temps au tarif du poste | Oui | Oui |
 | Arrêter un poste | Oui | Oui |
 | Relancer ou annuler une session interrompue | Oui | Oui |
-| Simuler un coin | Oui | Non |
+| Simuler une pièce | Oui | Non |
 | Configurer, modifier ou supprimer un poste | Oui | Non |
 | Modifier la configuration générale | Oui | Non |
 | Consulter ou vider les logs | Oui | Non |
@@ -420,7 +439,7 @@ résolution de l'écran.
 
 - `/` : tableau de bord, état des postes, pièces disponibles et commandes autorisées ;
 - `/login` : connexion ;
-- déconnexion depuis la barre supérieure.
+- déconnexion depuis la barre latérale.
 
 Le tableau de bord propose **Masquer les cartes** / **Afficher les cartes** pour
 replier ensemble les cinq indicateurs situés au-dessus de la liste des postes.
@@ -450,13 +469,14 @@ navigateur ne suffit donc pas à contourner les restrictions.
 | Monnayeur | JY-133B ou équivalent, alimentation 12 V et sortie compatible 3,3 V ou interface adaptée. Pull-up interne activé ; ESP32 alimenté séparément par USB. |
 | Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
 | Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
-| Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
+| Cœur de cartes | **esp32 by Espressif Systems** 3.3.12, cible `esp32:esp32:esp32`. |
 | Bibliothèque externe | **ArduinoJson** 7.4.3. |
 
 `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient`,
-`FS`, `LittleFS` et mbedTLS sont fournis par le cœur ESP32 3.3.11 et ne doivent
-pas être installés séparément. La compilation finale utilise 1 560 932 octets
-de programme et 52 776 octets de variables globales.
+`FS`, `LittleFS` et mbedTLS sont fournis par le cœur ESP32 3.3.12 et ne doivent
+pas être installés séparément. Après compilation, vérifier que la taille du
+programme ne dépasse pas les **1 703 936 octets** de la partition applicative
+définie dans `partitions.csv`.
 
 ### Avec Arduino IDE
 
@@ -467,7 +487,8 @@ de programme et 52 776 octets de variables globales.
    carte compatible, par exemple **ESP32 Dev Module**.
 4. Régler **Tools/Outils → Flash Size → 4MB (32Mb)**.
 5. Ouvrir **Tools/Outils → Partition Scheme/Schéma de partition** et choisir
-   exactement **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**.
+   **Minimal SPIFFS**, profil `min_spiffs`. Le suffixe du libellé peut varier
+   selon la version du paquet de cartes.
 6. Régler **Erase All Flash Before Sketch Upload → Disabled**, sauf si
    l'effacement volontaire de toute la NVS est souhaité.
 7. Sélectionner le port série de la centrale.
@@ -479,8 +500,8 @@ Conserver également **CPU Frequency = 240 MHz (WiFi/BT)**, **Flash Frequency =
 80 MHz**, **Flash Mode = QIO** et **PSRAM = Disabled**. Une vitesse d'upload de
 460800 convient généralement ; utiliser 115200 si la liaison série est instable.
 
-Le nom du menu annonce 128 Kio de SPIFFS, mais il sert ici à fournir assez de
-place au compilateur pour l'application. Le fichier local `partitions.csv`
+Le profil du menu fournit au compilateur une limite de taille suffisante pour
+l'application. Le fichier local `partitions.csv`
 remplace automatiquement le découpage standard par deux applications OTA de
 1,625 Mio et **640 Kio de LittleFS**. Ne pas choisir **Default**, et ne pas
 renommer, déplacer ou supprimer `partitions.csv`.
@@ -501,8 +522,8 @@ conservés. La nouvelle table reformate LittleFS à sa première initialisation.
 | `coredump` | `0x3F0000` | 64 Kio |
 
 La taille maximale physique du firmware dans `app0` est **1 703 936 octets**.
-La version finale laisse environ 143 004 octets. Le profil de menu Minimal
-SPIFFS annonce une limite plus grande ; après toute modification, comparer la
+Le profil de menu Minimal SPIFFS annonce une limite plus grande ; après toute
+modification, comparer la
 taille réelle indiquée en fin de compilation à 1 703 936 octets. La présence de
 deux emplacements applicatifs ne signifie pas qu'une mise à jour OTA est
 disponible : ce firmware se téléverse par USB.
@@ -512,7 +533,7 @@ disponible : ce firmware se téléverse par USB.
 ```bash
 arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core update-index
-arduino-cli core install esp32:esp32@3.3.11
+arduino-cli core install esp32:esp32@3.3.12
 arduino-cli lib install ArduinoJson@7.4.3
 arduino-cli board list
 arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs .
@@ -564,12 +585,12 @@ maintenance importante.
 1. Mettre le poste ESP32 compatible sous tension sur le même réseau.
 2. Ouvrir **Gestion des postes**.
 3. Attendre son apparition dans **Postes découverts**.
-4. Cliquer sur **Ajouter**.
-5. Saisir uniquement un nom visible. L'identifiant technique est dérivé
+4. Saisir **Nom du poste** et **Nombre de pièces requis** (1 par défaut).
+5. Cliquer sur **Ajouter ce poste**. L’identifiant technique est dérivé
    automatiquement du `chipId` matériel.
 6. Vérifier que le poste apparaît dans la liste configurée.
 
-### 6. Affecter des coins
+### 6. Attribuer du temps
 
 1. Vérifier le crédit disponible en haut du tableau de bord.
 2. Repérer le poste voulu.
@@ -590,12 +611,14 @@ Après le redémarrage d'un poste qui était actif :
 
 1. repérer la carte marquée **Reprise en attente** ;
 2. vérifier le temps sauvegardé avant la coupure ;
-3. saisir `0` pour reprendre ce temps tel quel, ou saisir les minutes offertes à
-   ajouter ;
-4. cliquer sur **Relancer le poste** et confirmer ;
-5. ou cliquer sur **Annuler le temps** pour effacer l'instantané sans relancer.
+3. cliquer sur **Reprendre** et confirmer pour reprendre le temps sauvegardé ;
+4. ou cliquer sur **Annuler** et confirmer pour effacer le temps sans relancer.
 
-### 9. Modifier la valeur des coins
+L’interface actuelle ne propose pas de champ de minutes offertes. L’API conserve
+son paramètre facultatif `extraMinutes`. Une attribution supplémentaire se fait
+ensuite avec le bouton **+N**, au tarif du poste.
+
+### 9. Modifier la configuration monétaire
 
 Dans **Configuration** :
 
@@ -621,7 +644,7 @@ sauvegarde complète. Le fichier contient :
 
 - la durée par attribution, la valeur monétaire des impulsions et le solde en pièces ;
 - le token API ;
-- tous les utilisateurs, leurs rôles et leurs identifiants chiffrés ;
+- tous les utilisateurs, leurs rôles et leurs hashes salés de mots de passe ;
 - tous les postes configurés et leurs tarifs individuels ;
 - le réseau Wi-Fi enregistré et la configuration IP.
 - la préférence d'affichage des cartes d'indicateurs (`ui.statsHidden`).
@@ -643,7 +666,7 @@ reste compatible et conserve la préférence actuelle du navigateur.
 
 ### 12. Réinitialiser le Wi-Fi
 
-Cliquer sur **Reset Wi-Fi** et confirmer. Les identifiants Wi-Fi sont supprimés,
+Cliquer sur **Réinitialiser le Wi-Fi** et confirmer. Les identifiants Wi-Fi sont supprimés,
 l'ESP32 redémarre et recrée le point d'accès de configuration.
 
 ## API HTTP
@@ -665,7 +688,7 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 | POST | `/login` | Public | Ouvre une session avec `username` et `password`. |
 | POST | `/logout` | Session | Ferme la session courante. |
 | GET | `/posts` | Connecté/API | État des postes et crédit disponible. |
-| POST | `/assign` | Connecté/API | Affecte des coins à un poste. |
+| POST | `/assign` | Connecté/API | Ajoute une durée au tarif enregistré du poste. |
 | POST | `/stop` | Connecté/API | Arrête une session. |
 | POST | `/recovery/resume` | Connecté/API | Relance le temps sauvegardé. |
 | POST | `/recovery/cancel` | Connecté/API | Annule le temps sauvegardé d'un poste. |
@@ -681,7 +704,7 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 | POST | `/config/import` | Restaure directement une sauvegarde JSON complète. |
 | GET | `/revenue/data?period=day|week|month&anchor=AAAA-MM-JJ` | Retourne la recette agrégée et l'état LittleFS/NTP. |
 | GET | `/revenue/export.csv?period=day|week|month&anchor=AAAA-MM-JJ` | Télécharge la recette agrégée en CSV. |
-| POST | `/post/update` | Renomme un poste inactif. |
+| POST | `/post/update` | Modifie le tarif ; renomme uniquement hors session et reprise. |
 | POST | `/post/delete` | Supprime un poste inactif et tente de le déconfigurer s'il est joignable. |
 | POST | `/post/ping` | Teste manuellement un poste. |
 | POST | `/poste/configure` | Configure un poste découvert. |
@@ -730,7 +753,7 @@ La classe `Preferences` enregistre les données dans plusieurs espaces NVS :
 | `wifi` | SSID, mot de passe et configuration DHCP ou IPv4 statique. |
 | `appcfg` | Instantanés V4 `configV4`, `creditsV4` et `postsV4`, avec CRC ; journaux `restoreV4` et `assignmentV4`. |
 | `auth` | Token API et comptes avec hash des mots de passe. |
-| `posts` | Identité et adresse IP des postes configurés. |
+| `posts` | Anciennes données, lues pour migration ; la liste courante est dans `appcfg/postsV4`. |
 | `revenue` | Marqueur anti-formatage LittleFS et transaction financière `pending` permettant une reprise sans doublon. |
 
 Les statuts, sessions web, postes en attente et logs restent en RAM et sont
@@ -906,7 +929,7 @@ passe par le comptage réel et ajoute donc aussi une écriture de recette.
 
 ## Valeurs configurables dans le code
 
-Toutes les constantes de `AppConfig.h` utilisées par la version finale sont
+Toutes les constantes de `AppConfig.h` utilisées par le firmware actuel sont
 répertoriées ci-dessous :
 
 | Constante | Valeur par défaut | Rôle |
@@ -920,10 +943,10 @@ répertoriées ci-dessous :
 | `WIFI_CONNECT_TIMEOUT_MS` | `15000` | Délai de connexion avant ouverture du portail. |
 | `SERVER_PORT` | `80` | Port HTTP de la centrale. |
 | `COIN_PIN` | GPIO 13 | Entrée du monnayeur avec pull-up interne `INPUT_PULLUP`. |
-| `DEFAULT_COIN_DURATION_SECONDS` | `1800` | Durée initiale d'un coin. |
-| `DEFAULT_PULSES_PER_COIN` | `1` | Impulsions nécessaires par coin. |
+| `DEFAULT_COIN_DURATION_SECONDS` | `1800` | Durée initiale par attribution. |
+| `DEFAULT_PIECES_REQUIRED` | `1` | Tarif initial d’un nouveau poste. |
 | `DEFAULT_PULSE_VALUE_MILLIMES` | `1000` | Valeur financière d'une impulsion. |
-| `DEFAULT_AVAILABLE_COINS` | `0` | Solde initial. |
+| `DEFAULT_AVAILABLE_PIECES` | `0` | Solde initial en pièces. |
 | `REVENUE_FILE` | `/revenue.bin` | Journal financier LittleFS. |
 | `REVENUE_STORAGE_RETRY_INTERVAL_MS` | `30000` | Nouvelle tentative de montage/écriture après erreur. |
 | `TIMEZONE` | `CET-1` | Fuseau tunisien utilisé pour les rapports. |

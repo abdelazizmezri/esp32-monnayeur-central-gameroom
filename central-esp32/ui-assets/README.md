@@ -22,3 +22,12 @@ Les fichiers `LoginStationAsset.inc`, `GameRoomLogoAsset.inc` et
 les trois WebP embarqués. Le firmware central utilise le fichier
 `../partitions.csv` : deux partitions OTA de 1,625 Mio, 640 Kio de LittleFS et
 conservation de la NVS.
+
+## Documentation illustrée
+
+Les captures de l’interface sont conservées dans
+[`output/screenshots/`](../../output/screenshots/) et non dans ce dossier.
+Le [manifeste](../../docs/manuals/captures.json) relie chaque image à sa page
+d'origine et consigne ses dimensions et son empreinte. Les fichiers WebP de ce
+dossier servent de sources aux assets embarqués ; les fichiers `*Asset.inc`
+sont inclus dans le firmware.

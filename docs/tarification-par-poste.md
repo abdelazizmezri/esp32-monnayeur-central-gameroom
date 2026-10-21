@@ -142,21 +142,18 @@ une fois : un timeout peut suivre une commande déjà exécutée. Il faut vérif
 le poste avant de répéter une demande ambiguë. Une impulsion restée uniquement
 en RAM au moment d'une coupure ne bénéficie pas encore de la préparation NVS.
 
-## Vérifications reproductibles
+## Documentation et vérification sur appareil
 
-```sh
-python3 tests/host/run.py --arduinojson /chemin/ArduinoJson/src
-node tests/ui/pricing.mjs
-```
+Le [manuel d'utilisation](manuals/manuel-utilisation.md) décrit le réglage des
+tarifs, l'ajout et la modification des postes, ainsi que l'attribution et la
+prolongation du temps. Dans l'exemple illustré, un solde de 18 pièces passe à
+14 après un clic sur **+4**, pour 30 minutes de jeu. Les données sont fictives ;
+le tarif et la durée à appliquer dépendent de la configuration de l'installation.
 
-Les tests hôtes compilent les vrais services avec une NVS et un LittleFS en
-mémoire. Ils couvrent tarifs 1/4/1, démarrage/prolongation, réseau indisponible,
-modification en cours de session, persistance, redécouverte, migrations V1–V3,
-aller-retour V4, imports invalides, coupures aux frontières NVS, résolution d'un
-débit interrompu et recette TND/DZD historique. Ils ne nécessitent aucun ESP32.
-
-Les tests navigateur nécessitent Playwright et un Chromium compatible. Les
-variables `PLAYWRIGHT_MODULE` et `CHROMIUM_EXECUTABLE_PATH` permettent d'utiliser
-une installation existante. Ils chargent le véritable HTML embarqué avec une
-API de démonstration pour vérifier les boutons, formulaires, droits et le mobile.
-Les essais électriques et les coupures sur matériel réel restent à effectuer.
+Après téléversement, vérifier les tarifs 1/4/1, démarrage et prolongation,
+solde insuffisant, poste hors ligne, tarif modifié en cours de session,
+redécouverte, migration d’une ancienne sauvegarde et restauration V4. Vérifier
+également les coupures aux frontières d’écriture NVS/LittleFS et la résolution
+explicite d’un débit incertain. Le
+[guide technique](manuals/guide-technique.md) décrit le parcours de mise en service
+et les contrôles à effectuer sur le matériel.

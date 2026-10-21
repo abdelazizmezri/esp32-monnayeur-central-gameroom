@@ -1,0 +1,426 @@
+{
+  "edition": "2026-10-21",
+  "origin": "Captures navigateur réelles des pages du firmware, servies sur 127.0.0.1:8765 avec API de démonstration.",
+  "imageRetouching": false,
+  "uiSourceHashes": {
+    "central-esp32/WebPage.cpp": "97d556dc319c79b3e7ea972c4050add498be58fe62ab3b23fb2978ca6650d7b7",
+    "central-esp32/WifiProvisioning.cpp": "abe8579a6ca18d2a2db6de2f487db3b3cc44d640ec0ace750fd968dcca740eb4",
+    "poste-esp32/WiFiConfigService.cpp": "064494b64d849d026b55041499c2e69bddfdbea8965efe453acef027ee90697c",
+    "poste-esp32/PosteWebServer.cpp": "283f5280cf323a4aad061504b07dd22e45dad9e841e07e740b9a49a9cafcb794",
+    "central-esp32/docs/schema-cablage-central-final.svg": "bdd89be0b56c003b8a207ebec63c0cf2da936b19c51c612b1f067e1724fd453f",
+    "poste-esp32/docs/schema-cablage-poste-tm1637.svg": "262273c36a4580e08ef442a4e609af032b20e66d577bf2468f4131bee42e2e77"
+  },
+  "limitations": [
+    "API documentaire en RAM, sans authentification de production.",
+    "Aucun essai radio, GPIO, relais, TM1637, NVS, LittleFS ni coupure.",
+    "Pages de succès/échec Wi-Fi, débit interrompu et confirmations natives non capturés.",
+    "JSON sélectionné pour la capture 28 : {}, sans restauration et sans sauvegarde utilisable."
+  ],
+  "captures": [
+    {
+      "file": "output/screenshots/01-connexion.jpg",
+      "caption": "Connexion : identifiant, mot de passe, affichage et mémorisation",
+      "documentationPath": "/login",
+      "firmwarePath": "/login",
+      "role": "public",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "992f64f92603e00a7e0daeacc3fdc20b0f6aa023d0b3876a2ea946ba0ecf5452",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/02-tableau-de-bord-admin.jpg",
+      "caption": "Centrale : vue des postes avec cinq indicateurs et quatre états",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1340
+      ],
+      "sha256": "36936309c7fda8ff4e90c716e71d4b866dd7f75e8a3e86686ebc5960db929e0c",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/03-tableau-de-bord-utilisateur.jpg",
+      "caption": "Vue utilisateur simple : sessions accessibles sans les modules administrateur",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "user",
+      "pixels": [
+        1246,
+        1340
+      ],
+      "sha256": "5dc2cd4a790d0b13ce525d47b3b1082fba1ca4f9721a7c3cf918dd493eff527a",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/04-recette.jpg",
+      "caption": "Vue Jour : filtres, état de stockage, synthèse, graphique et détail",
+      "documentationPath": "/recette",
+      "firmwarePath": "/recette",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1794
+      ],
+      "sha256": "6dd3cec50b08cda5bdbda7d5eec909ca3a5503fa2792831869822a8eceeb38e0",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/05-configuration.jpg",
+      "caption": "Configuration : durée, devise, taux, solde et sauvegarde",
+      "documentationPath": "/config",
+      "firmwarePath": "/config",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "38c6373bc4fd0dfd43a87eac000d3c52f596bdb0835653c439bd33bb271966fc",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/06-gestion-des-postes.jpg",
+      "caption": "Gestion des postes : découverte, nom, tarif et commandes de gestion",
+      "documentationPath": "/postes",
+      "firmwarePath": "/postes",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "4296cbb837055c995bd9dc48cd632cf9f77853cf6e0d3bc8c89fd7912f635509",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/07-utilisateurs.jpg",
+      "caption": "Comptes : formulaire d’ajout et liste des rôles",
+      "documentationPath": "/users",
+      "firmwarePath": "/users",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "0767c21a2b540bb3561fdfd795adf1fa6223c28dad3ed73cf3fa86cb61b8ede8",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/08-securite.jpg",
+      "caption": "Sécurité : double saisie, force du mot de passe, token et indications",
+      "documentationPath": "/security",
+      "firmwarePath": "/security",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "8f1dfa8ba63656126cd7f60255f88d8d7f0d34b00e6981dce849ff5bb45c8c2e",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/09-journal.jpg",
+      "caption": "Journal : niveaux, messages, horodatage relatif et commandes",
+      "documentationPath": "/logs",
+      "firmwarePath": "/logs",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "4c10bd4848725b1e29dddcff109c9c4663cb467006449cf6bdf516b691b275a6",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/10-wifi-centrale.jpg",
+      "caption": "Portail Wi-Fi de la centrale : sélection du réseau et DHCP",
+      "documentationPath": "/wifi-central",
+      "firmwarePath": "/wifi",
+      "role": "public",
+      "pixels": [
+        1246,
+        600
+      ],
+      "sha256": "d8618c40b26185b83f7f4bbbea0d5f66fe1c29905188bcc590f3b16933e70ba9",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/11-wifi-poste.jpg",
+      "caption": "Portail poste : mêmes réglages réseau, sans gestion locale du solde",
+      "documentationPath": "/wifi-poste",
+      "firmwarePath": "/wifi",
+      "role": "public",
+      "pixels": [
+        1246,
+        600
+      ],
+      "sha256": "f27b31d55a4ba909e7a873b5582a65734dcc7e964f1c7a75c1f080e2e1f90a60",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/12-cartes-masquees.jpg",
+      "caption": "Indicateurs masqués : la liste des postes reste disponible",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "7ed4f6f7574e55e965ae6b4a6430c285ba7584df8482b2f2a8cab621345eca5c",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/13-modifier-tarif-poste.jpg",
+      "caption": "Éditeur de poste : nom et nombre de pièces requis",
+      "documentationPath": "/postes",
+      "firmwarePath": "/postes",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "836aca9b9d1442b240745079c07b275333705697e8f6bb2d43db178652e2662e",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/14-configuration-dzd.jpg",
+      "caption": "Formulaire DZD : valeur par impulsion et taux manuel",
+      "documentationPath": "/config",
+      "firmwarePath": "/config",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "83f92f2ca61589337c6e1252e66719ac758059362c065fcb002b763c57382cc0",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/15-validation-configuration.jpg",
+      "caption": "Validation réelle du formulaire : un taux nul est refusé avant envoi",
+      "documentationPath": "/config",
+      "firmwarePath": "/config",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "b5d5c397f0daba743a10777880d54a1507170d670223363b09f367b1088f8ece",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/16-modifier-utilisateur.jpg",
+      "caption": "Éditeur utilisateur : identité, rôle et mot de passe facultatif",
+      "documentationPath": "/users",
+      "firmwarePath": "/users",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "14b1f862b023035c4748c984bde9237e2b32938855c84d75a35afce872eae4f0",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/17-recette-semaine.jpg",
+      "caption": "Vue Semaine : synthèse et détail journalier",
+      "documentationPath": "/recette",
+      "firmwarePath": "/recette",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1368
+      ],
+      "sha256": "2567feaf86318fc00784af3eac5399d1b0a006bb9525479c6d0db69750932324",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/18-recette-mois.jpg",
+      "caption": "Vue Mois : graphique et tableau pour tout le mois de référence",
+      "documentationPath": "/recette",
+      "firmwarePath": "/recette",
+      "role": "admin",
+      "pixels": [
+        1246,
+        3072
+      ],
+      "sha256": "5d37bfc40e925afc683fa921268a9a59147773c0972565350fba3a7bc9fe9dda",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/19-wifi-centrale-ip-fixe.jpg",
+      "caption": "Centrale en IP fixe : adresse, passerelle, masque et DNS",
+      "documentationPath": "/wifi-central",
+      "firmwarePath": "/wifi",
+      "role": "public",
+      "pixels": [
+        1246,
+        1090
+      ],
+      "sha256": "fbd52d32446231f66d20c7c329d57adb8f0a0a9ab3dbd4caff95a76795da6c2b",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/20-wifi-poste-ip-fixe.jpg",
+      "caption": "Portail du poste : paramètres IP fixes dépliés",
+      "documentationPath": "/wifi-poste",
+      "firmwarePath": "/wifi",
+      "role": "public",
+      "pixels": [
+        1246,
+        1090
+      ],
+      "sha256": "e99c42e0c7b70658436e60cab8c33157b1a510a476b70aa1a0065071bb52ec72",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/21-poste-local.jpg",
+      "caption": "Réponse locale du poste en mode normal : Poste OK",
+      "documentationPath": "/poste-local",
+      "firmwarePath": "/",
+      "role": "public",
+      "pixels": [
+        1246,
+        100
+      ],
+      "sha256": "4d80c93acfbbcc4ae37cd08413ce9c1dcf592bf7336af345a489db0784e1e160",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/22-poste-status.jpg",
+      "caption": "Réponse JSON du poste : identité, relais, temps et reprise",
+      "documentationPath": "/status",
+      "firmwarePath": "/status",
+      "role": "public",
+      "pixels": [
+        1246,
+        145
+      ],
+      "sha256": "ef5432750b6505756c01a4ca2ba5477f03d8475d1163673e14d62ae0a5bd6d3a",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/23-session-demarree.jpg",
+      "caption": "Après attribution : 14 pièces disponibles et Poste Démo 2 actif pour 30 minutes",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1340
+      ],
+      "sha256": "64569de0a927b95b0ead46b90dc716be9e9d720a8deb9cc1a334ec43153cd8c0",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/24-accueil-mobile.jpg",
+      "caption": "Accueil mobile : en-tête, bouton de menu et indicateurs",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "admin",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "7e153f5053f27a734e7d8fc7cdedc073919eb997dd8cadfcf2084671b5eadd6d",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/25-menu-mobile.jpg",
+      "caption": "Menu mobile ouvert : navigation et commandes administrateur",
+      "documentationPath": "/",
+      "firmwarePath": "/",
+      "role": "admin",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "0a89a7b1714914d2ad62fd0210d7714040ce57943941cae09748234de609ffa5",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/26-configuration-mobile.jpg",
+      "caption": "Configuration mobile : première partie du formulaire",
+      "documentationPath": "/config",
+      "firmwarePath": "/config",
+      "role": "admin",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "d10e94684cc244770009531d9557117f863c6a773c6b35d208c3b47ce4e9f523",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/27-wifi-poste-mobile.jpg",
+      "caption": "Portail Wi-Fi du poste sur mobile : formulaire après défilement",
+      "documentationPath": "/wifi-poste",
+      "firmwarePath": "/wifi",
+      "role": "public",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "ea29e54657fd478a00ae7a9a56b6de7f83c0e782785259e96df8eb9e1c377c11",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/28-sauvegarde-selectionnee.jpg",
+      "caption": "Sélection d’un JSON : nom du fichier et bouton de restauration activé",
+      "documentationPath": "/config",
+      "firmwarePath": "/config",
+      "role": "admin",
+      "pixels": [
+        1246,
+        1314
+      ],
+      "sha256": "4a71b365160cbcac78b26b3c96cd3b0af8d986624515e372054758ee811cf3ab",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/29-widgets-recette.jpg",
+      "caption": "Six widgets de recette : montants natifs, total TND et compteurs",
+      "documentationPath": "/recette",
+      "firmwarePath": "/recette",
+      "role": "admin",
+      "pixels": [
+        945,
+        300
+      ],
+      "sha256": "22c6d63cf78890be60675d82a439ef0e59470ce89cc29ea67e60281676c3767d",
+      "kind": "application"
+    },
+    {
+      "file": "output/screenshots/schema-cablage-centrale.jpg",
+      "caption": "Schéma actuel : GPIO13 avec pull-up interne, masse commune et alimentation séparée",
+      "documentationPath": "/schema-centrale",
+      "firmwarePath": null,
+      "role": "public",
+      "pixels": [
+        1246,
+        770
+      ],
+      "sha256": "87c2dabcd2baa78aad13dae918feb9e8c5c347ec0de02d25056ac25f4b949546",
+      "kind": "schema"
+    },
+    {
+      "file": "output/screenshots/schema-cablage-poste.jpg",
+      "caption": "Schéma du poste : relais GPIO27, TM1637 CLK25 et DIO26",
+      "documentationPath": "/schema-poste",
+      "firmwarePath": null,
+      "role": "public",
+      "pixels": [
+        1246,
+        773
+      ],
+      "sha256": "ece2d39cee09e17ec0e9ffeecb9c292a92c53ecdf0d0aae19573e31c9f30e4d7",
+      "kind": "schema"
+    }
+  ],
+  "captureMethod": "Fenêtres normales, captures intégrales pour les écrans longs, cadrage direct sans retouche pour les schémas, portails et réponses texte. Mobile : 390 × 844 pixels.",
+  "hardwareQueried": false
+}

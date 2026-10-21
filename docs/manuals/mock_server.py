@@ -9,6 +9,8 @@ de l'installation reelle ne sont lus ou modifies.
 from __future__ import annotations
 
 import json
+import csv
+import io
 import mimetypes
 import re
 from datetime import date, timedelta
@@ -119,6 +121,10 @@ DEMO_POSTS = [
     },
 ]
 
+DEMO_CONFIG = {"availablePieces": 18, "coinDurationSeconds": 1800,
+               "coinCurrency": "TND", "pulseValueMinor": 1000,
+               "dzdToTndRateMicros": 20000}
+
 
 def demo_posts(role: str) -> dict:
     is_admin = role == "admin"
@@ -166,20 +172,28 @@ def demo_posts(role: str) -> dict:
                 "revenueStorageError": "",
             }
         )
+    payload.update(DEMO_CONFIG)
+    if DEMO_CONFIG["coinCurrency"] == "TND":
+        payload["pulseValueMillimes"] = DEMO_CONFIG["pulseValueMinor"]
+    else:
+        payload.pop("pulseValueMillimes", None)
     return payload
 
 
-def demo_revenue(period: str = "day") -> dict:
-    today = date(2026, 8, 23)
+def demo_revenue(period: str = "day", anchor: str = "2026-10-21") -> dict:
+    today = date.fromisoformat(anchor)
     if period == "month":
-        points = [(today - timedelta(days=day), f"{23-day:02d}/08") for day in range(22, -1, -1)]
-        label = "01/08/2026 - 23/08/2026"
+        first = today.replace(day=1)
+        following = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+        points = [(first + timedelta(days=i), (first + timedelta(days=i)).strftime("%d/%m")) for i in range((following-first).days)]
     elif period == "week":
-        points = [(today - timedelta(days=day), (today - timedelta(days=day)).strftime("%d/%m")) for day in range(6, -1, -1)]
-        label = "17/08/2026 - 23/08/2026"
+        first = today - timedelta(days=today.weekday())
+        points = [(first + timedelta(days=i), (first + timedelta(days=i)).strftime("%d/%m")) for i in range(7)]
     else:
         points = [(today, f"{hour:02d} h") for hour in range(10, 23)]
-        label = "23/08/2026"
+    label = points[0][0].strftime("%d/%m/%Y")
+    if period != "day":
+        label += " - " + points[-1][0].strftime("%d/%m/%Y")
     items = []
     for index, (day_value, item_label) in enumerate(points):
         pulses = (index * 3 + 2) % 8 + 1
@@ -200,7 +214,7 @@ def demo_revenue(period: str = "day") -> dict:
         "rangeLabel": label,
         "startDate": str(points[0][0]),
         "endDate": str(points[-1][0]),
-        "generatedAt": "2026-08-23 22:15:00",
+        "generatedAt": "2026-10-21 12:00:00",
         "storageReady": True,
         "timeReady": True,
         "storageError": "",
@@ -286,6 +300,14 @@ class DemoHandler(BaseHTTPRequestHandler):
         if path == "/login":
             self.send_text(LOGIN_HTML)
             return
+        if path == "/poste-local":
+            self.send_text("Poste OK", "text/plain; charset=utf-8")
+            return
+        if path == "/status":
+            post = dict(DEMO_POSTS[0], configured=True)
+            post.pop("piecesRequired", None)
+            self.send_json(post)
+            return
         if path == "/wifi-central":
             self.send_text(CENTRAL_WIFI_HTML)
             return
@@ -336,7 +358,21 @@ class DemoHandler(BaseHTTPRequestHandler):
             self.send_json(DEMO_LOGS)
             return
         if path == "/revenue/data":
-            self.send_json(demo_revenue(query.get("period", ["day"])[0]))
+            self.send_json(demo_revenue(query.get("period", ["day"])[0], query.get("anchor", ["2026-10-21"])[0]))
+            return
+        if path == "/revenue/export.csv":
+            report = demo_revenue(query.get("period", ["day"])[0], query.get("anchor", ["2026-10-21"])[0])
+            buffer = io.StringIO()
+            writer = csv.writer(buffer, delimiter=";")
+            writer.writerow(["Période", "Encaissé TND", "Encaissé DZD", "Total TND", "Impulsions", "Crédits / pièces"])
+            for item in report["items"]:
+                writer.writerow([item["label"], item["tndMillimes"]/1000, item["dzdCentimes"]/100, item["amountMillimes"]/1000, item["pulses"], item["credits"]])
+            self.send_text(buffer.getvalue(), "text/csv; charset=utf-8")
+            return
+        if path == "/config/export":
+            self.send_json({"format":"pstm-backup", "version":4, "creditUnit":"pulse", **DEMO_CONFIG,
+                            "posts":DEMO_POSTS, "users":DEMO_USERS["users"],
+                            "documentationOnly":True})
             return
         if path == "/wifi/scan":
             self.send_json(
@@ -356,12 +392,47 @@ class DemoHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length", "0"))
-        if length:
-            self.rfile.read(length)
-        if urlparse(self.path).path == "/login":
-            self.send_json({"ok": True})
+        raw = self.rfile.read(length)
+        path = urlparse(self.path).path
+        try:
+            body = json.loads(raw) if raw else {}
+        except (ValueError, UnicodeDecodeError):
+            self.send_json({"error":"invalid json"}, 400)
+            return
+        if path == "/login":
+            role = "user" if body.get("username") == "user-demo" else "admin"
+            self.send_text('{"ok":true}', "application/json", role=role)
+            return
+        if path == "/config":
+            DEMO_CONFIG.update({key:value for key,value in body.items() if key in DEMO_CONFIG})
+        elif path in {"/pieces/simulate", "/coins/simulate"}:
+            DEMO_CONFIG["availablePieces"] += 1
+        elif path in {"/assign", "/stop", "/recovery/resume", "/recovery/cancel"}:
+            post = next((p for p in DEMO_POSTS if p["id"] == body.get("post_id")), None)
+            if not post or post["status"] == "offline":
+                self.send_json({"error":"poste unavailable"}, 409)
+                return
+            if path == "/assign":
+                if post["recoveryPending"] or DEMO_CONFIG["availablePieces"] < post["piecesRequired"]:
+                    self.send_json({"error":"not enough pieces"}, 409)
+                    return
+                DEMO_CONFIG["availablePieces"] -= post["piecesRequired"]
+                post["remaining"] += DEMO_CONFIG["coinDurationSeconds"]
+                post.update(status="active", relay=True)
+            elif path == "/recovery/resume":
+                post.update(status="active", relay=True, remaining=post["recoveryRemaining"], recoveryPending=False, recoveryRemaining=0)
+            else:
+                post.update(status="idle", relay=False, remaining=0, recoveryPending=False, recoveryRemaining=0)
+        elif path == "/post/update":
+            post = next((p for p in DEMO_POSTS if p["id"] == body.get("id")), None)
+            if post:
+                post.update(name=body["name"], piecesRequired=body["piecesRequired"])
+        elif path in {"/logout", "/post/ping"}:
+            pass
         else:
-            self.send_json({"ok": True})
+            self.send_json({"error":"Action matérielle ou persistante non émulée par le serveur documentaire."}, 501)
+            return
+        self.send_json({"ok": True})
 
 
 def main() -> None:

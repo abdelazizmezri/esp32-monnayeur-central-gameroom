@@ -44,3 +44,7 @@ coredump*.bin
 **/secrets.h
 **/credentials.h
 *.local.h
+
+# Caches des outils documentaires Python
+__pycache__/
+*.py[cod]

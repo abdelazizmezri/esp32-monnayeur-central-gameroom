@@ -16,6 +16,27 @@ le temps de jeu attribué.
 Les réseaux Wi-Fi, postes et états visibles dans les captures sont des données
 de démonstration, sans information extraite d'une installation réelle.
 
+## Interface du poste et captures
+
+Le poste expose uniquement son portail Wi-Fi
+pendant la configuration. En mode normal, `/` affiche `Poste OK` et `/status`
+renvoie un objet JSON ; le pilotage des sessions se fait dans la centrale.
+Le TM1637 est un afficheur physique, sans écran web équivalent.
+
+![Portail Wi-Fi du poste](../output/screenshots/11-wifi-poste.jpg)
+
+*Formulaire réel du firmware : réseaux fictifs, SSID, mot de passe et DHCP.*
+
+![Configuration IP fixe du poste](../output/screenshots/20-wifi-poste-ip-fixe.jpg)
+
+*Le choix IP fixe déplie adresse, passerelle, masque et DNS facultatifs.*
+
+Le [manuel illustré](../docs/manuals/manuel-utilisation.md) couvre également
+la racine locale, le statut JSON et la vue mobile. Les captures sont produites
+sans ESP32 ; connexion radio, relais, TM1637 et reprise NVS restent à vérifier
+sur appareil. Les captures mobiles utilisent une fenêtre de 390 × 844 pixels ; faire défiler
+pour accéder aux différentes parties du formulaire.
+
 ## Sommaire
 
 - [Guides PDF](#guides-pdf)
@@ -148,8 +169,9 @@ l'alimentation est coupée alors que cette valeur est positive, le démarrage su
 4. envoie les mêmes données dans chaque annonce à la centrale ;
 5. attend `START_SESSION` pour reprendre ou `STOP_SESSION` pour annuler.
 
-La centrale additionne éventuellement les minutes saisies par l'opérateur au
-temps sauvegardé avant d'envoyer `START_SESSION`. Chaque poste est autonome : une
+L’interface centrale reprend le temps sauvegardé avec **Reprendre**. L’API
+centrale accepte encore `extraMinutes`, mais aucun champ correspondant n’existe
+dans l’écran actuel. Chaque poste est autonome : une
 coupure touchant plusieurs postes produit plusieurs reprises indépendantes.
 
 Cette sauvegarde ne mesure pas la durée de la coupure. Sans horloge RTC secourue,
@@ -334,15 +356,15 @@ contacts secs séparés du signal `IN`.
 | Périphériques | TM1637 quatre broches, module relais compatible 3,3 V et alimentation adaptée. |
 | Outils | Ordinateur, multimètre, tournevis, pince à dénuder/sertir et matériel de soudure isolé. |
 | Logiciel | Arduino IDE 2.3.10 ou `arduino-cli` 1.5.1. |
-| Cœur de cartes | **esp32 by Espressif Systems** 3.3.11, cible `esp32:esp32:esp32`. |
+| Cœur de cartes | **esp32 by Espressif Systems** 3.3.12, cible `esp32:esp32:esp32`. |
 | Bibliothèque externe | **ArduinoJson** 7.4.3. |
 
 `WiFi`, `WebServer`, `DNSServer`, `Preferences`, `ESPmDNS`, `HTTPClient` et
-FreeRTOS sont fournis par le cœur ESP32 3.3.11. Le pilote TM1637 fait partie de
-`DisplayService.cpp` : ne pas installer de bibliothèque TM1637 externe. La
-compilation finale utilise 1 134 216 octets de programme et 51 632 octets de
-variables globales. La partition applicative par défaut accepte 1 310 720
-octets : il reste environ 176 504 octets pour les évolutions.
+FreeRTOS sont fournis par le cœur ESP32 3.3.12. Le pilote TM1637 fait partie de
+`DisplayService.cpp` : ne pas installer de bibliothèque TM1637 externe.
+La partition applicative du profil `default` accepte **1 310 720 octets** :
+vérifier que la taille obtenue à la compilation ne dépasse pas cette limite
+avant le téléversement.
 
 ### Avec Arduino IDE
 
@@ -366,7 +388,7 @@ octets : il reste environ 176 504 octets pour les évolutions.
 ```bash
 arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core update-index
-arduino-cli core install esp32:esp32@3.3.11
+arduino-cli core install esp32:esp32@3.3.12
 arduino-cli lib install ArduinoJson@7.4.3
 arduino-cli board list
 arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=default .
@@ -389,8 +411,9 @@ sous Windows.
 7. Attendre le message de connexion et noter l'adresse IP affichée.
 8. Dans l'interface de la centrale, ouvrir **Gestion des postes**.
 9. Attendre l'apparition du nouveau `chipId` dans les postes découverts.
-10. Attribuer uniquement un nom visible au poste. La centrale dérive
-    automatiquement l'identifiant technique depuis le `chipId`.
+10. Renseigner le nom et le nombre de pièces requis dans la centrale, puis
+    **Ajouter ce poste**. L’identifiant est dérivé automatiquement du `chipId`.
+    Le tarif reste dans la centrale ; le firmware poste ne reçoit que du temps.
 11. Vérifier que l'afficheur indique `00:00` au repos.
 12. Affecter du temps et vérifier le passage à `active`, l'activation du relais
     et le décompte du temps restant sur le TM1637.
@@ -417,6 +440,7 @@ de 16 caractères.
 | POST | `/identity/clear` | Bearer | Arrête la session et efface l'identité du poste. |
 | POST | `/command` | Bearer | Exécute une commande de session ou un ping. |
 | GET | `/wifi` | Non, portail uniquement | Affiche le formulaire de configuration Wi-Fi. |
+| GET | `/wifi/scan` | Non, portail uniquement | Renvoie la liste des réseaux détectés. |
 | POST | `/wifi/save` | Non, portail uniquement | Teste et sauvegarde le Wi-Fi soumis par le formulaire. |
 
 Une route protégée réussie renvoie :
