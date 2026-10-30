@@ -265,6 +265,115 @@ void initializeBuckets(const String& period, time_t start, int count,
 } // namespace
 
 namespace RevenueService {
+static bool ensureSession(AppState& state) {
+  if (state.revenueSessionId) return true;
+  AppState next = state;
+  next.revenueSessionId = 1;
+  if (!StorageService::saveConfig(next)) return fail(state, "Impossible d'initialiser la session de caisse.");
+  state.revenueSessionId = 1;
+  return true;
+}
+
+bool prepareArchive(AppState& state, RevenueArchiveSnapshot& snapshot, String& error) {
+  if (!recoverPending(state) || !state.revenueStorageReady || !gJournalClean) {
+    error = "Encaissements ou stockage en attente ; export impossible."; return false;
+  }
+  File file = LittleFS.open(AppConfig::REVENUE_FILE,FILE_READ);
+  if (!file || file.size() < HEADER_SIZE || (file.size()-HEADER_SIZE)%RECORD_SIZE) {
+    if (file) file.close(); error = "Journal incomplet ; export et effacement refusés."; return false;
+  }
+  snapshot.sequence = state.lastRevenueSequence;
+  snapshot.sessionId = state.revenueSessionId; snapshot.currency = state.coinCurrency;
+  snapshot.fileBytes = file.size(); snapshot.fingerprint = 2166136261U;
+  uint8_t bytes[RECORD_SIZE];
+  if (file.read(bytes,HEADER_SIZE) != HEADER_SIZE || memcmp(bytes,HEADER,HEADER_SIZE)) {
+    file.close(); error = "En-tête du journal invalide."; return false;
+  }
+  while (file.available()) {
+    Entry entry;
+    if (file.read(bytes,RECORD_SIZE) != RECORD_SIZE || !decode(bytes,entry)) {
+      file.close(); error = "Journal corrompu ; aucune recette ne sera effacée."; return false;
+    }
+    for (size_t i=0; i<RECORD_SIZE; ++i) snapshot.fingerprint = (snapshot.fingerprint ^ bytes[i])*16777619U;
+  }
+  file.close(); return true;
+}
+
+bool readArchivePage(AppState& state, const RevenueArchiveSnapshot& snapshot,
+                     size_t offset, std::vector<Entry>& entries, String& error) {
+  entries.clear();
+  File file = LittleFS.open(AppConfig::REVENUE_FILE,FILE_READ);
+  size_t count = (snapshot.fileBytes-HEADER_SIZE)/RECORD_SIZE;
+  if (!file || !state.revenueStorageReady || state.revenueTransactionPending || !gJournalClean ||
+      state.lastRevenueSequence != snapshot.sequence || state.revenueSessionId != snapshot.sessionId ||
+      state.coinCurrency != snapshot.currency || file.size() != snapshot.fileBytes || offset > count) {
+    if (file) file.close(); error = "La recette a changé. Relancez l'export complet."; return false;
+  }
+  if (!file.seek(HEADER_SIZE+offset*RECORD_SIZE)) { file.close(); error = "Lecture impossible."; return false; }
+  uint8_t bytes[RECORD_SIZE];
+  for (size_t i=offset; i<count && entries.size()<32; ++i) {
+    Entry entry;
+    if (file.read(bytes,RECORD_SIZE) != RECORD_SIZE || !decode(bytes,entry)) {
+      file.close(); error = "Journal corrompu ; export interrompu."; return false;
+    }
+    entries.push_back(entry);
+  }
+  file.close(); return true;
+}
+
+bool clearArchivedRevenue(AppState& state, const RevenueArchiveSnapshot& snapshot, String& error) {
+  RevenueArchiveSnapshot current;
+  if (!prepareArchive(state,current,error)) return false;
+  if (current.sequence != snapshot.sequence || current.sessionId != snapshot.sessionId ||
+      current.currency != snapshot.currency || current.fileBytes != snapshot.fileBytes ||
+      current.fingerprint != snapshot.fingerprint) {
+    error = "De nouvelles opérations ont été reçues. Exportez à nouveau avant de vider la recette."; return false;
+  }
+  // Remplacement récupérable du seul journal. Ne jamais formater LittleFS.
+  // Le repère conserve la séquence pour la reprise NVS après une coupure.
+  File output = LittleFS.open(TEMP_REVENUE_FILE,FILE_WRITE);
+  if (!output) { error = "Impossible de préparer le journal vide."; return false; }
+  Entry checkpoint;
+  checkpoint.sessionId = state.revenueSessionId; checkpoint.currency = state.coinCurrency;
+  checkpoint.sequence = state.lastRevenueSequence; checkpoint.balanceAfter = state.availablePieces;
+  checkpoint.events = 0;
+  bool ok = output.write(HEADER,HEADER_SIZE)==HEADER_SIZE && writeEntry(output,checkpoint);
+  output.flush(); ok = ok && output.getWriteError()==0; output.close();
+  if (!ok || !promoteTemp()) {
+    gJournalClean = false;
+    error = "Effacement non confirmé. Rechargez le journal avant de réessayer.";
+    return fail(state,error);
+  }
+  gLastSequence = state.lastRevenueSequence; gJournalClean = true;
+  gLastCompactedSize = HEADER_SIZE+RECORD_SIZE;
+  return true;
+}
+
+bool sessionTotals(AppState& state, uint64_t& amount, uint32_t& events, String& error) {
+  amount = 0; events = 0;
+  if (!gFsReady || !state.revenueStorageReady || !state.revenueSessionId) {
+    error = "Journal de caisse indisponible."; return false;
+  }
+  File file = LittleFS.open(AppConfig::REVENUE_FILE, FILE_READ);
+  if (!file || !file.seek(HEADER_SIZE)) { error = "Journal de caisse illisible."; return false; }
+  uint8_t bytes[RECORD_SIZE];
+  while (file.available() >= (int)RECORD_SIZE) {
+    Entry e;
+    if (file.read(bytes, RECORD_SIZE) != RECORD_SIZE || !decode(bytes, e)) {
+      file.close(); error = "Journal corrompu ; changement de devise refusé."; return false;
+    }
+    if (!e.events || e.sessionId != state.revenueSessionId) continue;
+    if (e.currency != state.coinCurrency) {
+      file.close(); error = "Devise incohérente dans la session."; return false;
+    }
+    amount += e.nativeAmount; events += e.events;
+  }
+  bool complete = file.available() == 0;
+  file.close();
+  if (!complete) error = "Écriture incomplète ; changement de devise refusé.";
+  return complete;
+}
+
 bool recoverPending(AppState& state) {
   if (!state.creditStorageReady) return fail(state,"Instantané des crédits NVS indisponible ; comptage suspendu.");
   Entry e;
@@ -278,7 +387,7 @@ bool recoverPending(AppState& state) {
     if (gLastSequence > state.lastRevenueSequence)
       return fail(state,"Journal et crédits incohérents ; reprise automatique suspendue.");
     state.revenueStorageReady = true; state.revenueStorageError = "";
-    return true;
+    return ensureSession(state);
   }
   if (e.sequence > state.lastRevenueSequence && e.sequence != state.lastRevenueSequence+1)
     return fail(state,"Séquence de transaction NVS incohérente.");
@@ -309,7 +418,7 @@ bool recoverPending(AppState& state) {
   if (!StorageService::clearRevenueTransaction()) return fail(state,"Finalisation NVS en attente.");
   state.revenueTransactionPending = false;
   state.revenueStorageReady = true; state.revenueStorageError = "";
-  return true;
+  return ensureSession(state);
 }
 
 void begin(AppState& state) {
@@ -340,17 +449,17 @@ void update(AppState& state) {
 }
 
 bool recordPulses(AppState& state, int pulses, uint8_t currency,
-                  uint32_t value, uint32_t rate, uint32_t epoch) {
-  if (pulses <= 0 || !recoverPending(state) || !Money::validValue(currency,value) ||
-      (currency == Money::DZD && !Money::validRate(rate))) return false;
+                  uint32_t value, uint32_t epoch) {
+  if (pulses <= 0 || !recoverPending(state) || !Money::validStoredValue(currency,value) ||
+      currency != state.coinCurrency || !state.revenueSessionId) return false;
   uint64_t credits = pulses;
   if (credits + state.availablePieces > INT32_MAX || state.lastRevenueSequence == UINT64_MAX)
     return fail(state,"Solde ou séquence hors limite.");
   Entry e;
   e.epoch = epoch; e.currency = currency; e.pulseValue = value;
-  e.rate = currency == Money::DZD ? rate : 0;
+  e.sessionId = state.revenueSessionId;
   e.nativeAmount = (uint64_t)pulses*value;
-  e.convertedMillimes = (uint64_t)pulses*Money::toMillimes(currency,value,rate);
+  // Les anciens champs de conversion REV2 restent à zéro.
   e.pulses = pulses; e.credits = credits; e.sequence = state.lastRevenueSequence+1;
   e.balanceAfter = state.availablePieces+credits; e.pendingAfter = 0;
   e.pulsesPerCoin = 1; // Compatibilité binaire REV2, les nouveaux crédits sont des impulsions.
@@ -365,7 +474,7 @@ bool recordPulses(AppState& state, int pulses, uint8_t currency,
 
 bool buildReport(AppState& state, const String& period,
                  const String& anchorDate, RevenueReport& report,
-                 String& error) {
+                 String& error, const String& session, const String& currency) {
   if (period != "day" && period != "week" && period != "month") {
     error = "Période invalide.";
     return false;
@@ -412,7 +521,25 @@ bool buildReport(AppState& state, const String& period,
 
   report = RevenueReport();
   report.period = period;
-  report.currentRateMicros = state.dzdToTndRateMicros;
+  report.sessionId = state.revenueSessionId;
+  report.currency = state.coinCurrency;
+  if (!session.isEmpty()) {
+    uint64_t id = 0;
+    for (size_t i = 0; i < session.length(); ++i) {
+      char c = session[i];
+      if (c < '0' || c > '9' || (id = id*10 + c-'0') > UINT32_MAX) {
+        error = "Session invalide."; return false;
+      }
+    }
+    report.sessionId = id;
+    if (report.sessionId > state.revenueSessionId) { error = "Session inconnue."; return false; }
+  }
+  if (!currency.isEmpty()) {
+    if (currency != "TND" && currency != "DZD") { error = "Devise invalide."; return false; }
+    report.currency = currency == "DZD" ? Money::DZD : Money::TND;
+  }
+  report.activeSession = report.sessionId == state.revenueSessionId && report.currency == state.coinCurrency;
+  report.sessions.push_back({state.revenueSessionId, state.coinCurrency, 0, 0});
   report.storageReady = gFsReady && state.revenueStorageReady;
   report.timeReady = timeIsReady();
   report.storageUsedBytes = gFsReady ? LittleFS.usedBytes() : 0;
@@ -458,9 +585,21 @@ bool buildReport(AppState& state, const String& period,
     if (file.read(record,RECORD_SIZE) != RECORD_SIZE) break;
     Entry e;
     if (!decode(record,e)) { report.corruptRecords++; continue; }
+    if (!e.events) continue; // Repère de reprise, sans recette.
+    RevenueSession* summary = nullptr;
+    for (auto& candidate : report.sessions) {
+      if (candidate.id == e.sessionId && candidate.currency == e.currency) { summary = &candidate; break; }
+    }
+    if (!summary) {
+      report.sessions.push_back({e.sessionId, e.currency, 0, 0});
+      summary = &report.sessions.back();
+    }
+    summary->amountMinor += e.nativeAmount; summary->events += e.events;
+    if (e.sessionId != report.sessionId || e.currency != report.currency) continue;
+    report.sessionAmountMinor += e.nativeAmount; report.sessionEvents += e.events;
     time_t epoch = e.epoch;
     if (epoch <= 0) {
-      report.undatedMillimes += e.convertedMillimes;
+      report.undatedMinor += e.nativeAmount;
       if (e.currency == Money::DZD) report.undatedDzdCentimes += e.nativeAmount;
       else report.undatedTndMillimes += e.nativeAmount;
       report.undatedEvents += e.events;
@@ -472,18 +611,23 @@ bool buildReport(AppState& state, const String& period,
     else index = (int)((epoch-start)/86400);
     if (index < 0 || index >= (int)report.buckets.size()) continue;
     RevenueBucket& bucket = report.buckets[index];
-    bucket.amountMillimes += e.convertedMillimes;
+    bucket.amountMinor += e.nativeAmount;
     if (e.currency == Money::DZD) {
       bucket.dzdCentimes += e.nativeAmount; report.totalDzdCentimes += e.nativeAmount;
     } else {
       bucket.tndMillimes += e.nativeAmount; report.totalTndMillimes += e.nativeAmount;
     }
     bucket.pulses += e.pulses; bucket.credits += e.credits; bucket.events += e.events;
-    report.totalMillimes += e.convertedMillimes;
+    report.totalMinor += e.nativeAmount;
     report.pulses += e.pulses; report.credits += e.credits; report.events += e.events;
   }
   if (file.available()) report.corruptRecords++;
   file.close();
+  bool found = false;
+  for (const auto& session : report.sessions) {
+    if (session.id == report.sessionId && session.currency == report.currency) found = true;
+  }
+  if (!found) { error = "Session ou devise inconnue."; return false; }
   return true;
 }
 
@@ -499,22 +643,27 @@ String buildCsv(const RevenueReport& report) {
   String label = report.period == "day" ? "Jour" : report.period == "week" ? "Semaine" : "Mois";
   String csv = "\xEF\xBB\xBF";
   csv.reserve(768+report.buckets.size()*120);
-  csv += "Période;\""+label+"\"\r\nPlage;\""+report.rangeLabel+"\"\r\n";
-  csv += "Total encaissé TND;"+formatMinor(report.totalTndMillimes,3)+"\r\n";
-  csv += "Total encaissé DZD;"+formatMinor(report.totalDzdCentimes,2)+"\r\n";
-  csv += "Total général TND;"+formatMinor(report.totalMillimes,3)+"\r\n";
-  csv += "Taux actuel (1 DZD en TND);"+(report.currentRateMicros ? formatMinor(report.currentRateMicros,6) : String("Non renseigné"))+"\r\n";
-  csv += "Conversion;Taux historique enregistré par encaissement - arrondi au millime par impulsion\r\n";
-  csv += "Clé;Libellé;Encaissé TND;Encaissé DZD;Total général TND;Impulsions;Crédits historiques / pièces;Événements\r\n";
+  unsigned decimals = report.currency == Money::DZD ? 2 : 3;
+  csv += "PS TIME MANAGER - RAPPORT DE RECETTE\r\n\r\n";
+  csv += "Session;"+String(report.sessionId)+"\r\nDevise;"+Money::code(report.currency)+"\r\n";
+  csv += "État;"+String(report.activeSession ? "Ouverte" : "Clôturée")+"\r\n";
+  csv += "Période;"+label+"\r\nDu;"+report.startDate+"\r\nAu;"+report.endDate+"\r\n";
+  csv += "Généré le;"+report.generatedAt+"\r\n\r\nSYNTHÈSE\r\n";
+  csv += "Total période;"+formatMinor(report.totalMinor,decimals)+"\r\n";
+  csv += "Total session;"+formatMinor(report.sessionAmountMinor,decimals)+"\r\n";
+  csv += "Montant non daté (hors période);"+formatMinor(report.undatedMinor,decimals)+"\r\n";
+  csv += "Impulsions de la période;"+String(report.pulses)+"\r\n";
+  csv += "Pièces de la période;"+String(report.credits)+"\r\n\r\nDÉTAIL DE LA PÉRIODE\r\n";
+  csv += "Date / période;Libellé;Montant;Devise;Impulsions;Pièces;Écritures\r\n";
   for (const auto& b : report.buckets) {
-    csv += "\""+b.key+"\";\""+b.label+"\";"+formatMinor(b.tndMillimes,3)+";"+
-           formatMinor(b.dzdCentimes,2)+";"+formatMinor(b.amountMillimes,3)+";"+
-           String(b.pulses)+";"+String(b.credits)+";"+String(b.events)+"\r\n";
+    csv += "\""+b.key+"\";\""+b.label+"\";"+formatMinor(b.amountMinor,decimals)+";"+
+           Money::code(report.currency)+";"+String(b.pulses)+";"+String(b.credits)+";"+String(b.events)+"\r\n";
   }
+  csv += "TOTAL PÉRIODE;;"+formatMinor(report.totalMinor,decimals)+";"+Money::code(report.currency)+";"+
+         String(report.pulses)+";"+String(report.credits)+";"+String(report.events)+"\r\n";
   if (report.undatedEvents)
-    csv += "NON_DATÉ;Hors période avant NTP;"+formatMinor(report.undatedTndMillimes,3)+";"+
-           formatMinor(report.undatedDzdCentimes,2)+";"+formatMinor(report.undatedMillimes,3)+";;;"+
-           String(report.undatedEvents)+"\r\n";
+    csv += "NON_DATÉ;Hors période avant NTP;"+formatMinor(report.undatedMinor,decimals)+";"+
+           Money::code(report.currency)+";;;"+String(report.undatedEvents)+"\r\n";
   return csv;
 }
 } // namespace RevenueService

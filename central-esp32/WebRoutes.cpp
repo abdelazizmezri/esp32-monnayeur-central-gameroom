@@ -9,6 +9,7 @@
 #include "PosteClient.h"
 #include "LogService.h"
 #include "RevenueService.h"
+#include <esp_system.h>
 #include "CoinService.h"
 
 #include <ArduinoJson.h>
@@ -177,7 +178,7 @@ static void handleGetPosts() {
   doc["coinDurationSeconds"] = gState->coinDurationSeconds;
   doc["coinCurrency"] = Money::code(gState->coinCurrency);
   doc["pulseValueMinor"] = gState->pulseValueMinor;
-  doc["dzdToTndRateMicros"] = gState->dzdToTndRateMicros;
+  doc["revenueSessionId"] = gState->revenueSessionId;
   if (gState->coinCurrency == Money::TND) doc["pulseValueMillimes"] = gState->pulseValueMinor;
   doc["creditUnit"] = "pulse";
   doc["assignmentsReady"] = gState->creditStorageReady && gState->revenueStorageReady && !gState->revenueTransactionPending;
@@ -275,28 +276,6 @@ static void handleAssign() {
   gServer->send(200, "application/json", "{\"ok\":true}");
 }
 
-static void handleSimulateCoin() {
-  if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
-
-  if (!CoinService::settle(*gState) || gState->availablePieces == INT32_MAX) {
-    sendJsonError(503,"Crédits indisponibles ou solde maximal atteint."); return;
-  }
-  gState->availablePieces += 1;
-  if (!StorageService::saveCredits(*gState)) {
-    --gState->availablePieces;
-    gState->creditStorageReady = false;
-    sendJsonError(503,"Échec d'enregistrement des crédits NVS."); return;
-  }
-  LogService::info(*gState, "Simulation monnayeur: +1 pièce (sans recette), total=" + String(gState->availablePieces));
-
-  DynamicJsonDocument doc(128);
-  doc["ok"] = true;
-  doc["availablePieces"] = gState->availablePieces;
-
-  String json;
-  serializeJson(doc, json);
-  gServer->send(200, "application/json", json);
-}
 
 static void handleResolveAssignment() {
   if (!AuthService::requireAdminAuth(*gServer, *gState)) return;
@@ -349,22 +328,42 @@ static void handleConfig() {
     next.pulseValueMinor = doc["pulseValueMinor"].as<uint32_t>();
   }
   if (doc.containsKey("dzdToTndRateMicros")) {
-    if (!doc["dzdToTndRateMicros"].is<uint32_t>() ||
-        !Money::validRate(doc["dzdToTndRateMicros"].as<uint32_t>())) {
-      sendJsonError(400,"Taux invalide : 1 DZD = X TND, de 0,000001 à 1000."); return;
-    }
-    next.dzdToTndRateMicros = doc["dzdToTndRateMicros"].as<uint32_t>();
+    sendJsonError(400,"Les taux de change ne sont plus pris en charge."); return;
   }
-  if (!Money::validValue(next.coinCurrency,next.pulseValueMinor) ||
-      (next.coinCurrency == Money::DZD && !Money::validRate(next.dzdToTndRateMicros))) {
-    sendJsonError(400,"Choisir une valeur de pièce valide et renseigner un taux positif avant d'activer le DZD."); return;
+  bool unchangedLegacyValue = next.coinCurrency == gState->coinCurrency &&
+    next.pulseValueMinor == gState->pulseValueMinor &&
+    Money::validStoredValue(next.coinCurrency,next.pulseValueMinor);
+  if (!Money::validValue(next.coinCurrency,next.pulseValueMinor) && !unchangedLegacyValue) {
+    sendJsonError(400,"Choisir une valeur de pièce valide dans la devise sélectionnée."); return;
+  }
+  if (doc.containsKey("closeRevenueSession") && !doc["closeRevenueSession"].is<bool>()) {
+    sendJsonError(400,"Clôture invalide."); return;
   }
   if (doc.containsKey("availablePieces") &&
       (!doc["availablePieces"].is<int>() || doc["availablePieces"].as<int>() < 0)) {
     sendJsonError(400,"Solde invalide."); return;
   }
+  CoinService::ConfigurationPause pause;
   if (!CoinService::settle(*gState)) {
     sendJsonError(503,"Sauvegarde des encaissements en attente ; configuration non modifiée."); return;
+  }
+  next.revenueSessionId = gState->revenueSessionId;
+  bool closeSession = doc["closeRevenueSession"] | false;
+  uint64_t sessionAmount; uint32_t sessionEvents; String sessionError;
+  if (!RevenueService::sessionTotals(*gState, sessionAmount, sessionEvents, sessionError)) {
+    sendJsonError(503,sessionError); return;
+  }
+  if (next.coinCurrency != gState->coinCurrency && sessionEvents && !closeSession) {
+    sendJsonError(409,"La caisse contient des opérations. Confirmez sa clôture avant de changer de devise."); return;
+  }
+  if (closeSession && (!doc["expectedRevenueSessionId"].is<uint32_t>() ||
+      doc["expectedRevenueSessionId"].as<uint32_t>() != gState->revenueSessionId)) {
+    sendJsonError(409,"La session a changé. Actualisez avant de confirmer sa clôture."); return;
+  }
+  if (closeSession) {
+    // La devise et la nouvelle session sont engagées dans le même instantané NVS.
+    if (next.revenueSessionId == UINT32_MAX) { sendJsonError(409,"Limite des sessions atteinte."); return; }
+    ++next.revenueSessionId;
   }
   // settle a pu créditer des impulsions : ne jamais restaurer un ancien solde.
   next.availablePieces = doc.containsKey("availablePieces") ? doc["availablePieces"].as<int>() : gState->availablePieces;
@@ -376,7 +375,7 @@ static void handleConfig() {
   }
   gState->coinDurationSeconds = next.coinDurationSeconds;
   gState->coinCurrency = next.coinCurrency; gState->pulseValueMinor = next.pulseValueMinor;
-  gState->dzdToTndRateMicros = next.dzdToTndRateMicros; gState->availablePieces = next.availablePieces;
+  gState->revenueSessionId = next.revenueSessionId; gState->availablePieces = next.availablePieces;
   CoinService::publishConfiguration(*gState);
   LogService::info(*gState,"Configuration enregistrée (" + String(Money::code(next.coinCurrency)) + ").");
   gServer->send(200,"application/json","{\"ok\":true}");
@@ -525,6 +524,7 @@ static void handleImportConfig() {
   }
 
   String error;
+  CoinService::ConfigurationPause pause;
   if (!CoinService::settle(*gState)) {
     sendJsonError(503,"Encaissements en attente de sauvegarde ; restauration refusée."); return;
   }
@@ -545,11 +545,94 @@ static bool buildRevenueReport(RevenueReport& report) {
   if (period.isEmpty()) period = "day";
   String error;
   if (!RevenueService::buildReport(*gState, period, gServer->arg("anchor"),
-                                   report, error)) {
+                                   report, error, gServer->arg("session"), gServer->arg("currency"))) {
     sendJsonError(400, error);
     return false;
   }
   return true;
+}
+
+namespace {
+RevenueArchiveSnapshot archiveSnapshot;
+String archiveToken;
+unsigned long archivePreparedAt = 0;
+size_t archiveExportedThrough = 0;
+bool requireArchiveToken() {
+  if (archiveToken.isEmpty() || gServer->arg("token") != archiveToken ||
+      millis()-archivePreparedAt > 900000UL) {
+    sendJsonError(409,"Export absent ou expiré. Relancez l'export complet."); return false;
+  }
+  return true;
+}
+}
+
+static void handlePrepareRevenueArchive() {
+  if (!AuthService::requireAdminAuth(*gServer,*gState)) return;
+  CoinService::ConfigurationPause pause;
+  String error;
+  archiveToken = "";
+  if (!CoinService::settle(*gState) || !RevenueService::prepareArchive(*gState,archiveSnapshot,error)) {
+    sendJsonError(503,error.isEmpty() ? "Encaissements en attente." : error); return;
+  }
+  char token[24]; snprintf(token,sizeof(token),"%08lx%08lx",(unsigned long)esp_random(),(unsigned long)esp_random());
+  archiveToken = token; archivePreparedAt = millis(); archiveExportedThrough = 0;
+  JsonDocument doc;
+  doc["token"] = archiveToken;
+  doc["records"] = (archiveSnapshot.fileBytes-RevenueJournal::HEADER_SIZE)/RevenueJournal::RECORD_SIZE;
+  doc["sessionId"] = archiveSnapshot.sessionId; doc["currency"] = Money::code(archiveSnapshot.currency);
+  String json; serializeJson(doc,json);
+  gServer->sendHeader("Cache-Control","no-store");
+  gServer->send(200,"application/json",json);
+}
+
+static void handleRevenueArchivePage() {
+  if (!AuthService::requireAdminAuth(*gServer,*gState) || !requireArchiveToken()) return;
+  String offsetText = gServer->arg("offset");
+  uint64_t offset = 0;
+  if (offsetText.isEmpty()) { sendJsonError(400,"Position manquante."); return; }
+  for (size_t i=0; i<offsetText.length(); ++i) {
+    char c = offsetText[i];
+    if (c<'0' || c>'9' || (offset=offset*10+c-'0')>UINT32_MAX) {
+      sendJsonError(400,"Position invalide."); return;
+    }
+  }
+  if (offset > archiveExportedThrough) { sendJsonError(409,"Export incomplet. Reprenez les pages dans l’ordre."); return; }
+  std::vector<RevenueJournal::Entry> entries; String error;
+  if (!RevenueService::readArchivePage(*gState,archiveSnapshot,offset,entries,error)) { sendJsonError(409,error); return; }
+  JsonDocument doc; JsonArray items = doc["items"].to<JsonArray>();
+  for (const auto& entry : entries) {
+    JsonObject item = items.add<JsonObject>();
+    item["sessionId"] = entry.sessionId; item["currency"] = Money::code(entry.currency);
+    item["epoch"] = entry.epoch;
+    char minor[24]; snprintf(minor,sizeof(minor),"%llu",(unsigned long long)entry.nativeAmount);
+    item["amountMinor"] = minor;
+    item["pulses"] = entry.pulses; item["credits"] = entry.credits; item["events"] = entry.events;
+  }
+  if (offset+entries.size() > archiveExportedThrough) archiveExportedThrough = offset+entries.size();
+  doc["nextOffset"] = offset+entries.size();
+  String json; serializeJson(doc,json);
+  gServer->sendHeader("Cache-Control","no-store");
+  gServer->send(200,"application/json",json);
+}
+
+static void handleClearRevenue() {
+  if (!AuthService::requireAdminAuth(*gServer,*gState) || !requireArchiveToken()) return;
+  JsonDocument doc;
+  if (!parseJsonBody(doc)) return;
+  if (!doc["pdfSaved"].is<bool>() || !doc["pdfSaved"].as<bool>()) {
+    sendJsonError(400,"Confirmez l'enregistrement du PDF avant l'effacement."); return;
+  }
+  if (archiveExportedThrough != (archiveSnapshot.fileBytes-RevenueJournal::HEADER_SIZE)/RevenueJournal::RECORD_SIZE) {
+    sendJsonError(409,"Export incomplet ; aucune recette effacée."); return;
+  }
+  CoinService::ConfigurationPause pause;
+  String error;
+  if (!CoinService::settle(*gState) || !RevenueService::clearArchivedRevenue(*gState,archiveSnapshot,error)) {
+    sendJsonError(409,error.isEmpty() ? "Encaissements en attente." : error); return;
+  }
+  archiveToken = "";
+  LogService::warn(*gState,"Historique de recette vidé après export PDF confirmé ; crédits et configuration conservés.");
+  gServer->send(200,"application/json","{\"ok\":true}");
 }
 
 static void handleRevenueData() {
@@ -570,12 +653,22 @@ static void handleRevenueData() {
   doc["fileBytes"] = report.fileBytes;
   doc["storageUsedBytes"] = report.storageUsedBytes;
   doc["storageTotalBytes"] = report.storageTotalBytes;
-  doc["totalMillimes"] = report.totalMillimes;
+  doc["sessionId"] = report.sessionId;
+  doc["currency"] = Money::code(report.currency);
+  doc["activeSession"] = report.activeSession;
+  doc["sessionAmountMinor"] = report.sessionAmountMinor;
+  doc["sessionEvents"] = report.sessionEvents;
+  doc["totalMinor"] = report.totalMinor;
+  JsonArray sessions = doc.createNestedArray("sessions");
+  for (const auto& session : report.sessions) {
+    JsonObject item = sessions.createNestedObject();
+    item["id"] = session.id; item["currency"] = Money::code(session.currency);
+    item["amountMinor"] = session.amountMinor; item["events"] = session.events;
+    item["active"] = session.id == gState->revenueSessionId && session.currency == gState->coinCurrency;
+  }
   doc["totalTndMillimes"] = report.totalTndMillimes;
   doc["totalDzdCentimes"] = report.totalDzdCentimes;
-  doc["currentRateMicros"] = report.currentRateMicros;
-  doc["conversionPolicy"] = "historical-per-pulse-half-up";
-  doc["undatedMillimes"] = report.undatedMillimes;
+  doc["undatedMinor"] = report.undatedMinor;
   doc["undatedTndMillimes"] = report.undatedTndMillimes;
   doc["undatedDzdCentimes"] = report.undatedDzdCentimes;
   doc["pulses"] = report.pulses;
@@ -588,7 +681,7 @@ static void handleRevenueData() {
     JsonObject item = items.createNestedObject();
     item["key"] = bucket.key;
     item["label"] = bucket.label;
-    item["amountMillimes"] = bucket.amountMillimes;
+    item["amountMinor"] = bucket.amountMinor;
     item["tndMillimes"] = bucket.tndMillimes;
     item["dzdCentimes"] = bucket.dzdCentimes;
     item["pulses"] = bucket.pulses;
@@ -857,12 +950,13 @@ void WebRoutes::registerRoutes(WebServer& server, AppState& state) {
   server.on("/poste/announce", HTTP_POST, handlePosteAnnounce);
   server.on("/poste/configure", HTTP_POST, handleConfigurePendingPost);
   server.on("/assign", HTTP_POST, handleAssign);
-  server.on("/pieces/simulate", HTTP_POST, handleSimulateCoin);
   server.on("/assignment/resolve", HTTP_POST, handleResolveAssignment);
-  server.on("/coins/simulate", HTTP_POST, handleSimulateCoin); // Alias historique : +1 pièce, sans recette.
   server.on("/config", HTTP_POST, handleConfig);
   server.on("/config/export", HTTP_GET, handleExportConfig);
   server.on("/config/import", HTTP_POST, handleImportConfig);
+  server.on("/revenue/archive/prepare", HTTP_POST, handlePrepareRevenueArchive);
+  server.on("/revenue/archive/page", HTTP_GET, handleRevenueArchivePage);
+  server.on("/revenue/clear", HTTP_POST, handleClearRevenue);
   server.on("/revenue/data", HTTP_GET, handleRevenueData);
   server.on("/revenue/export.csv", HTTP_GET, handleRevenueCsv);
   server.on("/stop", HTTP_POST, handleStop);

@@ -41,7 +41,7 @@ struct AppState {
 
   uint8_t coinCurrency = Money::TND;
   uint32_t pulseValueMinor = AppConfig::DEFAULT_PULSE_VALUE_MILLIMES;
-  uint32_t dzdToTndRateMicros = 0; // Non renseigné ; interdit en mode DZD.
+  uint32_t revenueSessionId = 0; // 0 réservé aux archives antérieures aux sessions.
   int availablePieces = AppConfig::DEFAULT_AVAILABLE_PIECES;
   int coinDurationSeconds = AppConfig::DEFAULT_COIN_DURATION_SECONDS;
 

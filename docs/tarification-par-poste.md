@@ -4,7 +4,7 @@ La centrale conserve des **pièces disponibles**, c'est-à-dire des unités de
 crédit : **une impulsion physique validée ajoute une pièce**. Cette unité ne
 prétend pas identifier une pièce physique : un monnayeur programmé pour envoyer
 plusieurs impulsions par pièce physique ajoute autant d'unités. La devise,
-la valeur monétaire par impulsion et le taux DZD/TND restent indépendants.
+la valeur monétaire par impulsion et le tarif du poste restent indépendants.
 
 ## Configurer et utiliser les postes
 
@@ -35,8 +35,8 @@ La durée commune se règle dans **Configuration → Durée par attribution**.
 Le serveur retrouve le tarif du poste et refuse les affectations insuffisantes,
 les postes indisponibles, les reprises non résolues et les dépassements de durée.
 Le navigateur empêche les doubles clics pendant une affectation. Une réponse
-réseau d'échec ne débite pas le solde. La simulation **+1 pièce** n'ajoute aucune
-recette et ne dépend d'aucun tarif de poste.
+réseau d'échec ne débite pas le solde ; après un timeout, vérifier le poste avant
+de répéter une attribution.
 
 ## API
 
@@ -51,11 +51,9 @@ Les routes conservent leurs règles d'authentification existantes.
 - `POST /assign` : `{"post_id":"..."}`. Un appel ajoute une seule durée de jeu,
   quel que soit le tarif. Le coût fourni éventuellement par un client est ignoré.
   L'ancien `coins: 1` est accepté ; `coins: 2` est refusé.
-- `POST /config` (admin) : durée, monnaie, taux et correction facultative de
+- `POST /config` (admin) : durée, devise, valeur d’impulsion, clôture de caisse et correction facultative de
   `availablePieces`. L'ancien réglage global `pulsesPerCoin` et l'ancien solde
   `availableCoins` sont refusés pour éviter de mélanger les unités.
-- `POST /pieces/simulate` (admin) : ajoute une pièce de test, sans recette.
-  `/coins/simulate` reste un alias historique de cette même opération.
 - `GET /config/export` et `POST /config/import` (admin) : sauvegardes V4.
 
 Les tarifs, soldes et durées doivent être des nombres JSON entiers. Les chaînes,
@@ -67,7 +65,7 @@ La NVS conserve les instantanés vérifiés par relecture et CRC :
 
 | Clé | Contenu |
 |---|---|
-| `appcfg/configV4` | Durée, devise, valeur d'impulsion et taux |
+| `appcfg/configV4` | Durée, devise, valeur d'impulsion et session de caisse |
 | `appcfg/creditsV4` | Solde en pièces, séquence financière locale et éventuelle séquence historique à finaliser |
 | `appcfg/postsV4` | Identités et tarifs individuels des postes |
 | `appcfg/restoreV4` | Restauration complète préparée, jusqu'à sa finalisation |
@@ -97,13 +95,13 @@ historique, y compris son ancien nombre de coins. Après finalisation dans
 LittleFS, seules ses impulsions encore non appliquées sont ajoutées au nouveau
 solde, une seule fois. Les recettes nouvelles utilisent une unité par impulsion.
 Les rapports désignent donc la colonne mixte **Crédits historiques / pièces**.
-Aucune recette n'est créée par migration, affectation, simulation ou correction.
+Aucune recette n'est créée par migration, affectation ou correction.
 
 ## Sauvegardes et restauration interrompue
 
 Le format est `pstm-backup`, version 4, avec `creditUnit: "pulse"`,
 `availablePieces` et `posts[].piecesRequired`. Il comprend aussi les comptes,
-le token, la monnaie, le taux, le Wi-Fi/IP et la préférence d'affichage ajoutée
+le token, la devise, la valeur d’impulsion, le Wi-Fi/IP et la préférence d'affichage ajoutée
 par l'interface. Le journal de recette LittleFS ne fait pas partie de cet export.
 La séquence financière reste locale : elle ne vient jamais du fichier importé.
 
@@ -157,3 +155,15 @@ redécouverte, migration d’une ancienne sauvegarde et restauration V4. Vérifi
 explicite d’un débit incertain. Le
 [guide technique](manuals/guide-technique.md) décrit le parcours de mise en service
 et les contrôles à effectuer sur le matériel.
+
+## Sessions de caisse et archivage
+
+Le tarif d’un poste ne change pas la devise de la caisse. Une session ne contient
+que des TND ou des DZD. Clôturer ouvre une nouvelle session à zéro et conserve
+l’historique. Les rapports se consultent et s’exportent par session.
+
+Le bouton **Recette > Mémoire de recette > Exporter et vider la recette** produit
+une archive PDF intégrale, puis attend une confirmation explicite avant de vider
+le seul journal financier. Le solde de pièces, les tarifs et les temps restent
+conservés. La séquence financière locale continue après l’effacement grâce à un
+repère dans le journal minimal. Voir la [notice de caisse](multidevise.md).

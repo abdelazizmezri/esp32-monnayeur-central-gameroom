@@ -12,15 +12,14 @@ jeu depuis une interface web locale.
 - [Manuel d'utilisation](../output/pdf/ps-time-manager-manuel-utilisation.pdf)
   pour les parcours administrateur et utilisateur simple.
 
-Toutes les captures de ces guides utilisent des données fictives générées par
-le serveur de démonstration documentaire ; elles ne contiennent aucun SSID,
+Les captures de ces guides utilisent des données fictives ; elles ne contiennent aucun SSID,
 compte, mot de passe, token ou historique provenant d'une centrale réelle.
 
 ## Prise en charge TND / DZD
 
 La [notice multidevise](../docs/multidevise.md) décrit les pièces,
-le taux historique, le format REV2, la migration, les sauvegardes V4 et les
-vérifications sur appareil restant à effectuer. Le taux ne modifie pas les crédits ou la durée de jeu.
+les sessions de caisse à devise unique, le format REV2, la migration, les
+sauvegardes V4 et la maintenance de l’historique. La devise ne modifie pas les crédits ou la durée de jeu.
 Les anciens exemples en millimes de ce manuel décrivent le mode TND.
 
 ## Documentation actuelle et captures
@@ -30,12 +29,12 @@ de l'utilisateur simple et de l'administrateur, avec des procédures numérotée
 Le [guide technique](../docs/manuals/guide-technique.md) accompagne l'installation
 des outils, le câblage, la programmation et la mise en réseau.
 
-![Tableau de bord actuel de la centrale](../output/screenshots/02-tableau-de-bord-admin.jpg)
+![Tableau de bord actuel de la centrale](../output/screenshots/interface-accueil.png)
 
 *Rendu navigateur réel des pages embarquées, données de démonstration : tarifs
 1/4/1/2, cinq widgets et quatre états de poste.*
 
-![Configuration monétaire et sauvegarde](../output/screenshots/05-configuration.jpg)
+![Configuration monétaire et sauvegarde](../output/screenshots/interface-configuration.png)
 
 *La durée est commune ; le tarif se règle dans Gestion des postes. Le panneau
 voisin exporte ou sélectionne un fichier JSON V4.*
@@ -67,7 +66,7 @@ voisin exporte ou sélectionne un fichier JSON V4.*
 - accès local par adresse IP ou `http://pstm.local` ;
 - lecture du monnayeur sur le GPIO 13 ;
 - une pièce disponible par impulsion et un tarif configurable pour chaque poste ;
-- devise active TND ou DZD, valeur d'impulsion configurable et taux manuel DZD vers TND ;
+- devise de caisse TND ou DZD, valeur d'impulsion configurable et clôture de session ;
 - crédit disponible sauvegardé en mémoire NVS ;
 - journal monétaire binaire compact dans LittleFS ;
 - recette par jour, semaine ou mois avec graphique, cartes, tableau et exports PDF/CSV ;
@@ -227,7 +226,7 @@ Chaque clic ajoute une seule durée de jeu, même lorsqu'il consomme 4 pièces.
 Le tarif se configure lors de l'ajout du poste puis dans sa liste de gestion.
 Il reste modifiable en cours de session sans toucher au temps déjà attribué.
 La durée commune reste dans **Configuration**, avec la devise, la valeur par
-impulsion et le taux de change. Il n'existe plus de conversion globale des coins.
+impulsion et la session de caisse. Il n'existe plus de conversion globale des coins.
 
 Les nouveaux postes coûtent 1 pièce ; la durée initiale est de 1 800 secondes et
 le solde de 0 pièce. Les tarifs et le solde sont persistants. Les anciens coins
@@ -248,24 +247,32 @@ impulsion utile par pièce physique.
 La centrale synchronise son horloge par NTP avec le fuseau tunisien `CET-1`,
 puis ajoute chaque lot d'impulsions dans `/revenue.bin`, dans la partition
 LittleFS de la flash interne. Le format REV2 utilise des enregistrements de
-72 octets : date, devise, taux fixe, valeur d'impulsion, montant natif, conversion
-TND, compteurs, séquence, instantané des crédits et CRC16. L'ancien format REV1
+72 octets : date, devise, valeur d'impulsion, montant natif, session de caisse,
+compteurs, séquence, instantané des crédits et CRC16. Les anciens champs de taux
+et de conversion restent réservés pour lire les archives, sans participer aux calculs. L'ancien format REV1
 (16 octets) est migré sans modifier les montants TND. Une dernière écriture
 incomplète est réparée ; une corruption intérieure bloque le journal et conserve
 l'original pour intervention.
 
 La valeur monétaire est écrite au moment de l'encaissement. Une modification
-ultérieure du tarif ne change donc jamais l'historique. Les simulations de coin
-et les corrections administratives du solde ne sont pas comptabilisées comme
-recette.
+ultérieure du tarif ne change donc jamais l'historique. Les corrections
+administratives du solde ne sont pas comptabilisées comme recette.
 
 La page administrateur `/recette` propose :
 
-- une sélection **Jour**, **Semaine** ou **Mois**, avec date de référence ;
-- six cartes de synthèse : total général TND, TND encaissés, DZD encaissés, impulsions, crédits historiques / pièces et écritures ;
+- une sélection de session active ou archivée, puis **Jour**, **Semaine** ou **Mois**, avec date de référence ;
+- cinq cartes : recette de la période, total de la session, impulsions, crédits historiques / pièces et écritures ;
 - un graphique en barres et un tableau détaillé ;
 - un export CSV agrégé côté ESP32 ;
 - un export PDF généré localement dans le navigateur.
+- le choix de session active ou archivée dans sa devise d’origine ;
+- **Mémoire de recette > Exporter et vider la recette** pour exporter toutes les
+  sessions, vérifier le PDF puis confirmer le remplacement du seul journal.
+
+Le PDF présente une synthèse et des tableaux paginés ; le CSV UTF-8 utilise le
+point-virgule et distingue la synthèse du détail. Le bouton Actualiser est séparé
+des exports. Une nouvelle opération après l’export ou une autorisation expirée
+invalide l’effacement. Les crédits, paramètres et autres fichiers restent conservés.
 
 Si une pièce est introduite avant la synchronisation NTP, l'écriture reçoit un
 epoch nul. Elle apparaît comme non datée et n'est pas affectée arbitrairement à
@@ -414,7 +421,6 @@ conservé dans un emplacement sûr.
 | Attribuer du temps au tarif du poste | Oui | Oui |
 | Arrêter un poste | Oui | Oui |
 | Relancer ou annuler une session interrompue | Oui | Oui |
-| Simuler une pièce | Oui | Non |
 | Configurer, modifier ou supprimer un poste | Oui | Non |
 | Modifier la configuration générale | Oui | Non |
 | Consulter ou vider les logs | Oui | Non |
@@ -625,7 +631,7 @@ Dans **Configuration** :
 - **Durée par attribution** : nombre de minutes ajoutées par clic ;
 - le **Nombre de pièces requis** se règle dans **Gestion des postes**, à la création et dans **Modifier** ;
 - **Devise et valeur d'une impulsion** : valeurs TND existantes ou pièces DZD ;
-- **Taux de change** : 1 DZD = X TND, strictement positif, jusqu'à six décimales ;
+- **Clôture de caisse** : ouvrir une nouvelle session à zéro et conserver la précédente dans l'historique ;
 - **Crédit disponible** : correction administrative du solde.
 
 Cliquer sur **Enregistrer** après modification.
@@ -697,13 +703,15 @@ est distinct et sert uniquement aux annonces et commandes entre ESP32.
 
 | Méthode | Route | Description |
 |---|---|---|
-| POST | `/pieces/simulate` | Ajoute une pièce de test sans recette ; alias historique `/coins/simulate`. |
 | POST | `/assignment/resolve` | Confirme ou annule un débit interrompu après vérification administrateur. |
 | POST | `/config` | Modifie la configuration générale. |
 | GET | `/config/export` | Télécharge la sauvegarde JSON complète. |
 | POST | `/config/import` | Restaure directement une sauvegarde JSON complète. |
 | GET | `/revenue/data?period=day|week|month&anchor=AAAA-MM-JJ` | Retourne la recette agrégée et l'état LittleFS/NTP. |
 | GET | `/revenue/export.csv?period=day|week|month&anchor=AAAA-MM-JJ` | Télécharge la recette agrégée en CSV. |
+| POST | `/revenue/archive/prepare` | Prépare un export intégral avec jeton temporaire (administrateur). |
+| GET | `/revenue/archive/page?token=...&offset=0` | Lit l’archive par pages de 32 écritures. |
+| POST | `/revenue/clear?token=...` | Avec `pdfSaved: true`, efface uniquement le journal après vérification de l’archive. |
 | POST | `/post/update` | Modifie le tarif ; renomme uniquement hors session et reprise. |
 | POST | `/post/delete` | Supprime un poste inactif et tente de le déconfigurer s'il est joignable. |
 | POST | `/post/ping` | Teste manuellement un poste. |
@@ -766,7 +774,7 @@ LittleFS. Une écriture de 72 octets est flushée et relue après chaque lot
 d'impulsions préparé durablement en NVS, avant l'instantané atomique des crédits. La partition LittleFS fait 640 Kio ; l'interface expose
 son occupation afin que l'administrateur puisse la surveiller. À partir de 40 %
 d'occupation, une compaction sûre regroupe automatiquement les anciens
-événements compatibles par heure, devise, taux et valeur. Cette granularité conserve exactement les rapports jour,
+événements compatibles par heure, session, devise et valeur. Cette granularité conserve exactement les rapports jour,
 semaine et mois tout en prolongeant fortement la capacité. Un fichier temporaire
 et un fichier de secours rendent la compaction récupérable après une coupure.
 
@@ -853,9 +861,9 @@ Le monnayeur peut reconnaître une pièce sans que l'ESP32 reçoive un signal
 
 1. Vérifier l'accès à l'interface normale après connexion Wi-Fi. Si le moniteur
    série affiche `Monnayeur inactif`, terminer la configuration Wi-Fi.
-2. Utiliser **+1 pièce** : cette simulation vérifie le solde, sans tester le
-   GPIO ni ajouter de recette. Chaque impulsion physique validée doit ajouter
-   une pièce disponible, indépendamment du tarif des postes.
+2. Vérifier la programmation du monnayeur et le solde avant une introduction
+   physique contrôlée. Chaque impulsion validée doit ajouter une pièce disponible,
+   indépendamment du tarif des postes.
 3. Ouvrir le moniteur série à **115200 bauds**, redémarrer et vérifier
    `Monnayeur prêt: GPIO13, rappel=pull-up interne`. Sélectionner **NO** sur le
    monnayeur, introduire une pièce puis lire `Impulsions monnayeur validées`.
@@ -902,7 +910,6 @@ passe par le comptage réel et ajoute donc aussi une écriture de recette.
 - faire un téléversement USB complet pour appliquer le nouveau `partitions.csv` ;
 - ouvrir **Recette** et lire l'état LittleFS/NTP affiché en haut de la page ;
 - vérifier que le Wi-Fi dispose d'un accès NTP pour obtenir les dates réelles ;
-- ne pas utiliser **+1 pièce** comme test financier : la simulation est exclue de la recette.
 
 ### Connexion refusée après mise à jour
 
@@ -961,3 +968,12 @@ répertoriées ci-dessous :
 | `PENDING_POST_TIMEOUT_MS` | `30000` | Expiration d'un poste découvert non configuré. |
 
 Après modification de ces valeurs, recompiler et téléverser le firmware.
+
+## Nettoyage du dépôt et maintenance documentaire
+
+Le dépôt livré contient les deux firmwares, leurs ressources, la documentation
+et les deux manuels PDF. Les serveurs de démonstration, les commandes de simulation,
+les données de caisse locale et les rapports PDF d’exemple ont été retirés.
+Le script `docs/manuals/generate_pdfs.py` reste disponible pour reconstruire les
+manuels à partir des Markdown et des illustrations dont les empreintes figurent
+dans `docs/manuals/captures.json`.

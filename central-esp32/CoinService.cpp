@@ -9,13 +9,14 @@
 
 static AppState* gCoinState = nullptr;
 static volatile bool gCoinArmed = false;
+static volatile bool gConfigurationPaused = false;
 static uint32_t gCoinStartedAt = 0;
 static volatile bool gHasAcceptedPulse = false;
 static volatile uint32_t gLastAcceptedPulseAt = 0;
 namespace {
 struct Pulse {
   uint8_t currency;
-  uint32_t value, rate;
+  uint32_t value;
   uint32_t epoch;
 };
 constexpr uint16_t QUEUE_SIZE = 128;
@@ -28,12 +29,12 @@ uint32_t gLastFailureLog = 0;
 uint64_t gInFlightSequence = 0;
 uint16_t gInFlightEnd = 0;
 bool sameProfile(const Pulse& a, const Pulse& b) {
-  return a.currency == b.currency && a.value == b.value && a.rate == b.rate && a.epoch == b.epoch;
+  return a.currency == b.currency && a.value == b.value && a.epoch == b.epoch;
 }
 }
 
 static void IRAM_ATTR coinInterruptHandler() {
-  if (!gCoinState || !gCoinArmed || digitalRead(AppConfig::COIN_PIN) != LOW) {
+  if (!gCoinState || !gCoinState->creditStorageReady || !gCoinArmed || gConfigurationPaused || digitalRead(AppConfig::COIN_PIN) != LOW) {
     return;
   }
 
@@ -51,7 +52,6 @@ static void IRAM_ATTR coinInterruptHandler() {
   // Seulement une capture RAM : aucune allocation, NVS ni LittleFS dans l'ISR.
   Pulse& item = gQueue[gWrite];
   item.currency = gActive.currency; item.value = gActive.value;
-  item.rate = gActive.rate;
   item.epoch = gEpoch ? gEpoch + (uint32_t)(now-gEpochMillis)/1000 : 0;
   gWrite = next;
   gCoinState->pulseCount = gCoinState->pulseCount + 1;
@@ -60,6 +60,9 @@ static void IRAM_ATTR coinInterruptHandler() {
 }
 
 namespace CoinService {
+  ConfigurationPause::ConfigurationPause() { noInterrupts(); gConfigurationPaused = true; interrupts(); }
+  ConfigurationPause::~ConfigurationPause() { noInterrupts(); gConfigurationPaused = false; interrupts(); }
+
   void begin(AppState& state) {
     gCoinArmed = false;
     gCoinStartedAt = (uint32_t)millis();
@@ -117,7 +120,6 @@ namespace CoinService {
   void publishConfiguration(const AppState& state) {
     noInterrupts();
     gActive.currency = state.coinCurrency; gActive.value = state.pulseValueMinor;
-    gActive.rate = state.dzdToTndRateMicros;
     interrupts();
   }
 
@@ -160,7 +162,7 @@ namespace CoinService {
       }
       gInFlightSequence = state.lastRevenueSequence+1; gInFlightEnd = next;
       if (!RevenueService::recordPulses(state,count,profile.currency,profile.value,
-                                       profile.rate,profile.epoch)) {
+                                       profile.epoch)) {
         if (millis()-gLastFailureLog >= 5000) {
           LogService::error(state,state.revenueStorageError); gLastFailureLog = millis();
         }

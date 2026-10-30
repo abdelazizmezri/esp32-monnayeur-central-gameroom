@@ -1,5 +1,6 @@
 # Manuel d’utilisation
 
+
 Utilisez PS TIME MANAGER pour suivre les postes de jeu, attribuer du temps et administrer la salle. Ce manuel distingue les tâches de l’utilisateur simple et celles de l’administrateur. Les postes, réseaux, comptes et montants illustrés sont des exemples ; utilisez les valeurs de votre installation.
 
 ## 1. Choisir le parcours correspondant à son rôle
@@ -12,9 +13,9 @@ L’utilisateur simple exploite les sessions depuis **Vue des postes**. L’admi
 | Démarrer, prolonger ou arrêter une session | Oui | Oui |
 | Reprendre ou annuler un temps sauvegardé | Oui | Oui |
 | Afficher ou masquer les indicateurs | Oui | Oui |
-| Simuler une pièce, corriger le solde et régler la durée | Non | Oui |
+| Corriger le solde et régler la durée | Non | Oui |
 | Ajouter, modifier et supprimer des postes ou des comptes | Non | Oui |
-| Consulter et exporter la recette | Non | Oui |
+| Consulter, exporter, clôturer et vider la recette | Non | Oui |
 | Sauvegarde, restauration, sécurité, journal et Wi-Fi centrale | Non | Oui |
 | Résoudre un débit interrompu | Non | Oui |
 
@@ -34,7 +35,7 @@ L’utilisateur simple exploite les sessions depuis **Vue des postes**. L’admi
 
 Sur une installation neuve non personnalisée, le compte initial est `admin` / `12345678`. Le mot de passe doit ensuite être changé par l’administrateur. **Se souvenir de moi** conserve le cookie pendant 30 jours, mais un redémarrage de la centrale impose une nouvelle connexion car les sessions sont en RAM.
 
-![Connexion : identifiant, mot de passe et mémorisation](../../output/screenshots/01-connexion.jpg)
+![Connexion : identifiant, mot de passe et mémorisation](../../output/screenshots/interface-connexion.png)
 
 ## 3. Consulter les postes et les indicateurs
 
@@ -48,9 +49,7 @@ Sur une installation neuve non personnalisée, le compte initial est `admin` / `
 
 **Résultat attendu :** vous connaissez le solde partagé, le coût d’une attribution et l’état de chaque poste. Un poste **Hors ligne** est indisponible ; **Reprise en attente** demande une décision avant une nouvelle attribution. L’état général de l’en-tête ne remplace pas l’état individuel des postes.
 
-![Utilisateur simple : vue des postes sans les modules administrateur](../../output/screenshots/03-tableau-de-bord-utilisateur.jpg)
-
-![Administrateur : mêmes cartes de session et modules de gestion](../../output/screenshots/02-tableau-de-bord-admin.jpg)
+![Administrateur : mêmes cartes de session et modules de gestion](../../output/screenshots/interface-accueil.png)
 
 ## 4. Masquer ou réafficher les indicateurs
 
@@ -62,7 +61,6 @@ Sur une installation neuve non personnalisée, le compte initial est `admin` / `
 
 **Résultat attendu :** seule leur visibilité change. Le solde et les sessions ne sont pas modifiés. Le choix est mémorisé dans le navigateur utilisé.
 
-![Indicateurs repliés : les cartes des postes restent disponibles](../../output/screenshots/12-cartes-masquees.jpg)
 
 ## 5. Démarrer une session de jeu
 
@@ -78,7 +76,6 @@ Sur une installation neuve non personnalisée, le compte initial est `admin` / `
 
 Si le bouton est désactivé, lire l’explication de la carte : solde insuffisant, poste indisponible, reprise non résolue ou problème de stockage. Après un timeout, vérifier si le poste a reçu le temps avant de recommencer.
 
-![Exemple : Poste Démo 2 actif pour 30 minutes et solde de 14 pièces](../../output/screenshots/23-session-demarree.jpg)
 
 ## 6. Prolonger une session active
 
@@ -147,11 +144,9 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 
 **Résultat attendu :** les fonctions sont accessibles dans une disposition adaptée à la largeur de l’écran. Les illustrations suivantes montrent un compte administrateur ; le menu utilisateur simple contient moins d’options.
 
-![Accueil mobile : indicateurs et accès au menu](../../output/screenshots/24-accueil-mobile.jpg)
 
 ![Menu mobile administrateur ouvert](../../output/screenshots/25-menu-mobile.jpg)
 
-![Configuration mobile : faire défiler pour atteindre la suite du formulaire](../../output/screenshots/26-configuration-mobile.jpg)
 
 ## 11. Administrateur : ajouter un poste découvert
 
@@ -166,7 +161,7 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 
 **Résultat attendu :** le poste possède un nom et un tarif persistants. L’identifiant matériel est repris automatiquement ; il n’est pas à saisir. Une découverte non configurée disparaît après 30 secondes sans annonce ; vérifier le réseau si la carte attendue disparaît.
 
-![Ajout : carte découverte, nom et nombre de pièces requis](../../output/screenshots/06-gestion-des-postes.jpg)
+![Ajout : carte découverte, nom et nombre de pièces requis](../../output/screenshots/interface-postes.png)
 
 ## 12. Administrateur : tester et renommer un poste
 
@@ -203,7 +198,6 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 
 **Résultat attendu :** les prochaines attributions utilisent le nouveau tarif. Le changement n’altère ni le solde, ni le temps déjà acquis. Le tarif peut être modifié pendant une session et hors ligne ; le renommage reste soumis à la disponibilité du poste.
 
-![Éditeur : nom et tarif individuel](../../output/screenshots/13-modifier-tarif-poste.jpg)
 
 ## 14. Administrateur : supprimer un poste
 
@@ -228,33 +222,33 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 
 **Résultat attendu :** les prochaines attributions ajoutent cette durée. Les tarifs restent individuels et se modifient dans **Gestion des postes**. Le réglage ne recalcule pas le temps déjà attribué.
 
-![Configuration générale : durée, devise, taux et pièces disponibles](../../output/screenshots/05-configuration.jpg)
+![Configuration générale : durée, devise et pièces disponibles](../../output/screenshots/interface-configuration.png)
 
 ## 16. Administrateur : configurer le monnayeur en TND
 
-**Prérequis :** connaître la valeur financière d’une impulsion selon la programmation physique du monnayeur.
+**Prérequis :** connaître la valeur financière d’une impulsion selon la programmation du monnayeur.
 
-1. Ouvrir **Configuration** et choisir **Dinar tunisien (TND)** dans **Devise du monnayeur**.
-2. Choisir **Valeur d’une impulsion (TND)** : 0,500 ; 1 ; 2 ou 5 TND, selon le signal réellement envoyé par le monnayeur.
-3. Vérifier la durée et conserver le solde si aucune correction n’est voulue.
-4. Si un taux DZD/TND est déjà renseigné et doit être modifié, conserver une valeur positive ; ne pas le remplacer par zéro.
-5. Cliquer sur **Enregistrer les modifications** et lire le message de réussite.
+1. Dans **Configuration**, sélectionner **Dinar tunisien (TND)** dans **Devise de la caisse**.
+2. Choisir **Valeur d’une impulsion (TND)** : 0,500 ; 1 ; 2 ou 5 TND.
+3. Vérifier la durée et les pièces disponibles, puis cliquer sur **Enregistrer les modifications**.
+4. Si la caisse contient des opérations dans une autre devise, lire la confirmation de clôture. Annuler conserve la session existante ; confirmer ouvre une nouvelle session à zéro TND.
+5. Vérifier la nouvelle devise et le montant de la session active dans **Recette**.
 
-**Résultat attendu :** les prochains encaissements utilisent le profil TND choisi. La devise et la valeur ne sont pas détectées automatiquement. Une pièce physique peut produire plusieurs impulsions ; la valeur choisie correspond à une impulsion, pas nécessairement à la pièce entière.
+**Résultat attendu :** les prochaines impulsions sont enregistrées en TND. La valeur représente une impulsion, qui peut être une fraction de pièce physique. Les anciennes sessions conservent leur devise et leur montant.
 
-## 17. Administrateur : configurer le DZD et le taux
+## 17. Administrateur : configurer le monnayeur en DZD
 
-**Prérequis :** connaître la valeur par impulsion et le taux de conversion à appliquer aux nouveaux encaissements.
+**Prérequis :** monnayeur programmé pour les pièces algériennes et valeur d’une impulsion connue.
 
-1. Ouvrir **Configuration** et sélectionner **Dinar algérien (DZD)**.
-2. Choisir la valeur par impulsion : 0,25 ; 0,50 ; 1 ; 2 ; 5 ; 10 ; 20 ; 50 ; 100 ou 200 DZD.
-3. Dans **Taux de change · 1 DZD = X TND**, saisir une valeur strictement positive, de 0,000001 à 1000 TND, avec au plus six décimales. Virgule et point sont acceptés.
-4. Conserver les autres réglages souhaités, puis cliquer sur **Enregistrer les modifications**.
-5. Lire le message de réussite et vérifier le taux affiché dans **Recette**.
+1. Dans **Configuration**, sélectionner **Dinar algérien (DZD)**.
+2. Choisir une valeur par impulsion parmi **5, 10, 20, 50, 100 ou 200 DA**.
+3. Conserver la durée et le solde souhaités, puis cliquer sur **Enregistrer les modifications**.
+4. Si la caisse contient déjà des opérations en TND, confirmer sa clôture pour ouvrir une nouvelle session à zéro DZD, ou annuler.
+5. Dans **Recette**, vérifier la devise de la session active et les prochains encaissements.
 
-**Résultat attendu :** les prochains encaissements DZD conservent leur montant natif et leur conversion TND au taux choisi. Changer le taux ne modifie ni l’historique, ni les tarifs, ni le temps de jeu. Le taux 0,020000 des illustrations est fictif.
+**Résultat attendu :** chaque session de caisse utilise une seule devise. Aucun champ de taux de change n’est à renseigner. Les réglages anciens 0,25 ; 0,50 ; 1 ou 2 DZD restent affichés comme **ancien réglage** lorsqu’une installation les utilise déjà ; ils ne sont plus proposés pour un nouveau choix. Les 500 DA correspondent à un billet, pas à une pièce de cette sélection.
 
-![DZD : valeur par impulsion et taux manuel](../../output/screenshots/14-configuration-dzd.jpg)
+![Configuration DZD : choix de la devise et valeur d’une impulsion](../../output/screenshots/interface-configuration-dzd.png)
 
 ## 18. Administrateur : corriger une saisie ou réinitialiser les champs
 
@@ -263,11 +257,11 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 ### Corriger un refus de validation
 
 1. Cliquer sur **Enregistrer les modifications** et lire le message si la saisie est refusée.
-2. Corriger le champ concerné : durée positive, valeur proposée pour la devise, taux valide ou solde entier non négatif.
+2. Corriger le champ concerné : durée positive, valeur proposée pour la devise ou solde entier non négatif.
 3. Cliquer à nouveau sur **Enregistrer les modifications**.
 4. Attendre un message de réussite ; un message d’erreur ne confirme pas l’enregistrement.
 
-**Résultat attendu :** les paramètres sont enregistrés seulement après validation. En DZD, un taux nul ou vide est refusé.
+**Résultat attendu :** les paramètres sont enregistrés seulement après validation. Un changement de devise sur une caisse non vide exige une clôture confirmée.
 
 ### Abandonner les modifications non enregistrées
 
@@ -277,18 +271,18 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 
 **Résultat attendu :** le formulaire est rétabli sans effacer les données de la centrale.
 
-![Exemple de validation : taux nul refusé](../../output/screenshots/15-validation-configuration.jpg)
 
-## 19. Administrateur : simuler une pièce
+## 19. Administrateur : clôturer une session de caisse
 
-**Prérequis :** stockage et solde disponibles pour l’opération. **Emplacement :** **Vue des postes**.
+**Prérequis :** accès à **Configuration** ; aucun encaissement en cours pendant la modification.
 
-1. Repérer l’indicateur **Pièces disponibles**.
-2. Cliquer une fois sur **+1 pièce**.
-3. Attendre l’actualisation et vérifier l’augmentation du solde d’une unité.
-4. Utiliser ensuite ce crédit uniquement selon les besoins de l’exploitation ou du diagnostic.
+1. Conserver la devise actuelle, ou choisir la nouvelle devise et une valeur d’impulsion correspondante.
+2. Pour clôturer en conservant la devise, cliquer sur **Clôturer la caisse et ouvrir une nouvelle session**. Ce bouton enregistre les réglages présents dans le formulaire.
+3. Lire le numéro de session, son montant et sa devise dans la confirmation.
+4. Confirmer pour ouvrir une nouvelle session à zéro, ou annuler pour conserver la session ouverte.
+5. Dans **Recette**, vérifier la session active et sélectionner l’ancienne dans **Session de caisse** pour consulter son historique.
 
-**Résultat attendu :** une pièce disponible est ajoutée, sans créer de recette. Cette fonction ne vérifie pas le signal électrique du monnayeur. Elle n’est pas accessible à l’utilisateur simple.
+**Résultat attendu :** l’ancienne recette reste consultable. Les pièces disponibles et les temps de jeu restent conservés. Exemple : 5 000 DZD archivés, puis une nouvelle caisse à 0 TND après changement de devise. Clôturer ne libère pas l’espace de stockage.
 
 ## 20. Administrateur : corriger le solde partagé
 
@@ -329,64 +323,65 @@ Le fichier contient des secrets. Il ne contient pas le journal financier LittleF
 
 **Résultat attendu :** la configuration persistante est remplacée et les sessions web sont fermées. Le journal financier LittleFS et les sessions physiques des postes ne sont pas restaurés par ce JSON. En cas d’erreur de stockage, relever le message et suivre le diagnostic avant toute nouvelle opération.
 
-![Sélection du fichier et activation du bouton de restauration](../../output/screenshots/28-sauvegarde-selectionnee.jpg)
 
-## 23. Administrateur : lire la recette et ses indicateurs
+## 23. Administrateur : consulter la recette et l’historique
 
 **Prérequis :** accès au module **Recette**.
 
-1. Ouvrir **Recette**.
-2. Lire le bandeau de stockage et d’horloge : LittleFS prêt, occupation et éventuelle attente NTP ou erreur.
-3. Lire les trois montants : **Total général en TND**, **Total encaissé en TND** et **Total encaissé en DZD**.
-4. Lire les compteurs : **Impulsions encaissées**, **Crédits historiques / pièces** et **Écritures persistées**.
-5. Consulter le graphique et son tableau **Détail**. Le graphique représente le total TND ; l’infobulle indique les deux montants d’origine.
-6. Si des montants sont non datés, vérifier l’horloge ; ils restent signalés séparément et exclus des périodes calendaires.
+1. Lire le bandeau d’état : disponibilité de LittleFS, occupation et éventuelle attente de synchronisation NTP.
+2. Dans **Session de caisse**, conserver **Session active** ou choisir une session archivée. Une ancienne installation peut présenter **Archive antérieure** séparément pour TND et DZD.
+3. Lire **Recette de la période** et **Total de la session**, dans la devise indiquée.
+4. Consulter **Impulsions encaissées**, **Crédits historiques / pièces** et **Écritures persistées**.
+5. Lire le graphique et le tableau **Détail**. Les corrections manuelles du solde ne constituent pas des encaissements.
+6. Si des écritures sont non datées, vérifier l’horloge. Elles sont comprises dans le total de session, mais restent hors des périodes calendaires.
 
-**Résultat attendu :** vous distinguez l’argent encaissé du solde de pièces encore disponible. Les simulations et corrections du solde sont exclues de la recette. Les conversions utilisent le taux historique de chaque impulsion, arrondi au millime.
+**Résultat attendu :** vous distinguez les crédits disponibles de l’argent encaissé. Les montants DZD et TND ne sont jamais additionnés dans une même recette.
 
-![Gros plan : les six indicateurs de recette](../../output/screenshots/29-widgets-recette.jpg)
+![Recette : session, période, exports et synthèse dans la devise de la caisse](../../output/screenshots/interface-recette.png)
 
-## 24. Administrateur : choisir jour, semaine ou mois
+## 24. Administrateur : choisir une période
 
-**Prérequis :** module **Recette** ouvert.
+1. Choisir d’abord la **Session de caisse** à consulter.
+2. Dans **Regrouper par**, sélectionner **Jour**, **Semaine** ou **Mois**.
+3. Dans **Date de référence**, choisir une date de la période souhaitée.
+4. Attendre le chargement et vérifier la plage affichée au-dessus du graphique et du tableau.
+5. Utiliser **Actualiser**, à droite du bandeau de stockage, pour relire les données.
 
-1. Dans **Regrouper par**, choisir **Jour**, **Semaine** ou **Mois**.
-2. Dans **Date de référence**, sélectionner la date voulue.
-3. Attendre le chargement ; utiliser **Actualiser** pour relire la même période.
-4. Vérifier la plage affichée au-dessus du graphique et du tableau avant de lire les totaux ou d’exporter.
-5. Lire le détail par heure en mode Jour, ou par jour en mode Semaine/Mois.
+**Résultat attendu :** le mode Jour détaille les heures ; Semaine et Mois détaillent les jours. Le total de période dépend des dates choisies, tandis que le total de session couvre toute la session.
 
-**Résultat attendu :** filtres, cartes, graphique et tableau concernent la même période. Les dates présentes dans ces écrans servent au choix de la période comptable.
+## 25. Administrateur : exporter en PDF ou CSV
 
-![Recette Jour : filtres, montants et détail](../../output/screenshots/04-recette.jpg)
+**Prérequis :** session et période chargées, journal de recette disponible.
 
-![Recette Semaine : agrégats journaliers](../../output/screenshots/17-recette-semaine.jpg)
+1. Vérifier **Session de caisse**, **Regrouper par** et **Date de référence**.
+2. Sous **Exporter la recette**, cliquer sur **PDF** ou **CSV**.
+3. Enregistrer le téléchargement, puis ouvrir le fichier.
+4. Vérifier le numéro de session, sa devise, les dates, la synthèse et les détails avant impression ou archivage.
 
-![Recette Mois : graphique et tableau complets](../../output/screenshots/18-recette-mois.jpg)
+**PDF :** en-tête PS TIME MANAGER, synthèse, tableau de montants et compteurs, pagination et rappel des colonnes sur les pages suivantes.
 
-## 25. Administrateur : exporter la recette en CSV ou PDF
+**CSV :** texte UTF-8 avec marqueur BOM et séparateur point-virgule ; synthèse suivie du détail, devise explicite et ligne de total. Si nécessaire, choisir UTF-8 et le séparateur point-virgule lors de l’import dans le tableur.
 
-**Prérequis :** période chargée dans **Recette**, sans erreur empêchant la lecture.
+**Résultat attendu :** l’export correspond à la session et à la période choisies. Les écritures non datées sont signalées séparément. Un rapport PDF/CSV n’est pas une sauvegarde permettant de restaurer le journal binaire.
 
-### Exporter en CSV
+## 26. Administrateur : exporter toutes les sessions et vider la recette
 
-1. Vérifier **Regrouper par**, la date de référence et la plage affichée.
-2. Cliquer sur **CSV**.
-3. Vérifier le téléchargement du fichier `.csv`, puis l’ouvrir dans l’outil de tableur utilisé par la salle.
-4. Comparer les montants et la période avec l’écran avant de transmettre le rapport.
+**Prérequis :** accès administrateur, journal disponible et période de maintenance sans nouvelles pièces introduites dans le monnayeur.
 
-**Résultat attendu :** le fichier contient les agrégats TND/DZD, le total converti et les compteurs de la période.
+1. Dans **Recette**, descendre jusqu’à **Mémoire de recette**.
+2. Cliquer sur **Exporter et vider la recette** et lire l’alerte.
+3. Confirmer pour préparer et télécharger le PDF complet. Il comprend les sessions contenant des écritures, la session active, toutes les dates et les écritures non datées, avec un total propre à chaque devise et session.
+4. Ouvrir le PDF téléchargé, vérifier toutes les pages et conserver le fichier dans un emplacement sûr. À cette étape, la recette est toujours conservée sur la centrale.
+5. Seulement après vérification, cliquer sur **PDF enregistré : vider la recette**, puis confirmer l’effacement définitif.
+6. Vérifier le message de réussite, le montant de recette à zéro et l’espace libéré. La session active conserve son identifiant et sa devise.
 
-### Exporter en PDF
+**Résultat attendu :** seul l’historique de recette est effacé. Le solde des pièces disponibles, les postes, leurs tarifs et temps, les comptes, le Wi-Fi et la configuration sont conservés. LittleFS n’est pas formaté intégralement.
 
-1. Vérifier la période et les montants à l’écran.
-2. Cliquer sur **PDF**.
-3. Vérifier le téléchargement du fichier `.pdf`, puis l’ouvrir.
-4. Contrôler la période et toutes les pages du détail avant impression ou archivage.
+Si de nouvelles opérations arrivent après l’export, si l’export est incomplet ou si l’autorisation expire après quinze minutes, l’effacement est refusé. Relancer l’export complet avant de réessayer. En cas d’échec, lire le message et vérifier le journal ; ne pas effacer toute la flash.
 
-**Résultat attendu :** le navigateur produit un rapport lisible, paginé si nécessaire. Ces exports sont des rapports agrégés, pas une sauvegarde restaurable du journal financier.
+![Mémoire de recette : exporter l’historique avant de confirmer son effacement](../../output/screenshots/interface-memoire-recette.png)
 
-## 26. Administrateur : créer un compte
+## 27. Administrateur : créer un compte
 
 **Prérequis :** moins de dix comptes enregistrés. **Emplacement :** **Utilisateurs > Ajouter un utilisateur**.
 
@@ -401,7 +396,7 @@ Le fichier contient des secrets. Il ne contient pas le journal financier LittleF
 
 ![Utilisateurs : création et liste des comptes](../../output/screenshots/07-utilisateurs.jpg)
 
-## 27. Administrateur : modifier ou supprimer un compte
+## 28. Administrateur : modifier ou supprimer un compte
 
 **Emplacement :** **Utilisateurs > Comptes existants**.
 
@@ -425,7 +420,7 @@ Le fichier contient des secrets. Il ne contient pas le journal financier LittleF
 
 ![Éditeur de compte : identité, rôle et nouveau mot de passe facultatif](../../output/screenshots/16-modifier-utilisateur.jpg)
 
-## 28. Administrateur : changer son mot de passe
+## 29. Administrateur : changer son mot de passe
 
 **Prérequis :** session administrateur ouverte. **Emplacement :** **Sécurité > Mot de passe administrateur**.
 
@@ -439,7 +434,7 @@ Le fichier contient des secrets. Il ne contient pas le journal financier LittleF
 
 ![Sécurité : double saisie, indicateur de force et token API](../../output/screenshots/08-securite.jpg)
 
-## 29. Administrateur : consulter et régénérer le token API
+## 30. Administrateur : consulter et régénérer le token API
 
 **Prérequis :** connaître les clients utilisant l’API et pouvoir mettre à jour leur configuration. **Emplacement :** **Sécurité > Token API**.
 
@@ -453,7 +448,7 @@ Le fichier contient des secrets. Il ne contient pas le journal financier LittleF
 
 L’application utilise HTTP sur le LAN. Les indications **État de la sécurité** ne remplacent pas la protection effective du réseau et des accès.
 
-## 30. Administrateur : lire et vider le journal
+## 31. Administrateur : lire et vider le journal
 
 **Emplacement :** **Journal**.
 
@@ -477,7 +472,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 ![Journal : messages, niveaux et commandes](../../output/screenshots/09-journal.jpg)
 
-## 31. Administrateur : réinitialiser le Wi-Fi de la centrale
+## 32. Administrateur : réinitialiser le Wi-Fi de la centrale
 
 **Prérequis :** connaître le réseau de destination et pouvoir rejoindre physiquement le point d’accès de configuration après redémarrage.
 
@@ -489,7 +484,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 **Résultat attendu :** les paramètres réseau de la centrale sont effacés et son portail de configuration est ouvert. Ce bouton ne réinitialise pas les réseaux des postes.
 
-## 32. Connecter la centrale : DHCP ou IP fixe
+## 33. Connecter la centrale : DHCP ou IP fixe
 
 **Accès :** personne chargée de la mise en réseau. **Prérequis :** accès au portail de configuration de la centrale et identifiants Wi-Fi disponibles.
 
@@ -508,7 +503,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 ![Centrale : adresse fixe, passerelle, masque et DNS](../../output/screenshots/19-wifi-centrale-ip-fixe.jpg)
 
-## 33. Connecter un poste : DHCP ou IP fixe
+## 34. Connecter un poste : DHCP ou IP fixe
 
 **Accès :** personne chargée de la mise en réseau. **Prérequis :** poste en mode configuration, même réseau cible que la centrale et secret commun déjà programmé.
 
@@ -527,7 +522,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 ![Poste sur téléphone : formulaire après défilement](../../output/screenshots/27-wifi-poste-mobile.jpg)
 
-## 34. Consulter directement l’état d’un poste
+## 35. Consulter directement l’état d’un poste
 
 **Accès :** personne disposant de l’IP du poste sur le LAN. **Prérequis :** poste connecté au réseau.
 
@@ -543,7 +538,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 ![État JSON : identité, relais, temps et reprise](../../output/screenshots/22-poste-status.jpg)
 
-## 35. Administrateur : résoudre un débit interrompu
+## 36. Administrateur : résoudre un débit interrompu
 
 **Prérequis :** message d’affectation interrompue et panneau de résolution dans **Configuration**. Ne pas confondre cet incident de débit central avec une reprise de session sauvegardée sur un poste.
 
@@ -556,7 +551,7 @@ L’application utilise HTTP sur le LAN. Les indications **État de la sécurit�
 
 **Résultat attendu :** la centrale règle le débit incertain selon le résultat constaté. En cas de doute sur le poste ou de défaut de stockage persistant, solliciter la maintenance avant de répéter une commande.
 
-## 36. Organiser le service et traiter les problèmes
+## 37. Organiser le service et traiter les problèmes
 
 **Accès :** utilisateur simple pour les sessions ; administrateur pour les réglages, exports et incidents de stockage.
 

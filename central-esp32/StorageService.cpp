@@ -1,6 +1,7 @@
 #include "StorageService.h"
 #include "AppConfig.h"
 #include "CreditMath.h"
+#include "RevenueService.h"
 
 #include <Preferences.h>
 #include <ArduinoJson.h>
@@ -76,9 +77,7 @@ bool readSnapshot(const char* key, const char* magic, uint8_t* data, size_t size
 
 bool validConfig(const AppState& state) {
   return state.coinDurationSeconds > 0 && state.availablePieces >= 0 &&
-    Money::validValue(state.coinCurrency, state.pulseValueMinor) &&
-    state.dzdToTndRateMicros <= Money::MAX_RATE &&
-    (state.coinCurrency != Money::DZD || Money::validRate(state.dzdToTndRateMicros));
+    Money::validStoredValue(state.coinCurrency, state.pulseValueMinor);
 }
 
 void buildPostsArray(JsonArray arr, const AppState& state) {
@@ -194,7 +193,7 @@ void buildBackup(const AppState& state, JsonDocument& doc) {
   doc["coinDurationSeconds"] = state.coinDurationSeconds;
   doc["coinCurrency"] = Money::code(state.coinCurrency);
   doc["pulseValueMinor"] = state.pulseValueMinor;
-  doc["dzdToTndRateMicros"] = state.dzdToTndRateMicros;
+
   doc["availablePieces"] = state.availablePieces; doc["apiToken"] = state.apiToken;
   buildUsersArray(doc.createNestedArray("users"), state);
   buildPostsArray(doc.createNestedArray("posts"), state);
@@ -219,12 +218,10 @@ bool parseBackup(JsonDocument& doc, AppState& restored, String& error) {
   restored.coinDurationSeconds = doc["coinDurationSeconds"].as<int>();
   restored.apiToken = doc["apiToken"].as<String>();
   if (version >= 3) {
-    if (!doc["coinCurrency"].is<const char*>() || !doc["pulseValueMinor"].is<uint32_t>() ||
-        !doc["dzdToTndRateMicros"].is<uint32_t>()) { error = "Paramètres monétaires invalides."; return false; }
+    if (!doc["coinCurrency"].is<const char*>() || !doc["pulseValueMinor"].is<uint32_t>()) { error = "Paramètres monétaires invalides."; return false; }
     String currency = doc["coinCurrency"].as<String>();
     restored.coinCurrency = currency == "TND" ? Money::TND : currency == "DZD" ? Money::DZD : 255;
     restored.pulseValueMinor = doc["pulseValueMinor"].as<uint32_t>();
-    restored.dzdToTndRateMicros = doc["dzdToTndRateMicros"].as<uint32_t>();
   } else if (version == 2) {
     if (!doc["pulseValueMillimes"].is<uint32_t>()) { error = "Valeur d'impulsion invalide."; return false; }
     restored.pulseValueMinor = doc["pulseValueMillimes"].as<uint32_t>();
@@ -290,6 +287,7 @@ bool resumeRestore(String& error) {
     error = "Journal de restauration invalide ; reprise suspendue."; return false;
   }
   restored.lastRevenueSequence = doc["_localRevenueSequence"].as<uint64_t>();
+  restored.revenueSessionId = doc["_localRevenueSessionId"] | 0U;
   if (!applyRestore(doc, restored)) {
     error = "Restauration NVS en attente ; libérer/rétablir le stockage puis redémarrer."; return false;
   }
@@ -311,7 +309,7 @@ void load(AppState& state) {
     if (valid) {
       state.coinDurationSeconds = RevenueJournal::get(config + 4, 4);
       state.coinCurrency = config[12]; state.pulseValueMinor = RevenueJournal::get(config + 16, 4);
-      state.dzdToTndRateMicros = RevenueJournal::get(config + 20, 4);
+      state.revenueSessionId = RevenueJournal::get(config + 24, 4);
       state.availablePieces = RevenueJournal::get(credits + 4, 4);
       state.lastRevenueSequence = RevenueJournal::get(credits + 16, 8);
       state.legacyRevenueSequence = RevenueJournal::get(credits + 24, 8);
@@ -331,7 +329,6 @@ void load(AppState& state) {
         state.coinDurationSeconds = RevenueJournal::get(data + 4, 4);
         legacyPrice = RevenueJournal::get(data + 8, 4); state.coinCurrency = data[12];
         state.pulseValueMinor = RevenueJournal::get(data + 16, 4);
-        state.dzdToTndRateMicros = RevenueJournal::get(data + 20, 4);
         pendingDivisor = legacyPrice;
       }
     }
@@ -425,7 +422,7 @@ bool saveConfig(const AppState& state) {
   RevenueJournal::put(data + 4, state.coinDurationSeconds, 4);
   data[12] = state.coinCurrency;
   RevenueJournal::put(data + 16, state.pulseValueMinor, 4);
-  RevenueJournal::put(data + 20, state.dzdToTndRateMicros, 4);
+  RevenueJournal::put(data + 24, state.revenueSessionId, 4);
   RevenueJournal::put(data + 30, Money::crc16(data, 30), 2);
   return writeVerified("appcfg", "configV4", data, sizeof(data));
 }
@@ -521,11 +518,18 @@ bool importConfigJson(AppState& state, const String& inputJson, String& error) {
   if (!state.creditStorageReady || state.revenueTransactionPending) {
     error = "Stockage ou transaction en attente ; restauration refusée."; return false;
   }
+  restored.revenueSessionId = state.revenueSessionId;
+  if (restored.coinCurrency != state.coinCurrency) {
+    uint64_t amount; uint32_t events;
+    if (!RevenueService::sessionTotals(state, amount, events, error)) return false;
+    if (events) { error = "Clôturer la caisse avant de restaurer une autre devise."; return false; }
+  }
   restored.lastRevenueSequence = state.lastRevenueSequence;
   JsonDocument canonical;
   buildBackup(restored, canonical);
   if (input.containsKey("wifi")) canonical["wifi"] = input["wifi"];
   canonical["_localRevenueSequence"] = restored.lastRevenueSequence;
+  canonical["_localRevenueSessionId"] = restored.revenueSessionId;
   String json;
   if (canonical.overflowed() || measureJson(canonical) > MAX_BACKUP || !serializeJson(canonical, json)) {
     error = "Sauvegarde trop volumineuse."; return false;
@@ -539,7 +543,7 @@ bool importConfigJson(AppState& state, const String& inputJson, String& error) {
     return storageFail(state, error);
   }
   state.coinDurationSeconds = restored.coinDurationSeconds; state.coinCurrency = restored.coinCurrency;
-  state.pulseValueMinor = restored.pulseValueMinor; state.dzdToTndRateMicros = restored.dzdToTndRateMicros;
+  state.pulseValueMinor = restored.pulseValueMinor; state.revenueSessionId = restored.revenueSessionId;
   state.availablePieces = restored.availablePieces; state.apiToken = restored.apiToken;
   state.legacyRevenueSequence = 0;
   state.users.swap(restored.users); state.posts.swap(restored.posts);

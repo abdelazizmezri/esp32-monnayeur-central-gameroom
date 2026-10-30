@@ -1,5 +1,6 @@
 # Guide technique d’installation
 
+
 Installez et configurez PS TIME MANAGER, de la préparation d’Arduino IDE au premier démarrage de la centrale et des postes. Les noms de postes, comptes, réseaux et montants des illustrations sont des exemples : remplacez-les par les valeurs de votre installation.
 
 ## 1. Comprendre le système
@@ -15,7 +16,7 @@ La centrale ESP32 reçoit les impulsions du monnayeur, conserve les pièces disp
 
 Suivre les étapes dans l’ordre : outils, firmwares, câblage, Wi-Fi, association des postes et vérification de fonctionnement. Le tarif d’un poste reste enregistré dans la centrale ; le poste reçoit une durée de jeu.
 
-![Centrale : indicateurs et cartes de poste](../../output/screenshots/02-tableau-de-bord-admin.jpg)
+![Centrale : indicateurs et cartes de poste](../../output/screenshots/interface-accueil.png)
 
 ## 2. Préparer le matériel et les fichiers
 
@@ -316,12 +317,12 @@ Le réglage NO est conseillé pour ce fonctionnement, mais ne garantit pas à lu
 3. Ouvrir **Gestion des postes** et repérer l’IP et l’identifiant matériel de la carte à associer.
 4. Saisir **Nom du poste** et **Nombre de pièces requis**, entier positif, puis cliquer sur **Ajouter ce poste**.
 5. Vérifier sa présence dans **Postes configurés**. Utiliser **Ping** pour contrôler la réponse réseau.
-6. Dans **Configuration**, choisir la durée commune, la devise et la valeur d’une impulsion correspondant au monnayeur. Pour le DZD, renseigner un taux positif **1 DZD = X TND**.
+6. Dans **Configuration**, choisir la durée commune, la devise et la valeur d’une impulsion correspondant au monnayeur. Choisir une seule devise par session de caisse : TND ou DZD. Les valeurs DZD proposées sont 5, 10, 20, 50, 100 et 200 DA.
 7. Enregistrer, créer les comptes d’exploitation dans **Utilisateurs**, puis exporter une sauvegarde JSON depuis **Configuration**.
 
 **Résultat attendu :** les postes portent leurs noms et tarifs, les comptes ont les bons rôles et les réglages monétaires correspondent au matériel.
 
-![Gestion des postes : liste permanente et formulaire d’association](../../output/screenshots/06-gestion-des-postes.jpg)
+![Gestion des postes : liste permanente et formulaire d’association](../../output/screenshots/interface-postes.png)
 
 ## 20. Vérifier le fonctionnement initial
 
@@ -333,7 +334,7 @@ Le réglage NO est conseillé pour ce fonctionnement, mais ne garantit pas à lu
 4. Pendant la session, attribuer une nouvelle durée et constater la prolongation du temps.
 5. Cliquer sur **Arrêter la session**, confirmer et vérifier relais OFF et temps à zéro. Un arrêt ne rembourse pas le solde.
 6. Laisser aussi une session arriver à expiration pour vérifier la coupure automatique du poste.
-7. Ouvrir **Recette**, choisir une période et vérifier montants TND/DZD, total converti et état de l’horloge. Exporter le rapport utile.
+7. Ouvrir **Recette**, choisir une période et sélectionner la session de caisse et vérifier sa devise, le total de période, le total de session et l’état de l’horloge. Exporter le rapport utile.
 8. Vérifier le compte utilisateur simple : sessions accessibles, modules administrateur absents.
 9. Préparer une vérification encadrée de reprise après coupure : relais OFF au redémarrage, puis décision **Reprendre** ou **Annuler** dans la centrale.
 
@@ -344,7 +345,7 @@ Le réglage NO est conseillé pour ce fonctionnement, mais ne garantit pas à lu
 **Prérequis :** administrateur disponible ; prévoir une période de maintenance et conserver les accès nécessaires au redémarrage.
 
 1. Dans **Configuration**, cliquer sur **Exporter JSON** et conserver le fichier dans un emplacement protégé.
-2. Exporter les rapports financiers utiles. Le JSON ne contient pas `/revenue.bin` ; un rapport agrégé n’est pas non plus une copie brute restaurable de LittleFS.
+2. Exporter les rapports financiers utiles. Pour archiver tout l’historique, utiliser le premier stade de **Recette > Mémoire de recette > Exporter et vider la recette**, puis conserver le PDF sans confirmer l’effacement si l’historique doit rester sur la carte. Le JSON ne contient pas `/revenue.bin` ; un rapport agrégé n’est pas non plus une copie brute restaurable de LittleFS.
 3. Conserver la table de partitions compatible avec l’installation et laisser **Erase All Flash** désactivé. Un effacement ou changement de partitions peut détruire les données.
 4. Si le secret commun change, préparer et programmer la centrale et tous les postes avec la même nouvelle valeur.
 5. Compiler et vérifier la taille réelle, sélectionner le bon port puis téléverser en USB.
@@ -353,13 +354,13 @@ Le réglage NO est conseillé pour ce fonctionnement, mais ne garantit pas à lu
 
 **Résultat attendu :** le système redémarre avec une configuration cohérente. Une erreur de migration, de CRC ou de stockage exige un diagnostic ; ne pas répondre par un formatage aveugle.
 
-Les sauvegardes V4 conservent durée, solde en pièces, tarifs, devise, valeur, taux, comptes, token API et Wi-Fi/IP. Les V1-V3 sont migrées selon leurs unités. Les comptes contiennent des hashes salés ; le fichier contient aussi des secrets réseau à protéger.
+Les sauvegardes V4 conservent durée, solde en pièces, tarifs, devise, valeur d’impulsion, comptes, token API et Wi-Fi/IP. Les V1-V3 sont migrées selon leurs unités. Les comptes contiennent des hashes salés ; le fichier contient aussi des secrets réseau à protéger.
 
 ## 22. Comprendre la persistance et les reprises
 
 | Stockage | Données |
 |---|---|
-| appcfg/configV4 | Durée, devise, valeur et taux |
+| appcfg/configV4 | Durée, devise, valeur d’impulsion et identifiant de session de caisse |
 | appcfg/creditsV4 | Solde en pièces et séquence financière locale |
 | appcfg/postsV4 | Identités et tarifs des postes |
 | appcfg/restoreV4 | Restauration préparée à terminer après redémarrage |
@@ -370,9 +371,17 @@ Les sauvegardes V4 conservent durée, solde en pièces, tarifs, devise, valeur, 
 
 Le débit d’une attribution est préparé avant la commande au poste et finalisé après succès HTTP. Un timeout peut survenir après exécution de la commande : vérifier le poste avant de répéter. Si le panneau de résolution apparaît, l’administrateur confirme ou annule le débit selon ce constat.
 
-Les encaissements figent devise, valeur et taux ; la conversion DZD est arrondie au millime par impulsion. Changer le taux ne modifie pas la recette passée. Sans NTP, les montants restent non datés et exclus des périodes calendaires. Une impulsion encore seulement en RAM n’est pas garantie après disparition de l’alimentation.
+Les encaissements figent la session, la devise et la valeur d’impulsion. Les montants natifs sont stockés en millimes TND ou centimes DZD. La clôture ouvre une nouvelle session à zéro et conserve les anciennes recettes. Une caisse non vide doit être clôturée avant de changer de devise. Sans NTP, les montants restent non datés et exclus des périodes calendaires. Une impulsion encore seulement en RAM n’est pas garantie après disparition de l’alimentation.
 
 Le poste sauvegarde au début de session, après ajout de temps puis toutes les 60 secondes. Après coupure, le relais reste OFF jusqu’à la décision de reprise. Le temps hors tension n’est pas déduit ; la reprise peut restituer environ une minute de plus que le dernier temps réel.
+
+### Capacité et maintenance de la recette
+
+La partition LittleFS fait 640 Kio. Une écriture REV2 occupe 72 octets ; le plafond brut est de l’ordre de 9 000 écritures avant frais du système de fichiers. Une écriture peut représenter plusieurs impulsions. La compaction horaire regroupe les écritures compatibles d’une même session, devise et valeur d’impulsion. Surveiller l’occupation affichée dans Recette plutôt que promettre un nombre fixe de sessions.
+
+Le parcours **Exporter et vider la recette** exporte toutes les sessions puis attend la confirmation que le PDF est enregistré. Le serveur refuse l’effacement si de nouvelles opérations sont apparues, si les pages d’export n’ont pas toutes été lues ou après quinze minutes. La capture du monnayeur est suspendue pendant le remplacement du journal, pas pendant toute la lecture du PDF : réaliser la maintenance au repos.
+
+Seul `/revenue.bin` est remplacé par un journal minimal comportant un repère de séquence. Les autres fichiers LittleFS, les instantanés NVS et les crédits sont conservés. Le fichier temporaire et le fichier de secours rendent le remplacement récupérable ; une erreur de stockage peut imposer un redémarrage et une vérification du journal. Ne pas utiliser un formatage complet comme raccourci.
 
 ## 23. Utiliser les API de diagnostic
 
@@ -394,9 +403,10 @@ curl http://pstm.local/posts \
 |---|---|
 | /assign ; /stop ; /recovery/resume ; /recovery/cancel | Sessions : utilisateur autorisé ou API |
 | /post/update ; /post/delete ; /post/ping ; /poste/configure | Administration des postes |
-| /config ; /config/export ; /config/import ; /pieces/simulate | Configuration, sauvegarde et simulation : admin |
+| /config ; /config/export ; /config/import | Configuration et sauvegarde : admin |
 | /assignment/resolve | Résoudre le débit : admin |
-| /revenue/data ; /revenue/export.csv | Recette : admin |
+| /revenue/data ; /revenue/export.csv | Recette par session, période et devise : admin |
+| /revenue/archive/prepare ; /revenue/archive/page ; /revenue/clear | Export complet puis effacement confirmé : admin |
 | /users/data ; /users/create ; /users/update ; /users/delete | Comptes : admin |
 | /auth/password ; /auth/token/regenerate ; /wifi/reset | Sécurité et réseau : admin ; session requise pour le mot de passe |
 | /logs/data ; /logs/clear | Journal : admin |
@@ -419,6 +429,6 @@ Le poste expose `/configure`, `/identity/clear` et `/command` avec son secret pa
 | Pièces non comptées | Monnayeur prêt, repos HIGH, GPIO13, tension | Contrôler câblage et signal ; retirer l’ancien pull-down hors tension |
 | Afficheur ou relais incorrect | Broches, polarité et alimentations | Contrôler sans charge puis adapter PosteConfig.h si nécessaire |
 | Débit incertain | Résultat réel sur le poste | Utiliser la résolution administrateur sans répéter aveuglément |
-| NVS/LittleFS en erreur | Message exact et espace libre | Conserver les données et diagnostiquer sans formater |
+| NVS/LittleFS en erreur | Message exact et espace libre | Conserver les données et diagnostiquer sans formater ; si le journal reste lisible, exporter puis vider uniquement la recette |
 
 **Résultat attendu :** chaque correction répond à un symptôme identifié. Une opération de câblage se réalise hors tension ; une opération de maintenance doit préserver les réglages et l’historique utiles à l’exploitation.

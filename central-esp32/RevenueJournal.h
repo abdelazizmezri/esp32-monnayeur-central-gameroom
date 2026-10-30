@@ -12,7 +12,8 @@ constexpr uint8_t LEGACY_HEADER[HEADER_SIZE] = {'P','S','T','M','R','E','V','1',
 struct Entry {
   uint32_t epoch = 0;
   uint8_t currency = Money::TND;
-  uint32_t rate = 0;
+  uint32_t rate = 0; // Champ historique REV2 conservé, jamais utilisé pour les calculs.
+  uint32_t sessionId = 0;
   uint32_t pulseValue = 0;
   uint64_t nativeAmount = 0;
   uint64_t convertedMillimes = 0;
@@ -40,10 +41,12 @@ inline void encode(const Entry& e, uint8_t* r) {
   put(r+32, e.pulses, 4); put(r+36, e.credits, 4); put(r+40, e.sequence, 8);
   put(r+48, e.balanceAfter, 4); put(r+52, e.pendingAfter, 4);
   put(r+56, e.pulsesPerCoin, 4); put(r+60, e.events, 4);
+  put(r+64, e.sessionId, 4);
   put(r+70, Money::crc16(r, 70), 2);
 }
 inline bool decode(const uint8_t* r, Entry& e) {
   if (get(r+70, 2) != Money::crc16(r, 70) || r[4] > Money::DZD) return false;
+  e.sessionId = get(r+64,4);
   e.epoch = get(r,4); e.currency = r[4]; e.rate = get(r+8,4); e.pulseValue = get(r+12,4);
   e.nativeAmount = get(r+16,8); e.convertedMillimes = get(r+24,8);
   e.pulses = get(r+32,4); e.credits = get(r+36,4); e.sequence = get(r+40,8);
@@ -51,8 +54,7 @@ inline bool decode(const uint8_t* r, Entry& e) {
   e.pulsesPerCoin = get(r+56,4); e.events = get(r+60,4);
   return e.pulsesPerCoin > 0 && e.pendingAfter < e.pulsesPerCoin &&
          e.balanceAfter <= INT32_MAX && e.nativeAmount <= INT64_MAX &&
-         e.convertedMillimes <= INT64_MAX &&
-         (e.currency != Money::DZD || Money::validRate(e.rate));
+         e.convertedMillimes <= INT64_MAX;
 }
 inline bool decodeLegacy(const uint8_t* r, Entry& e) {
   if (get(r+14,2) != Money::crc16(r,14)) return false;
@@ -62,7 +64,7 @@ inline bool decodeLegacy(const uint8_t* r, Entry& e) {
 }
 inline bool sameBucket(const Entry& a, const Entry& b) {
   return a.epoch / 3600 == b.epoch / 3600 && (a.epoch == 0) == (b.epoch == 0) &&
-         a.currency == b.currency && a.rate == b.rate && a.pulseValue == b.pulseValue;
+         a.sessionId == b.sessionId && a.currency == b.currency && a.rate == b.rate && a.pulseValue == b.pulseValue;
 }
 inline bool merge(Entry& a, const Entry& b) {
   if (!sameBucket(a,b) || a.nativeAmount > INT64_MAX-b.nativeAmount ||

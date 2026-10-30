@@ -162,8 +162,9 @@ def story_for(source: Path) -> list:
     story = [Spacer(1,90), paragraph("PS TIME MANAGER",source,"H2FR"),
              paragraph(title,source,"CoverFR"),paragraph("Centrale et postes ESP32",source,"H1FR"),
              Spacer(1,25),
-             paragraph("Tarification par poste - Recettes TND/DZD - Sauvegardes V4",source),
-             Spacer(1,22),paragraph(introduction,source),PageBreak()]
+             paragraph("Tarification par poste - Caisse à devise unique - Archivage de recette",source),
+             Spacer(1,10),paragraph("Édition du 28 octobre 2026",source,"CaptionFR"),
+             Spacer(1,16),paragraph(introduction,source),PageBreak()]
     headings=[line[3:] for line in lines if line.startswith("## ")]
     toc=Paragraph("Sommaire",styles["H1FR"]);toc.section_title="Sommaire"
     story += [toc,paragraph("Les signets du PDF donnent accès aux sections. Les captures longues se poursuivent sur la page suivante, sans réduction excessive.",source)]

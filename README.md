@@ -29,27 +29,32 @@ le même firmware, avec une identité propre enregistrée en mémoire.
 - [Manuel illustré en français, source du PDF](docs/manuals/manuel-utilisation.md)
 - [Tarification par poste et sauvegardes V4](docs/tarification-par-poste.md)
 - [Recettes multidevises](docs/multidevise.md)
-- [Sources, couverture et reproduction des captures](docs/manuals/README.md)
+- [Sources et génération des manuels](docs/manuals/README.md)
 
 Les README de la centrale et du poste détaillent la mise en service, toutes les
 routes HTTP, les exemples `curl`, la persistance, le dépannage et les limites
 propres à chaque firmware. Le présent README décrit surtout l'architecture et le
 fonctionnement du système complet.
 
-Les captures publiées dans les PDF proviennent des pages HTML réellement
-embarquées dans les firmwares. Le serveur de démonstration local injecte
-uniquement des postes, comptes, réseaux Wi-Fi, événements et valeurs de recette
-fictifs : aucune donnée NVS, adresse ou identité issue d'une installation réelle
+Les illustrations des PDF proviennent des pages HTML réellement
+embarquées dans les firmwares. Les illustrations utilisent des postes, comptes, réseaux Wi-Fi, événements et
+valeurs de recette fictifs : aucune donnée NVS, adresse ou identité issue d'une installation réelle
 n'est utilisée.
 
 ## Recettes TND / DZD et tarification par poste
 
-La centrale prend en charge une devise active par monnayeur, un taux manuel
-DZD vers TND à six décimales, trois totaux de recette et des exports adaptés.
+La centrale utilise une seule devise par session de caisse, DZD ou TND. Une caisse non vide doit être clôturée avant de changer de devise.
+Les anciennes sessions et leurs exports conservent leurs montants et leur devise.
 Les anciennes données TND sont migrées sans effacement. La reprise des
 encaissements utilise une transaction NVS et un journal LittleFS vérifiés.
 
 Voir [le fonctionnement et la migration](docs/multidevise.md).
+
+Dans **Recette > Mémoire de recette**, **Exporter et vider la recette** télécharge
+un PDF de tout l’historique. L’effacement attend la confirmation que le PDF est
+enregistré. Le solde, les postes et la configuration restent conservés.
+
+
 Les guides couvrent également la tarification par poste, les sauvegardes V4,
 les formulaires et les interfaces du poste. Le
 [manuel illustré](docs/manuals/manuel-utilisation.md) détaille les procédures
@@ -83,7 +88,7 @@ sa racine et un état JSON via `/status` ; ses sessions sont pilotées depuis la
 centrale. Les captures ci-dessous sont des rendus réels du HTML du dépôt, avec
 une API locale de démonstration, sans validation du matériel.
 
-![Vue des postes : cinq indicateurs et quatre états de session](output/screenshots/02-tableau-de-bord-admin.jpg)
+![Vue des postes : cinq indicateurs et quatre états de session](output/screenshots/interface-accueil.png)
 
 *Vue administrateur : pièces disponibles, durée commune, postes actifs, hors
 ligne et reprises ; un bouton d’attribution au tarif propre à chaque poste.*
@@ -168,7 +173,7 @@ Le log `Monnayeur prêt` confirme que les pièces peuvent être introduites.
 Un verrouillage anti-doublon de 320 ms sépare ensuite les fronts acceptés,
 sans délai bloquant ni validation de durée d'impulsion. Chaque impulsion validée
 ajoute une pièce au solde central persistant et capture sa devise, sa valeur et
-son taux de change. La centrale prépare une transaction durable en NVS, ajoute
+sa session de caisse. La centrale prépare une transaction durable en NVS, ajoute
 la recette dans LittleFS, puis enregistre les crédits avec la même séquence.
 Une opération interrompue est reprise une seule fois au redémarrage.
 
@@ -243,10 +248,10 @@ pour un mois. Elle combine cartes de synthèse, graphique en barres et tableau,
 puis exporte le résultat en CSV ou en véritable fichier PDF.
 
 La devise, la valeur d'origine et la conversion sont figées dans chaque écriture.
-La configuration permet de choisir le TND ou le DZD et de renseigner le taux
-« 1 DZD = X TND ». Recette affiche séparément les TND encaissés, les DZD encaissés
-et leur total général en TND au taux historique. Changer le réglage de l'impulsion
-ou le taux ne modifie jamais l'historique. Les crédits simulés et corrections manuelles du
+La configuration permet de choisir le TND ou le DZD. La page Recette présente
+la session active ou une session archivée, avec des montants dans sa seule devise.
+Un changement de devise exige la clôture si la caisse contient des opérations.
+Changer la valeur d'une impulsion ne modifie jamais l'historique. Les crédits simulés et corrections manuelles du
 solde sont volontairement exclus de la recette.
 
 ### 8. Reprise après une coupure électrique
@@ -311,7 +316,6 @@ La centrale fournit une interface web responsive sur son IP et sur
 | Voir les postes et le solde | Oui | Oui |
 | Affecter des coins et arrêter une session | Oui | Oui |
 | Relancer ou annuler une session interrompue | Oui | Oui |
-| Simuler une pièce | Oui | Non |
 | Configurer ou supprimer les postes | Oui | Non |
 | Modifier la configuration et le Wi-Fi | Oui | Non |
 | Consulter et exporter la recette | Oui | Non |
