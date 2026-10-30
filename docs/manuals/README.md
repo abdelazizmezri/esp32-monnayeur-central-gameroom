@@ -2,7 +2,8 @@
 
 Les deux manuels correspondent à l’interface actuelle : devises par session de
 caisse, clôture, sélection de l’historique, exports PDF/CSV, archivage complet et
-vidage du seul journal de recette.
+vidage du seul journal de recette. Les valeurs DZD par impulsion incluent
+5, 10, 20, 50, 100, 200 et 500 DA.
 
 | Source | PDF livré | Public |
 |---|---|---|
@@ -30,7 +31,9 @@ de recette ont été renouvelés le 28 octobre 2026. Les illustrations inchangé
 des comptes, du réseau et du matériel ont été conservées. Leur date d’origine,
 leurs dimensions et leurs empreintes restent indiquées dans le manifeste.
 Les captures sont des rendus réels du HTML embarqué avec des données fictives,
-sans retouche des images. Elles ne valident pas les signaux GPIO, les relais,
+sans retouche des images. L’ajout de 500 DA le 30 octobre 2026 ne modifie pas
+les captures de configuration, dont le sélecteur de valeur est fermé ; leurs
+empreintes de source à la capture restent conservées. Elles ne valident pas les signaux GPIO, les relais,
 le TM1637, la radio ou les coupures d’alimentation d’un appareil.
 
 Les images inutilisées, les anciens écrans de change, les rapports PDF d’exemple,

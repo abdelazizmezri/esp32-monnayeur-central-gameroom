@@ -722,7 +722,7 @@ clearSelectedConfigFile();
 setMessage('importExportMessage', 'Le fichier sélectionné ne contient pas un JSON valide.', true);
 }
 }
-const coinValues = { TND:[500,1000,2000,5000], DZD:[500,1000,2000,5000,10000,20000] };
+const coinValues = { TND:[500,1000,2000,5000], DZD:[500,1000,2000,5000,10000,20000,50000] };
 function updateCoinCurrency(selected) {
 const currency = document.getElementById('coinCurrency').value;
 const divisor = currency === 'DZD' ? 100 : 1000;

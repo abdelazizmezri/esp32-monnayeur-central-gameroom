@@ -630,7 +630,7 @@ Dans **Configuration** :
 
 - **Durée par attribution** : nombre de minutes ajoutées par clic ;
 - le **Nombre de pièces requis** se règle dans **Gestion des postes**, à la création et dans **Modifier** ;
-- **Devise et valeur d'une impulsion** : valeurs TND existantes ou pièces DZD ;
+- **Devise et valeur d'une impulsion** : valeurs TND existantes ou 5, 10, 20, 50, 100, 200 et 500 DA en DZD ;
 - **Clôture de caisse** : ouvrir une nouvelle session à zéro et conserver la précédente dans l'historique ;
 - **Crédit disponible** : correction administrative du solde.
 

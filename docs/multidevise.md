@@ -12,12 +12,12 @@ impulsion, conformément à la programmation physique du monnayeur :
 | Devise | Valeurs par impulsion | Unité enregistrée |
 |---|---|---|
 | TND | 0,500 ; 1 ; 2 ; 5 | millime (1/1000 TND) |
-| DZD | 5 ; 10 ; 20 ; 50 ; 100 ; 200 | centime (1/100 DZD) |
+| DZD | 5 ; 10 ; 20 ; 50 ; 100 ; 200 ; 500 | centime (1/100 DZD) |
 
 La sélection DZD est adaptée à la salle de jeux et utilise les valeurs 5, 10,
-20, 50, 100 et 200 DA. Les règlements de la [Banque d’Algérie](https://www.bank-of-algeria.dz/reglement-piece-de-monnaie/)
-documentent ces pièces. Il s’agit d’un choix d’exploitation pour le monnayeur,
-pas d’une déclaration de retrait légal des petites pièces. Les anciens réglages
+20, 50, 100, 200 et 500 DA par impulsion. Le réglage 500 DA correspond à
+50 000 centimes et doit correspondre à la programmation du dispositif
+d’encaissement. Cette liste décrit les valeurs configurables du système. Les anciens réglages
 0,25 / 0,50 / 1 / 2 DZD restent lisibles et affichés comme « ancien réglage » si
 la centrale en utilise déjà un ; ils ne sont plus proposés pour un nouveau choix.
 Les recettes historiques et leurs montants natifs restent inchangés.

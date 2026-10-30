@@ -317,7 +317,7 @@ Le réglage NO est conseillé pour ce fonctionnement, mais ne garantit pas à lu
 3. Ouvrir **Gestion des postes** et repérer l’IP et l’identifiant matériel de la carte à associer.
 4. Saisir **Nom du poste** et **Nombre de pièces requis**, entier positif, puis cliquer sur **Ajouter ce poste**.
 5. Vérifier sa présence dans **Postes configurés**. Utiliser **Ping** pour contrôler la réponse réseau.
-6. Dans **Configuration**, choisir la durée commune, la devise et la valeur d’une impulsion correspondant au monnayeur. Choisir une seule devise par session de caisse : TND ou DZD. Les valeurs DZD proposées sont 5, 10, 20, 50, 100 et 200 DA.
+6. Dans **Configuration**, choisir la durée commune, la devise et la valeur d’une impulsion correspondant au monnayeur. Choisir une seule devise par session de caisse : TND ou DZD. Les valeurs DZD proposées par impulsion sont 5, 10, 20, 50, 100, 200 et 500 DA. La valeur 500 DA est enregistrée sous forme de 50 000 centimes et doit correspondre à la programmation du dispositif d’encaissement.
 7. Enregistrer, créer les comptes d’exploitation dans **Utilisateurs**, puis exporter une sauvegarde JSON depuis **Configuration**.
 
 **Résultat attendu :** les postes portent leurs noms et tarifs, les comptes ont les bons rôles et les réglages monétaires correspondent au matériel.

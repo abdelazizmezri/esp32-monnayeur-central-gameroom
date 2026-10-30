@@ -44,6 +44,7 @@ n'est utilisée.
 ## Recettes TND / DZD et tarification par poste
 
 La centrale utilise une seule devise par session de caisse, DZD ou TND. Une caisse non vide doit être clôturée avant de changer de devise.
+Les valeurs DZD configurables par impulsion sont **5, 10, 20, 50, 100, 200 et 500 DA**.
 Les anciennes sessions et leurs exports conservent leurs montants et leur devise.
 Les anciennes données TND sont migrées sans effacement. La reprise des
 encaissements utilise une transaction NVS et un journal LittleFS vérifiés.

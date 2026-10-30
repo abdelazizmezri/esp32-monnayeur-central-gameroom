@@ -241,12 +241,12 @@ Si le bouton est désactivé, lire l’explication de la carte : solde insuffisa
 **Prérequis :** monnayeur programmé pour les pièces algériennes et valeur d’une impulsion connue.
 
 1. Dans **Configuration**, sélectionner **Dinar algérien (DZD)**.
-2. Choisir une valeur par impulsion parmi **5, 10, 20, 50, 100 ou 200 DA**.
+2. Choisir une valeur par impulsion parmi **5, 10, 20, 50, 100, 200 ou 500 DA**.
 3. Conserver la durée et le solde souhaités, puis cliquer sur **Enregistrer les modifications**.
 4. Si la caisse contient déjà des opérations en TND, confirmer sa clôture pour ouvrir une nouvelle session à zéro DZD, ou annuler.
 5. Dans **Recette**, vérifier la devise de la session active et les prochains encaissements.
 
-**Résultat attendu :** chaque session de caisse utilise une seule devise. Aucun champ de taux de change n’est à renseigner. Les réglages anciens 0,25 ; 0,50 ; 1 ou 2 DZD restent affichés comme **ancien réglage** lorsqu’une installation les utilise déjà ; ils ne sont plus proposés pour un nouveau choix. Les 500 DA correspondent à un billet, pas à une pièce de cette sélection.
+**Résultat attendu :** chaque session de caisse utilise une seule devise. Aucun champ de taux de change n’est à renseigner. Les réglages anciens 0,25 ; 0,50 ; 1 ou 2 DZD restent affichés comme **ancien réglage** lorsqu’une installation les utilise déjà ; ils ne sont plus proposés pour un nouveau choix. La valeur 500 DA (50 000 centimes) est également disponible par impulsion ; elle doit correspondre à la programmation du dispositif d’encaissement.
 
 ![Configuration DZD : choix de la devise et valeur d’une impulsion](../../output/screenshots/interface-configuration-dzd.png)
 

@@ -3,7 +3,7 @@
   "origin": "Rendus navigateur des pages embarquées. Les écrans modifiés sont renouvelés ; les illustrations inchangées conservent leur date et leurs empreintes de source d’origine. Les données affichées sont fictives.",
   "imageRetouching": false,
   "uiSourceHashes": {
-    "central-esp32/WebPage.cpp": "a5979d8323965df699e286ccc9ed477ea833384cbc428d29693af3193e9f15c6",
+    "central-esp32/WebPage.cpp": "0fbaba81cfa894e3a290f3ca5e05e7a702e80faa613fb9984769be3d3fdb0b68",
     "central-esp32/WifiProvisioning.cpp": "abe8579a6ca18d2a2db6de2f487db3b3cc44d640ec0ace750fd968dcca740eb4",
     "poste-esp32/WiFiConfigService.cpp": "064494b64d849d026b55041499c2e69bddfdbea8965efe453acef027ee90697c",
     "poste-esp32/PosteWebServer.cpp": "283f5280cf323a4aad061504b07dd22e45dad9e841e07e740b9a49a9cafcb794",
@@ -13,7 +13,8 @@
   "limitations": [
     "Les illustrations ne constituent pas des mesures sur le matériel.",
     "Aucune donnée de caisse, identité, secret ou réseau d’une installation réelle n’est utilisé.",
-    "Les portails réseau et les pages de diagnostic inchangés conservent les captures du 21 octobre 2026."
+    "Les portails réseau et les pages de diagnostic inchangés conservent les captures du 21 octobre 2026.",
+    "Ajout de 500 DA par impulsion le 30 octobre 2026 : les sélecteurs fermés des captures restent visuellement identiques ; les empreintes de source à la capture sont conservées."
   ],
   "captures": [
     {
